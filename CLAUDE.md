@@ -1,6 +1,25 @@
 # Architecture
-
-
+```
+EventBridge (毎日定時)
+       │
+       ▼
+Step Functions
+       │
+       ├─► 1. Script Generator [Lambda]: 対話型のラジオ用スクリプトを作成する
+       │      Strands + Bedrock + Tavily
+       │      → S3 (JSON)
+       │
+       ├─► 2. TTS Worker [ECS Fargate]: 1で作成したスクリプトを音声に変換
+       │      VOICEVOX
+       │      → S3 (WAV)
+       │
+       ├─► 3. Video Worker [ECS Fargate]: 背景画像と1のスクリプト、2の音声を合成し動画にする
+       │      FFmpeg
+       │      → S3 (MP4)
+       │
+       └─► 4. Upload [Lambda]
+              → Google Drive
+```
 # Coding Style
 ## Railway Oriented Programming
 ## TDD
