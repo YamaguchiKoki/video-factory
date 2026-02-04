@@ -17,8 +17,15 @@
     "tsx": "^4.21.0"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^4.0.48",
     "@anthropic-ai/claude-agent-sdk": "^0.2.9",
+    "@aws-sdk/client-bedrock-agentcore": "^3.982.0",
+    "@aws-sdk/credential-providers": "^3.982.0",
+    "@mastra/core": "^1.1.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.69.0",
+    "@strands-agents/sdk": "^0.2.0",
     "arktype": "^2.1.29",
+    "bedrock-agentcore": "^0.2.0",
     "neverthrow": "^8.2.0",
     "zod": "^4.3.6"
   }
