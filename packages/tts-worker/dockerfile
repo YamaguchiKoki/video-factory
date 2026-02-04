@@ -1,0 +1,32 @@
+FROM node:23-slim AS builder
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN pnpm build
+
+RUN pnpm install --frozen-lockfile --prod
+
+FROM node:23-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+
+ENV NODE_ENV=production
+ENV VOICEVOX_URL=http://127.0.0.1:50021
+
+CMD ["node", "dist/cli.js"]
