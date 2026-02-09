@@ -15,7 +15,12 @@
       "Bash(pnpm --filter video-worker test script-parser.test.ts)",
       "Bash(ls:*)",
       "Bash(pnpm --filter video-worker test script-parser)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(pnpm --filter video-worker test render-config.test.ts)",
+      "Bash(pnpm --filter video-worker test:*)",
+      "Skill(kiro:spec-impl)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm --filter video-worker exec npm list:*)"
     ]
   }
 }

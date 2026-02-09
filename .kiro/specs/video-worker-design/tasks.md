@@ -53,7 +53,7 @@
   - _Requirements: 2.1, 2.2, 2.6_
 
 - [ ] 3. RenderConfig構築関数の実装
-- [ ] 3.1 (P) buildRenderConfig関数の作成
+- [x] 3.1 (P) buildRenderConfig関数の作成
   - `src/core/render-config.ts`に`buildRenderConfig`関数を実装
   - ParsedScriptとaudioPathからRenderConfigを構築
   - 純粋関数（副作用なし、外部依存なし）
@@ -65,7 +65,7 @@
   - Result型でエラーハンドリング（durationSeconds <= 0など）
   - _Requirements: 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 3.2 (P) buildRenderConfig関数のユニットテスト
+- [x] 3.2 (P) buildRenderConfig関数のユニットテスト
   - `src/core/render-config.test.ts`にテストを作成
   - 有効なスクリプトからの正しいRenderConfig生成
   - durationInFramesの正確な計算検証（fps * seconds）
@@ -75,7 +75,7 @@
   - _Requirements: 3.4, 3.5, 3.6, 3.7_
 
 - [ ] 4. ファイルシステム操作の実装
-- [ ] 4.1 (P) ファイルシステム基本操作関数の実装
+- [x] 4.1 (P) ファイルシステム基本操作関数の実装
   - `src/infrastructure/file-system.ts`にファイル操作関数を作成（infrastructure層）
   - `readFile(path: string): ResultAsync<Buffer, FileSystemError>`の実装
   - `writeFile(path: string, data: Buffer): ResultAsync<void, FileSystemError>`の実装
@@ -85,7 +85,7 @@
   - 変数宣言は`const`のみ（`let`禁止）
   - _Requirements: 1.3, 1.4, 1.5, 1.6, 1.7_
 
-- [ ] 4.2 (P) 一時ファイル管理関数の実装
+- [x] 4.2 (P) 一時ファイル管理関数の実装
   - `src/infrastructure/temp-file.ts`に一時ファイル管理関数を作成
   - `createTempDir(): ResultAsync<string, FileSystemError>`の実装（`/tmp/video-worker-${uuid}`形式）
   - `cleanupTempDir(path: string): ResultAsync<void, FileSystemError>`の実装（再帰的削除）
@@ -95,7 +95,7 @@
   - UUIDは外部ライブラリまたは`crypto.randomUUID()`
   - _Requirements: 8.1_
 
-- [ ] 4.3 ファイルシステム関数のユニットテスト
+- [x] 4.3 ファイルシステム関数のユニットテスト
   - `src/infrastructure/file-system.test.ts`, `temp-file.test.ts`にテストを作成
   - ファイル読み込み・書き込みの正常系テスト
   - ファイル未存在時のエラーハンドリング（Result.isErr()検証）
@@ -106,7 +106,7 @@
   - _Requirements: 1.5, 1.6, 8.1_
 
 - [ ] 5. Remotionレンダラーの実装
-- [ ] 5.1 renderVideo関数の作成
+- [x] 5.1 renderVideo関数の作成
   - `src/infrastructure/remotion-renderer.ts`に`renderVideo`関数を実装（infrastructure層）
   - @remotion/rendererの`renderMedia()`をneverthrowでwrap
   - `renderVideo(config: RenderConfig): ResultAsync<string, RenderError>`
@@ -118,7 +118,7 @@
   - ログ必要ならカリー化: `createRenderVideo(logger: Logger) => (config) => ResultAsync<...>`
   - _Requirements: 3.1, 3.2, 3.3, 3.8, 8.3_
 
-- [ ] 5.2 レンダリング進行状況のログ出力
+- [x] 5.2 レンダリング進行状況のログ出力
   - `renderMedia()`の`onProgress`コールバックで進行状況取得
   - 10%ごとの進行状況ログ出力（例: "Rendering: 30% (450/1500 frames)"）
   - メモリ使用量の監視: `process.memoryUsage().heapUsed`で4GB接近時に警告
@@ -127,7 +127,7 @@
   - `let`は使わず、`const`でクロージャ変数を管理
   - _Requirements: 3.9, 8.2_
 
-- [ ] 5.3 renderVideo関数のユニットテスト（モック使用）
+- [x] 5.3 renderVideo関数のユニットテスト（モック使用）
   - `src/infrastructure/remotion-renderer.test.ts`にテストを作成
   - `renderMedia()`をvi.fn()でモック化
   - 正常系: モックが成功Promiseを返す、Result.isOk()検証
@@ -138,6 +138,14 @@
   - _Requirements: 3.8, 3.9, 8.2, 8.3_
 
 - [ ] 6. Remotionビデオコンポーネントの実装
+
+> **重要**: このセクションの実装時は `.claude/skills/remotion-best-practices` を参照すること。
+> - Animations, Sequencing, Timing, Transitions
+> - Text animations, Measuring text, Fonts
+> - Audio, Images, Videos
+> - Parameters (Zod schema)
+> - 参照: `.claude/skills/remotion-best-practices/SKILL.md`
+
 - [ ] 6.1 (P) AvatarComponentの実装
   - `src/components/AvatarComponent.tsx`を作成
   - Speaker型のプロップスを受け取る

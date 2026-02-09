@@ -53,6 +53,7 @@ Step Functions
 - Don't use .parse() — use .safeParse() and convert to Result
 - Don't use class keyword
 - Don't use let keyword
+- Do't use any keyword
 
 # Language Protocol
 - 思考・コード: 英語
