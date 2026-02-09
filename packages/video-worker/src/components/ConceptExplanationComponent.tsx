@@ -1,6 +1,6 @@
 /**
  * ConceptExplanationComponent
- * Displays concept explanations with different visualization templates
+ * 異なる可視化テンプレートでコンセプト説明を表示
  */
 
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
@@ -16,7 +16,7 @@ export const ConceptExplanationComponent: React.FC<
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Entrance animation
+  // エントランスアニメーション
   const entranceProgress = spring({
     frame,
     fps,
@@ -32,30 +32,18 @@ export const ConceptExplanationComponent: React.FC<
 
   return (
     <div
+      className="p-12 max-w-[1000px] mx-auto"
       style={{
         opacity,
         transform: `translateY(${translateY}px)`,
-        padding: "48px",
-        maxWidth: "1000px",
-        margin: "0 auto",
       }}
     >
-      {/* Title */}
-      <h2
-        style={{
-          fontSize: "36px",
-          fontWeight: "700",
-          color: "#1e293b",
-          marginBottom: "32px",
-          textAlign: "center",
-          borderBottom: "3px solid #3b82f6",
-          paddingBottom: "16px",
-        }}
-      >
+      {/* タイトル */}
+      <h2 className="text-4xl font-bold text-slate-800 mb-8 text-center border-b-[3px] border-blue-500 pb-4">
         {data.title}
       </h2>
 
-      {/* Template-specific rendering */}
+      {/* テンプレート固有のレンダリング */}
       {data.template === "bullet-points" && (
         <BulletPointsTemplate data={data} />
       )}
@@ -65,254 +53,196 @@ export const ConceptExplanationComponent: React.FC<
   );
 };
 
-// Bullet Points Template
+// 強調スタイルクラスの定義
+const getEmphasisClassName = (emphasis?: "high" | "medium" | "low"): string => {
+  const baseClass = "leading-relaxed";
+  if (emphasis === "high") return `${baseClass} text-red-600 text-2xl font-bold`;
+  if (emphasis === "low") return `${baseClass} text-slate-600 text-xl font-medium`;
+  return `${baseClass} text-slate-800 text-[22px] font-semibold`;
+};
+
+const getBulletColor = (emphasis?: "high" | "medium" | "low"): string => {
+  return emphasis === "high" ? "#dc2626" : "#3b82f6";
+};
+
+// 箇条書きテンプレート
 const BulletPointsTemplate: React.FC<{ data: ConceptExplanationData }> = ({
   data,
 }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px",
-      }}
-    >
-      {data.bulletPoints?.map((point, index) => {
-        const delayFrames = (index + 1) * 0.2 * fps;
-        const pointProgress = spring({
-          frame: frame - delayFrames,
-          fps,
-          config: { damping: 200 },
-        });
-
-        const pointOpacity = interpolate(pointProgress, [0, 1], [0, 1], {
-          extrapolateRight: "clamp",
-        });
-        const pointTranslateX = interpolate(pointProgress, [0, 1], [-20, 0], {
-          extrapolateRight: "clamp",
-        });
-
-        // Emphasis styling
-        const emphasisStyles = {
-          high: { color: "#dc2626", fontSize: "24px", fontWeight: "700" },
-          medium: { color: "#1e293b", fontSize: "22px", fontWeight: "600" },
-          low: { color: "#475569", fontSize: "20px", fontWeight: "500" },
-        };
-        const style =
-          emphasisStyles[point.emphasis || "medium"] || emphasisStyles.medium;
-
-        return (
-          <div
-            key={`bullet-${index}`}
-            style={{
-              opacity: pointOpacity,
-              transform: `translateX(${pointTranslateX}px)`,
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "16px",
-            }}
-          >
-            <div
-              style={{
-                width: "12px",
-                height: "12px",
-                borderRadius: "50%",
-                backgroundColor:
-                  point.emphasis === "high" ? "#dc2626" : "#3b82f6",
-                marginTop: "8px",
-                flexShrink: 0,
-              }}
-            />
-            <p
-              style={{
-                ...style,
-                lineHeight: "1.6",
-              }}
-            >
-              {point.text}
-            </p>
-          </div>
-        );
-      })}
+    <div className="flex flex-col gap-5">
+      {data.bulletPoints?.map((point, index) => (
+        <BulletPoint key={point.text} point={point} index={index} />
+      ))}
     </div>
   );
 };
 
-// Flowchart Template
+interface BulletPointProps {
+  point: NonNullable<ConceptExplanationData["bulletPoints"]>[0];
+  index: number;
+}
+
+const BulletPoint: React.FC<BulletPointProps> = ({ point, index }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const delayFrames = (index + 1) * 0.2 * fps;
+  const pointProgress = spring({
+    frame: frame - delayFrames,
+    fps,
+    config: { damping: 200 },
+  });
+
+  const pointOpacity = interpolate(pointProgress, [0, 1], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  const pointTranslateX = interpolate(pointProgress, [0, 1], [-20, 0], {
+    extrapolateRight: "clamp",
+  });
+
+  const emphasisClassName = getEmphasisClassName(point.emphasis);
+  const bulletColor = getBulletColor(point.emphasis);
+
+  return (
+    <div
+      className="flex items-start gap-4"
+      style={{
+        opacity: pointOpacity,
+        transform: `translateX(${pointTranslateX}px)`,
+      }}
+    >
+      <div
+        className="w-3 h-3 rounded-full mt-2 flex-shrink-0"
+        style={{ backgroundColor: bulletColor }}
+      />
+      <p className={emphasisClassName}>
+        {point.text}
+      </p>
+    </div>
+  );
+};
+
+// フローチャートテンプレート
 const FlowchartTemplate: React.FC<{ data: ConceptExplanationData }> = ({
   data,
 }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "24px",
-        alignItems: "center",
-      }}
-    >
-      {data.flowchartNodes?.map((node, index) => {
-        const delayFrames = (index + 1) * 0.3 * fps;
-        const nodeProgress = spring({
-          frame: frame - delayFrames,
-          fps,
-          config: { damping: 200 },
-        });
-
-        const nodeOpacity = interpolate(nodeProgress, [0, 1], [0, 1], {
-          extrapolateRight: "clamp",
-        });
-        const nodeScale = interpolate(nodeProgress, [0, 1], [0.8, 1], {
-          extrapolateRight: "clamp",
-        });
-
-        return (
-          <div key={`node-${node.id}`} style={{ textAlign: "center" }}>
-            <div
-              style={{
-                opacity: nodeOpacity,
-                transform: `scale(${nodeScale})`,
-                backgroundColor: "#3b82f6",
-                color: "#ffffff",
-                padding: "20px 40px",
-                borderRadius: "12px",
-                fontSize: "20px",
-                fontWeight: "600",
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-                minWidth: "200px",
-              }}
-            >
-              {node.label}
-            </div>
-            {node.connections.length > 0 && (
-              <div
-                style={{
-                  width: "2px",
-                  height: "32px",
-                  backgroundColor: "#94a3b8",
-                  margin: "0 auto",
-                }}
-              />
-            )}
-          </div>
-        );
-      })}
+    <div className="flex flex-col gap-6 items-center">
+      {data.flowchartNodes?.map((node, index) => (
+        <FlowchartNode key={`node-${node.id}`} node={node} index={index} />
+      ))}
     </div>
   );
 };
 
-// Timeline Template
-const TimelineTemplate: React.FC<{ data: ConceptExplanationData }> = ({
-  data,
-}) => {
+interface FlowchartNodeProps {
+  node: NonNullable<ConceptExplanationData["flowchartNodes"]>[0];
+  index: number;
+}
+
+const FlowchartNode: React.FC<FlowchartNodeProps> = ({ node, index }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  const delayFrames = (index + 1) * 0.3 * fps;
+  const nodeProgress = spring({
+    frame: frame - delayFrames,
+    fps,
+    config: { damping: 200 },
+  });
+
+  const nodeOpacity = interpolate(nodeProgress, [0, 1], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  const nodeScale = interpolate(nodeProgress, [0, 1], [0.8, 1], {
+    extrapolateRight: "clamp",
+  });
+
+  const hasConnections = node.connections.length > 0;
+
+  return (
+    <div className="text-center">
+      <div
+        className="bg-blue-500 text-white py-5 px-10 rounded-xl text-xl font-semibold shadow-[0_4px_12px_rgba(59,130,246,0.3)] min-w-[200px]"
+        style={{
+          opacity: nodeOpacity,
+          transform: `scale(${nodeScale})`,
+        }}
+      >
+        {node.label}
+      </div>
+      {hasConnections && (
+        <div className="w-0.5 h-8 bg-slate-400 mx-auto" />
+      )}
+    </div>
+  );
+};
+
+// タイムラインテンプレート
+const TimelineTemplate: React.FC<{ data: ConceptExplanationData }> = ({
+  data,
+}) => {
+  return (
+    <div className="flex flex-col gap-8 relative">
+      {/* タイムライン線 */}
+      <div className="absolute left-10 top-0 bottom-0 w-[3px] bg-slate-300" />
+
+      {data.timelineEvents?.map((event, index) => (
+        <TimelineEvent key={`${event.date}-${event.label}`} event={event} index={index} />
+      ))}
+    </div>
+  );
+};
+
+interface TimelineEventProps {
+  event: NonNullable<ConceptExplanationData["timelineEvents"]>[0];
+  index: number;
+}
+
+const TimelineEvent: React.FC<TimelineEventProps> = ({ event, index }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const delayFrames = (index + 1) * 0.25 * fps;
+  const eventProgress = spring({
+    frame: frame - delayFrames,
+    fps,
+    config: { damping: 200 },
+  });
+
+  const eventOpacity = interpolate(eventProgress, [0, 1], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  const eventTranslateX = interpolate(eventProgress, [0, 1], [-30, 0], {
+    extrapolateRight: "clamp",
+  });
+
+  const hasDescription = !!event.description;
+
   return (
     <div
+      className="flex gap-6 items-start relative"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "32px",
-        position: "relative",
+        opacity: eventOpacity,
+        transform: `translateX(${eventTranslateX}px)`,
       }}
     >
-      {/* Timeline line */}
-      <div
-        style={{
-          position: "absolute",
-          left: "40px",
-          top: 0,
-          bottom: 0,
-          width: "3px",
-          backgroundColor: "#cbd5e1",
-        }}
-      />
-
-      {data.timelineEvents?.map((event, index) => {
-        const delayFrames = (index + 1) * 0.25 * fps;
-        const eventProgress = spring({
-          frame: frame - delayFrames,
-          fps,
-          config: { damping: 200 },
-        });
-
-        const eventOpacity = interpolate(eventProgress, [0, 1], [0, 1], {
-          extrapolateRight: "clamp",
-        });
-        const eventTranslateX = interpolate(eventProgress, [0, 1], [-30, 0], {
-          extrapolateRight: "clamp",
-        });
-
-        return (
-          <div
-            key={`event-${index}`}
-            style={{
-              opacity: eventOpacity,
-              transform: `translateX(${eventTranslateX}px)`,
-              display: "flex",
-              gap: "24px",
-              alignItems: "flex-start",
-              position: "relative",
-            }}
-          >
-            {/* Timeline dot */}
-            <div
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                backgroundColor: "#3b82f6",
-                border: "4px solid #ffffff",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.4)",
-                marginLeft: "31px",
-                marginTop: "4px",
-                flexShrink: 0,
-                zIndex: 1,
-              }}
-            />
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  color: "#3b82f6",
-                  marginBottom: "4px",
-                }}
-              >
-                {event.date}
-              </div>
-              <div
-                style={{
-                  fontSize: "22px",
-                  fontWeight: "700",
-                  color: "#1e293b",
-                  marginBottom: "8px",
-                }}
-              >
-                {event.label}
-              </div>
-              {event.description && (
-                <div
-                  style={{
-                    fontSize: "18px",
-                    color: "#64748b",
-                    lineHeight: "1.6",
-                  }}
-                >
-                  {event.description}
-                </div>
-              )}
-            </div>
+      {/* タイムラインドット */}
+      <div className="w-5 h-5 rounded-full bg-blue-500 border-4 border-white shadow-[0_2px_8px_rgba(59,130,246,0.4)] ml-[31px] mt-1 flex-shrink-0 z-10" />
+      <div className="flex-1">
+        <div className="text-base font-semibold text-blue-500 mb-1">
+          {event.date}
+        </div>
+        <div className="text-[22px] font-bold text-slate-800 mb-2">
+          {event.label}
+        </div>
+        {hasDescription && (
+          <div className="text-lg text-slate-500 leading-relaxed">
+            {event.description}
           </div>
-        );
-      })}
+        )}
+      </div>
     </div>
   );
 };

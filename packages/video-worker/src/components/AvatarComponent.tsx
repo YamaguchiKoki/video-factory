@@ -1,6 +1,6 @@
 /**
  * AvatarComponent
- * Displays speaker avatar with animations based on active state
+ * アクティブ状態に基づいたアニメーション付きで話者アバターを表示
  */
 
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
@@ -11,6 +11,28 @@ interface AvatarComponentProps {
   isActive: boolean;
 }
 
+// ロールに基づくアバターカラー
+const AVATAR_COLORS = {
+  agent: {
+    bg: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    initial: "🤖",
+  },
+  questioner: {
+    bg: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    initial: "👤",
+  },
+} as const;
+
+const getAvatarBorder = (isActive: boolean): string => {
+  return isActive ? "4px solid #3b82f6" : "4px solid #ffffff";
+};
+
+const getAvatarBoxShadow = (isActive: boolean): string => {
+  return isActive
+    ? "0 4px 20px rgba(59, 130, 246, 0.6)"
+    : "0 2px 12px rgba(0, 0, 0, 0.15)";
+};
+
 export const AvatarComponent: React.FC<AvatarComponentProps> = ({
   speaker,
   isActive,
@@ -18,21 +40,22 @@ export const AvatarComponent: React.FC<AvatarComponentProps> = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Spring animation for active state transition
+  // アクティブ状態遷移用のスプリングアニメーション
   const activeProgress = spring({
     frame,
     fps,
-    config: { damping: 200 }, // Smooth, no bounce
+    config: { damping: 200 },
   });
 
-  // Scale: 1.1x when active, 1.0x when inactive
+  // スケール: アクティブ時1.1倍、非アクティブ時1.0倍
   const scale = isActive
     ? interpolate(activeProgress, [0, 1], [1.0, 1.1])
     : interpolate(activeProgress, [0, 1], [1.1, 1.0]);
 
-  // Vertical movement: slight bob effect when active (2-3px)
+  // 垂直移動: アクティブ時に軽いボブエフェクト（2-3px）
+  const bobCycle = fps * 2;
   const bobAnimation = spring({
-    frame: frame % (fps * 2), // 2 second cycle
+    frame: frame % bobCycle,
     fps,
     config: { damping: 10, stiffness: 50 },
   });
@@ -40,60 +63,34 @@ export const AvatarComponent: React.FC<AvatarComponentProps> = ({
     ? interpolate(bobAnimation, [0, 1], [0, -3])
     : 0;
 
-  // Opacity: 80% when inactive, 100% when active
+  // 不透明度: 非アクティブ時80%、アクティブ時100%
   const opacity = isActive ? 1.0 : 0.8;
 
-  // Avatar colors based on role
-  const avatarColors = {
-    agent: {
-      bg: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      initial: "🤖",
-    },
-    questioner: {
-      bg: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-      initial: "👤",
-    },
-  };
-
-  const avatarStyle = avatarColors[speaker.role];
+  const avatarStyle = AVATAR_COLORS[speaker.role];
+  const border = getAvatarBorder(isActive);
+  const boxShadow = getAvatarBoxShadow(isActive);
 
   return (
     <div
       data-testid="avatar-container"
+      className="flex flex-col items-center gap-2"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "8px",
         transform: `scale(${scale}) translateY(${translateY}px)`,
         opacity,
       }}
     >
       <div
+        className="w-[120px] h-[120px] rounded-full flex items-center justify-center text-5xl"
         style={{
-          width: "120px",
-          height: "120px",
-          borderRadius: "50%",
           background: avatarStyle.bg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "48px",
-          border: isActive ? "4px solid #3b82f6" : "4px solid #ffffff",
-          boxShadow: isActive
-            ? "0 4px 20px rgba(59, 130, 246, 0.6)"
-            : "0 2px 12px rgba(0, 0, 0, 0.15)",
+          border,
+          boxShadow,
         }}
       >
         {avatarStyle.initial}
       </div>
       <div
-        style={{
-          fontSize: "18px",
-          fontWeight: isActive ? "700" : "500",
-          color: isActive ? "#1e40af" : "#64748b",
-          textAlign: "center",
-        }}
+        className={`text-lg text-center ${isActive ? "font-bold text-blue-800" : "font-medium text-slate-500"}`}
       >
         {speaker.name}
       </div>

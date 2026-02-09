@@ -1,6 +1,6 @@
 /**
  * ConversationSummaryComponent
- * Displays conversation summary with key points and importance-based highlighting
+ * 重要度に基づくハイライト付きで会話のまとめとキーポイントを表示
  */
 
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
@@ -10,13 +10,35 @@ interface ConversationSummaryComponentProps {
   data: ConversationSummaryData;
 }
 
+// 重要度スタイルの定義
+const IMPORTANCE_STYLES = {
+  high: {
+    className: "text-red-600 text-[22px] font-bold bg-red-50 border-red-600",
+    iconColor: "#dc2626",
+  },
+  medium: {
+    className: "text-slate-800 text-xl font-semibold bg-white border-blue-500",
+    iconColor: "#3b82f6",
+  },
+  low: {
+    className: "text-slate-500 text-lg font-medium bg-slate-50 border-slate-400",
+    iconColor: "#94a3b8",
+  },
+} as const;
+
+const getImportanceIcon = (importance: "high" | "medium" | "low"): string => {
+  if (importance === "high") return "!";
+  if (importance === "medium") return "●";
+  return "◦";
+};
+
 export const ConversationSummaryComponent: React.FC<
   ConversationSummaryComponentProps
 > = ({ data }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Entrance animation for the entire component
+  // コンポーネント全体のエントランスアニメーション
   const entranceProgress = spring({
     frame,
     fps,
@@ -30,168 +52,88 @@ export const ConversationSummaryComponent: React.FC<
     extrapolateRight: "clamp",
   });
 
+  const hasKeyPoints = data.keyPoints.length > 0;
+
   return (
     <div
+      className="p-12 max-w-[1000px] mx-auto"
       style={{
         opacity,
         transform: `translateY(${translateY}px)`,
-        padding: "48px",
-        maxWidth: "1000px",
-        margin: "0 auto",
       }}
     >
-      {/* Title */}
-      <h2
-        style={{
-          fontSize: "36px",
-          fontWeight: "700",
-          color: "#1e293b",
-          marginBottom: "32px",
-          textAlign: "center",
-          borderBottom: "3px solid #3b82f6",
-          paddingBottom: "16px",
-        }}
-      >
+      {/* タイトル */}
+      <h2 className="text-4xl font-bold text-slate-800 mb-8 text-center border-b-[3px] border-blue-500 pb-4">
         まとめ
       </h2>
 
-      {/* Summary Text */}
-      <div
-        style={{
-          fontSize: "24px",
-          fontWeight: "600",
-          color: "#334155",
-          lineHeight: "1.8",
-          marginBottom: "40px",
-          padding: "24px",
-          backgroundColor: "#f8fafc",
-          borderRadius: "12px",
-          borderLeft: "4px solid #3b82f6",
-        }}
-      >
+      {/* まとめテキスト */}
+      <div className="text-2xl font-semibold text-slate-700 leading-[1.8] mb-10 p-6 bg-slate-50 rounded-xl border-l-4 border-blue-500">
         {data.summaryText}
       </div>
 
-      {/* Key Points */}
-      {data.keyPoints.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "24px",
-              fontWeight: "700",
-              color: "#475569",
-              marginBottom: "8px",
-            }}
-          >
+      {/* キーポイント */}
+      {hasKeyPoints && (
+        <div className="flex flex-col gap-5">
+          <h3 className="text-2xl font-bold text-slate-600 mb-2">
             ポイント
           </h3>
-          {data.keyPoints.map((point, index) => {
-            // Sequential animation for each key point
-            const delayFrames = (index + 1) * 0.2 * fps;
-            const pointProgress = spring({
-              frame: frame - delayFrames,
-              fps,
-              config: { damping: 200 },
-            });
-
-            const pointOpacity = interpolate(pointProgress, [0, 1], [0, 1], {
-              extrapolateRight: "clamp",
-            });
-            const pointTranslateX = interpolate(pointProgress, [0, 1], [-20, 0], {
-              extrapolateRight: "clamp",
-            });
-
-            // Importance-based styling
-            const importanceStyles = {
-              high: {
-                color: "#dc2626",
-                fontSize: "22px",
-                fontWeight: "700",
-                backgroundColor: "#fef2f2",
-                borderColor: "#dc2626",
-                iconColor: "#dc2626",
-              },
-              medium: {
-                color: "#1e293b",
-                fontSize: "20px",
-                fontWeight: "600",
-                backgroundColor: "#ffffff",
-                borderColor: "#3b82f6",
-                iconColor: "#3b82f6",
-              },
-              low: {
-                color: "#64748b",
-                fontSize: "18px",
-                fontWeight: "500",
-                backgroundColor: "#f8fafc",
-                borderColor: "#94a3b8",
-                iconColor: "#94a3b8",
-              },
-            };
-
-            const style = importanceStyles[point.importance];
-
-            return (
-              <div
-                key={`key-point-${index}`}
-                style={{
-                  opacity: pointOpacity,
-                  transform: `translateX(${pointTranslateX}px)`,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "16px",
-                  padding: "20px",
-                  backgroundColor: style.backgroundColor,
-                  borderRadius: "12px",
-                  border: `2px solid ${style.borderColor}`,
-                }}
-              >
-                {/* Importance indicator icon */}
-                <div
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    backgroundColor: style.iconColor,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#ffffff",
-                    fontSize: "14px",
-                    fontWeight: "700",
-                    flexShrink: 0,
-                    marginTop: "2px",
-                  }}
-                >
-                  {point.importance === "high"
-                    ? "!"
-                    : point.importance === "medium"
-                      ? "●"
-                      : "◦"}
-                </div>
-
-                {/* Key point text */}
-                <p
-                  style={{
-                    color: style.color,
-                    fontSize: style.fontSize,
-                    fontWeight: style.fontWeight,
-                    lineHeight: "1.6",
-                  }}
-                >
-                  {point.text}
-                </p>
-              </div>
-            );
-          })}
+          {data.keyPoints.map((point, index) => (
+            <KeyPoint key={point.text} point={point} index={index} />
+          ))}
         </div>
       )}
+    </div>
+  );
+};
+
+interface KeyPointProps {
+  point: ConversationSummaryData["keyPoints"][0];
+  index: number;
+}
+
+const KeyPoint: React.FC<KeyPointProps> = ({ point, index }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // 各キーポイントのシーケンシャルアニメーション
+  const delayFrames = (index + 1) * 0.2 * fps;
+  const pointProgress = spring({
+    frame: frame - delayFrames,
+    fps,
+    config: { damping: 200 },
+  });
+
+  const pointOpacity = interpolate(pointProgress, [0, 1], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  const pointTranslateX = interpolate(pointProgress, [0, 1], [-20, 0], {
+    extrapolateRight: "clamp",
+  });
+
+  const style = IMPORTANCE_STYLES[point.importance];
+  const icon = getImportanceIcon(point.importance);
+
+  return (
+    <div
+      className={`flex items-start gap-4 p-5 rounded-xl border-2 ${style.className}`}
+      style={{
+        opacity: pointOpacity,
+        transform: `translateX(${pointTranslateX}px)`,
+      }}
+    >
+      {/* 重要度インジケーターアイコン */}
+      <div
+        className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 mt-0.5"
+        style={{ backgroundColor: style.iconColor }}
+      >
+        {icon}
+      </div>
+
+      {/* キーポイントテキスト */}
+      <p className="leading-relaxed">
+        {point.text}
+      </p>
     </div>
   );
 };
