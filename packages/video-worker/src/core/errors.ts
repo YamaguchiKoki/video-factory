@@ -110,3 +110,31 @@ export function createFileSystemError(
 ): FileSystemError {
   return { type, message, cause, context };
 }
+
+/**
+ * VideoService error types (high-level workflow errors)
+ */
+export type VideoServiceErrorType =
+  | "FILE_READ_ERROR"
+  | "VALIDATION_ERROR"
+  | "RENDER_ERROR"
+  | "FILE_WRITE_ERROR";
+
+export interface VideoServiceError {
+  type: VideoServiceErrorType;
+  message: string;
+  cause: Error | null;
+  context: Record<string, unknown>;
+}
+
+/**
+ * Helper function to create VideoServiceError
+ */
+export function createVideoServiceError(
+  type: VideoServiceErrorType,
+  message: string,
+  cause: Error | null,
+  context: Record<string, unknown>,
+): VideoServiceError {
+  return { type, message, cause, context };
+}

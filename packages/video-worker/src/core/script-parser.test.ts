@@ -564,7 +564,13 @@ describe("parseScript", () => {
       ];
 
       // Generate random non-overlapping segments
-      const segments = [];
+      const segments: Array<{
+        id: string;
+        speakerId: string;
+        text: string;
+        startTime: number;
+        endTime: number;
+      }> = [];
       let currentTime = 0;
 
       for (let i = 0; i < 100; i++) {

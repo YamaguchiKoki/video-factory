@@ -105,7 +105,7 @@
   - テストで実ファイル操作する場合は`os.tmpdir()`配下で実施
   - _Requirements: 1.5, 1.6, 8.1_
 
-- [ ] 5. Remotionレンダラーの実装
+- [x] 5. Remotionレンダラーの実装
 - [x] 5.1 renderVideo関数の作成
   - `src/infrastructure/remotion-renderer.ts`に`renderVideo`関数を実装（infrastructure層）
   - @remotion/rendererの`renderMedia()`をneverthrowでwrap
@@ -146,7 +146,7 @@
 > - Parameters (Zod schema)
 > - 参照: `.claude/skills/remotion-best-practices/SKILL.md`
 
-- [ ] 6.1 (P) AvatarComponentの実装
+- [x] 6.1 (P) AvatarComponentの実装
   - `src/components/AvatarComponent.tsx`を作成
   - Speaker型のプロップスを受け取る
   - 発話中フラグ（isActive）に応じたアニメーション（拡大1.1倍、上下動2-3px）
@@ -154,7 +154,7 @@
   - springアニメーションでトランジション
   - _Requirements: 3.2, 3.3_
 
-- [ ] 6.2 (P) NewsListComponentの実装
+- [x] 6.2 (P) NewsListComponentの実装
   - `src/components/NewsListComponent.tsx`を作成
   - NewsListData型のプロップスを受け取る
   - カード形式のニュースリスト表示
@@ -162,7 +162,7 @@
   - タイトル、カテゴリ、日付の表示
   - _Requirements: 3.2, 3.3_
 
-- [ ] 6.3 (P) ConceptExplanationComponentの実装
+- [x] 6.3 (P) ConceptExplanationComponentの実装
   - `src/components/ConceptExplanationComponent.tsx`を作成
   - ConceptExplanationData型のプロップスを受け取る
   - テンプレート切り替え（bullet-points, flowchart, timeline）
@@ -171,7 +171,7 @@
   - タイムラインテンプレートの実装
   - _Requirements: 3.2, 3.3_
 
-- [ ] 6.4 (P) ConversationSummaryComponentの実装
+- [x] 6.4 (P) ConversationSummaryComponentの実装
   - `src/components/ConversationSummaryComponent.tsx`を作成
   - ConversationSummaryData型のプロップスを受け取る
   - 要約テキストの表示
@@ -179,7 +179,7 @@
   - 重要度別ハイライト（high, medium, low）
   - _Requirements: 3.2, 3.3_
 
-- [ ] 6.5 VideoCompositionの実装
+- [x] 6.5 VideoCompositionの実装
   - `src/components/VideoComposition.tsx`を作成
   - ParsedScript、audioPath、speakers配列をプロップスとして受け取る
   - 音声ファイルをオーディオトラックとして統合
@@ -189,7 +189,7 @@
   - 背景画像またはビジュアル要素の追加
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ]* 6.6 Remotionコンポーネントの統合テスト
+- [x]* 6.6 Remotionコンポーネントの統合テスト
   - VideoCompositionを使用した小規模動画のレンダリングテスト
   - 各VisualComponentの表示検証
   - アバターアニメーションの動作確認
@@ -219,8 +219,8 @@
   - **property-based testing**: ランダムなcontext objectで構造化ログ検証
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 8. VideoService関数の実装
-- [ ] 8.1 renderVideoWorkflow関数の作成
+- [x] 8. VideoService関数の実装
+- [x] 8.1 renderVideoWorkflow関数の作成
   - `src/service/video-service.ts`にワークフロー関数を作成（service層）
   - カリー化で依存注入: `createRenderWorkflow(deps: Dependencies) => (params) => ResultAsync<...>`
   - Dependencies型: `{ readFile, writeFile, parseScript, buildRenderConfig, renderVideo, createTempDir, cleanupTempDir, logger }`
@@ -234,14 +234,14 @@
   - requestIDの生成: `crypto.randomUUID()`、`createLogger(requestId)`でlogger作成
   - _Requirements: 1.3, 1.4, 2.1, 3.1, 4.3, 5.3, 5.4, 8.1_
 
-- [ ] 8.2 renderVideoWorkflowのエラーハンドリング統合
+- [x] 8.2 renderVideoWorkflowのエラーハンドリング統合
   - 各ステップのエラーをVideoServiceErrorに変換
   - エラーコンテキストに関連情報を含める（ファイルパス、フレーム番号など）
   - エラー発生時の詳細ログ出力（スタックトレース含む）
   - 一時ファイルクリーンアップの保証（成功・失敗に関わらず）
   - _Requirements: 5.2, 5.5, 5.6, 5.7, 8.1_
 
-- [ ] 8.3 renderVideoWorkflowの統合テスト
+- [x] 8.3 renderVideoWorkflowの統合テスト
   - `src/service/video-service.test.ts`にテストを作成
   - 全依存関数をvi.fn()でモック化（readFile, parseScript, renderVideoなど）
   - 正常系: 全ステップ成功、Result.isOk()、出力パス返却検証
@@ -253,8 +253,8 @@
   - **property-based testing**: ランダムなファイルパスでワークフロー実行
   - _Requirements: 5.2, 5.5, 5.6, 5.7, 8.1_
 
-- [ ] 9. CLIエントリーポイントの実装
-- [ ] 9.1 EntryPointの実装
+- [x] 9. CLIエントリーポイントの実装
+- [x] 9.1 EntryPointの実装
   - `src/index.ts`に`main()`関数を作成
   - CLIコマンドライン引数の解析: `process.argv`またはyargs/commander
     - `--script <path>`: スクリプトJSONファイルパス
@@ -268,7 +268,7 @@
   - 成功時: 出力パスを`logger.info()`でログ出力
   - _Requirements: 1.1, 1.2, 5.3, 5.4, 7.1_
 
-- [ ] 9.2 (P) モックデータ読み込み関数の実装
+- [x] 9.2 (P) モックデータ読み込み関数の実装
   - `src/infrastructure/mock-data.ts`にモックデータ読み込み関数を作成
   - `loadMockScript(): ResultAsync<string, FileSystemError>`の実装
   - `loadMockAudio(): ResultAsync<Buffer, FileSystemError>`の実装
@@ -279,7 +279,7 @@
   - main()で`MOCK_MODE`フラグに応じて引数パスを上書き
   - _Requirements: 7.1, 7.2, 7.3, 7.5_
 
-- [ ] 9.3 モックデータの作成
+- [x] 9.3 モックデータの作成
   - `mock-data/script.json`にサンプルスクリプトを作成
   - スクリプトスキーマに準拠した完全なサンプルデータ
   - 2名の発話者（AI Agent、社会人男性）
@@ -288,7 +288,7 @@
   - `mock-data/audio.wav`にサンプル音声ファイルを配置（または生成）
   - _Requirements: 7.2, 7.3, 7.4_
 
-- [ ] 9.4 CLIのエンドツーエンドテスト
+- [x] 9.4 CLIのエンドツーエンドテスト
   - モックモードでの完全な動画生成フロー検証
   - CLI引数解析のテスト
   - 不正な引数のエラーハンドリング
@@ -297,7 +297,7 @@
   - _Requirements: 1.1, 1.2, 7.5_
 
 - [ ] 10. システム統合とパフォーマンス検証
-- [ ] 10.1 完全な動画生成のエンドツーエンドテスト
+- [x] 10.1 完全な動画生成のエンドツーエンドテスト
   - モックデータを使用した完全な動画レンダリング
   - 生成された動画の再生確認（メディアプレーヤーで視聴）
   - 音声とテキストの同期検証
@@ -305,14 +305,14 @@
   - アバターアニメーションの動作確認
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 10.2 パフォーマンス要件の検証
+- [x] 10.2 パフォーマンス要件の検証
   - メモリ使用量が4GB以内であることを検証（10分の動画）
   - レンダリング時間が15分以内であることを検証（10分の動画）
   - 動画ファイルサイズの測定（目標: 100MB以下）
   - 並列フレームレンダリング数（concurrency）の最適化検証
   - _Requirements: 8.2, 8.3, 8.4_
 
-- [ ] 10.3 エラーシナリオのエンドツーエンドテスト
+- [x] 10.3 エラーシナリオのエンドツーエンドテスト
   - ファイル未存在時のエラーハンドリング検証
   - 不正なスクリプト形式のエラーハンドリング検証
   - レンダリングタイムアウトのシミュレーション
@@ -320,7 +320,7 @@
   - エラーログの出力検証
   - _Requirements: 1.5, 1.6, 2.6, 3.8, 5.2, 8.1_
 
-- [ ]* 10.4 プロパティベーステスティング
+- [x]* 10.4 プロパティベーステスティング
   - ランダムなスクリプトデータでのロバストネス検証
   - 極端に長いスクリプト（セグメント数5,000）での動作確認
   - 極端に短いスクリプト（1セグメント）での動作確認
@@ -328,14 +328,14 @@
   - _Requirements: 2.6, 8.3_
 
 - [ ] 11. ドキュメントとビルド設定の整備
-- [ ] 11.1 (P) package.jsonとTypeScript設定
+- [x] 11.1 (P) package.jsonとTypeScript設定
   - package.jsonに必要な依存関係を追加（@remotion/renderer, @aws-sdk/client-s3など）
   - tsconfig.jsonの設定（strict mode、target: ES2022）
   - npm scriptsの追加（build, test, render, lint）
   - .gitignoreの設定（node_modules, dist, tmpディレクトリ）
   - _Requirements: 6.5_
 
-- [ ] 11.2 (P) READMEの作成
+- [x] 11.2 (P) READMEの作成
   - プロジェクト概要の記述
   - ローカル開発環境のセットアップ手順
   - モックモードでの動画生成手順（`npm run render`）

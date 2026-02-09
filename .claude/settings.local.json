@@ -20,7 +20,11 @@
       "Bash(pnpm --filter video-worker test:*)",
       "Skill(kiro:spec-impl)",
       "Bash(pnpm add:*)",
-      "Bash(pnpm --filter video-worker exec npm list:*)"
+      "Bash(pnpm --filter video-worker exec npm list:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm --filter video-worker add -D fast-check@3.x)",
+      "Bash(pnpm install)",
+      "Bash(node generate-audio.js:*)"
     ]
   }
 }

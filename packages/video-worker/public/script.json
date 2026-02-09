@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "title": "2026年2月9日のニュース",
+    "createdAt": "2026-02-09T09:00:00Z",
+    "durationSeconds": 120
+  },
+  "speakers": [
+    {
+      "id": "agent",
+      "name": "AI Agent",
+      "role": "agent",
+      "avatarPath": "assets/agent-avatar.png"
+    },
+    {
+      "id": "man",
+      "name": "田中さん",
+      "role": "questioner",
+      "avatarPath": "assets/man-avatar.png"
+    }
+  ],
+  "segments": [
+    {
+      "id": "seg-001",
+      "speakerId": "man",
+      "text": "今日のニュースを教えてください",
+      "startTime": 0,
+      "endTime": 3
+    },
+    {
+      "id": "seg-002",
+      "speakerId": "agent",
+      "text": "承知しました。今日は以下の3つのニュースについて取り上げます",
+      "startTime": 3,
+      "endTime": 8,
+      "visualComponent": {
+        "type": "news-list",
+        "data": {
+          "items": [
+            {
+              "title": "政府が新経済対策を発表",
+              "category": "政治",
+              "date": "2026-02-09"
+            },
+            {
+              "title": "AI技術の新展開",
+              "category": "テクノロジー",
+              "date": "2026-02-09"
+            },
+            {
+              "title": "環境問題への新たな取り組み",
+              "category": "環境",
+              "date": "2026-02-09"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "seg-003",
+      "speakerId": "man",
+      "text": "AIの新展開について詳しく教えてください",
+      "startTime": 10,
+      "endTime": 13
+    },
+    {
+      "id": "seg-004",
+      "speakerId": "agent",
+      "text": "AI技術は大きく3つの段階で発展してきました",
+      "startTime": 13,
+      "endTime": 20,
+      "visualComponent": {
+        "type": "concept-explanation",
+        "data": {
+          "title": "AI技術の発展段階",
+          "template": "timeline",
+          "timelineEvents": [
+            {
+              "date": "2010-2015",
+              "label": "ディープラーニングの台頭",
+              "description": "画像認識、音声認識の精度向上"
+            },
+            {
+              "date": "2016-2022",
+              "label": "大規模言語モデルの登場",
+              "description": "GPT、BERTなどの自然言語処理モデル"
+            },
+            {
+              "date": "2023-現在",
+              "label": "マルチモーダルAI",
+              "description": "テキスト、画像、音声を統合的に処理"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "seg-005",
+      "speakerId": "man",
+      "text": "なるほど、それでは環境問題についてはどうでしょうか",
+      "startTime": 22,
+      "endTime": 26
+    },
+    {
+      "id": "seg-006",
+      "speakerId": "agent",
+      "text": "環境問題への取り組みとして、以下の重要なポイントがあります",
+      "startTime": 26,
+      "endTime": 32,
+      "visualComponent": {
+        "type": "concept-explanation",
+        "data": {
+          "title": "環境問題への取り組み",
+          "template": "bullet-points",
+          "bulletPoints": [
+            {
+              "text": "再生可能エネルギーの導入拡大",
+              "emphasis": "high"
+            },
+            {
+              "text": "循環型経済の推進",
+              "emphasis": "medium"
+            },
+            {
+              "text": "カーボンニュートラルの実現",
+              "emphasis": "high"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "seg-007",
+      "speakerId": "man",
+      "text": "ありがとうございました。非常に参考になりました",
+      "startTime": 34,
+      "endTime": 38
+    },
+    {
+      "id": "seg-008",
+      "speakerId": "agent",
+      "text": "今日のニュースをまとめます",
+      "startTime": 38,
+      "endTime": 42,
+      "visualComponent": {
+        "type": "conversation-summary",
+        "data": {
+          "summaryText": "本日は政治、テクノロジー、環境の3つのトピックについて深掘りしました",
+          "keyPoints": [
+            {
+              "text": "新経済対策が発表され、景気回復への期待が高まっている",
+              "importance": "high"
+            },
+            {
+              "text": "AI技術はマルチモーダルの時代に入り、より複雑なタスクに対応できるようになった",
+              "importance": "high"
+            },
+            {
+              "text": "環境問題への取り組みは、再生可能エネルギーと循環型経済が鍵となる",
+              "importance": "medium"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

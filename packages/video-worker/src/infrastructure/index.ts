@@ -10,4 +10,10 @@ export { readFile, writeFile, fileExists } from "./file-system";
 export { createTempDir, cleanupTempDir } from "./temp-file";
 
 // Remotion renderer
-export { createRenderVideo, type Logger } from "./remotion-renderer";
+export { createRenderVideo } from "./remotion-renderer";
+
+// Logger
+export { createLogger, type Logger } from "./logger";
+
+// Mock data
+export { loadMockScript, loadMockAudio } from "./mock-data";

@@ -1,12 +1,13 @@
 {
   "name": "video-worker",
   "version": "1.0.0",
-  "description": "My Remotion video",
+  "description": "Video Worker - Remotion-based video generation from audio and script data for automated radio podcast pipeline",
   "repository": {},
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.419",
+    "@remotion/media": "4.0.419",
     "@remotion/renderer": "4.0.419",
     "@remotion/tailwind-v4": "4.0.419",
     "@remotion/zod-types": "4.0.419",
@@ -18,21 +19,37 @@
     "zod": "3.22.3"
   },
   "devDependencies": {
+    "@remotion/bundler": "4.0.419",
     "@remotion/eslint-config-flat": "4.0.419",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20.11.0",
     "@types/react": "19.2.7",
     "@types/web": "0.0.166",
+    "@vitejs/plugin-react": "^5.1.3",
     "eslint": "9.19.0",
+    "fast-check": "^3.23.2",
+    "happy-dom": "^20.5.3",
     "prettier": "3.6.0",
+    "tsx": "^4.21.0",
     "typescript": "5.9.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "zod-fast-check": "^0.10.1"
   },
   "scripts": {
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
+    "render": "MOCK_MODE=true tsx src/index.ts --output output/video.mp4",
     "lint": "eslint src && tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "RUN_INTEGRATION_TESTS=true vitest run --testPathPattern=integration",
+    "test:e2e": "RUN_E2E_TESTS=true vitest run e2e.test.ts",
+    "test:perf": "RUN_PERF_TESTS=true vitest run performance.test.ts",
+    "test:errors": "RUN_ERROR_TESTS=true vitest run error-scenarios.test.ts",
+    "test:fuzzing": "RUN_FUZZING_TESTS=true vitest run fuzzing.test.ts",
+    "test:all-extended": "RUN_E2E_TESTS=true RUN_PERF_TESTS=true RUN_ERROR_TESTS=true RUN_FUZZING_TESTS=true vitest run"
   },
   "sideEffects": [
     "*.css"
