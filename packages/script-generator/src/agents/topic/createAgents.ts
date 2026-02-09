@@ -1,4 +1,4 @@
-import { Agent, BedrockModel, McpClient } from "@strands-agents/sdk";
+import { Agent, BedrockModel, type McpClient } from "@strands-agents/sdk";
 import { TOPIC_DETERMINE_SYSTEM_PROMPT } from "../../prompts/topic";
 
 export const createTopicDetermineAgent = (mcpClient: McpClient) => {

@@ -1,3 +1,1 @@
-export const createResearcherAgent = () => {
-  
-}
+export const createResearcherAgent = () => {};

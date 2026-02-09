@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FONT_FAMILY } from "./constants";
 

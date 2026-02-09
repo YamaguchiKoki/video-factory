@@ -9,7 +9,13 @@
       "Bash(npm test:*)",
       "Bash(pnpm --filter video-worker install:*)",
       "Bash(pnpm --filter video-worker test)",
-      "Bash(pnpm --filter video-worker exec tsc:*)"
+      "Bash(pnpm --filter video-worker exec tsc:*)",
+      "Bash(pnpm --filter video-worker test src/core/script-types.test.ts)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(pnpm --filter video-worker test script-parser.test.ts)",
+      "Bash(ls:*)",
+      "Bash(pnpm --filter video-worker test script-parser)",
+      "Bash(test:*)"
     ]
   }
 }
