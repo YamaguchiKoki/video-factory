@@ -13,8 +13,7 @@ Step Functions
        │      VOICEVOX
        │      → S3 (WAV)
        │
-       ├─► 3. Video Worker [ECS Fargate]: 背景画像と1のスクリプト、2の音声を合成し動画にする
-       │      FFmpeg
+       ├─► 3. Video Worker [ECS Fargate]: remotionを使った動画生成
        │      → S3 (MP4)
        │
        └─► 4. Upload [Lambda]
@@ -32,6 +31,24 @@ Step Functions
 # Language Protocol
 - 思考・コード: 英語
 - ユーザー対話: 日本語
+
+# Testing
+## pnpm workspace
+This project uses pnpm workspace. Run tests with filter:
+
+```bash
+# Run tests for video-worker
+pnpm --filter video-worker test
+
+# Run tests in watch mode
+pnpm --filter video-worker test:watch
+
+# Run TypeScript type checking
+pnpm --filter video-worker exec tsc --noEmit
+
+# Install dependencies for specific package
+pnpm --filter video-worker install
+```
 
 
 # AI-DLC and Spec-Driven Development

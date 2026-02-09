@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.remotion.dev)",
+      "WebFetch(domain:www.scotthavird.com)",
+      "Bash(pnpm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm test:*)",
+      "Bash(pnpm --filter video-worker install:*)",
+      "Bash(pnpm --filter video-worker test)",
+      "Bash(pnpm --filter video-worker exec tsc:*)"
+    ]
+  }
+}
