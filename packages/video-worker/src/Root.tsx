@@ -1,12 +1,13 @@
 import "./index.css";
-import { Composition, type CalculateMetadataFunction } from "remotion";
+import { type CalculateMetadataFunction, Composition } from "remotion";
+import { z } from "zod";
+import { VideoComposition } from "./components/VideoComposition";
+import type { ParsedScript, Speaker } from "./core/script-types";
+import { parsedScriptSchema } from "./core/script-types";
 import { HelloWorld, myCompSchema } from "./HelloWorld";
 import { Logo, myCompSchema2 } from "./HelloWorld/Logo";
-import { VideoComposition } from "./components/VideoComposition";
-import { parsedScriptSchema } from "./core/script-types";
-import type { ParsedScript, Speaker } from "./core/script-types";
-import { z } from "zod";
 import { loadMockScript } from "./lib/load-mock-script";
+import { PlayGround } from "./playground";
 
 // Each <Composition> is an entry in the sidebar!
 
@@ -18,7 +19,9 @@ type VideoCompositionProps = {
 };
 
 // Calculate metadata to load mock script dynamically
-const calculateVideoMetadata: CalculateMetadataFunction<VideoCompositionProps> = async () => {
+const calculateVideoMetadata: CalculateMetadataFunction<
+  VideoCompositionProps
+> = async () => {
   const script = await loadMockScript();
 
   const fps = 30;
@@ -72,6 +75,15 @@ export const RemotionRoot: React.FC = () => {
         }}
       />
 
+      <Composition
+        id="playground"
+        component={PlayGround}
+        durationInFrames={100}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
       {/* VideoComposition for radio video generation */}
       <Composition
         id="VideoComposition"
@@ -85,13 +97,15 @@ export const RemotionRoot: React.FC = () => {
         schema={z.object({
           script: parsedScriptSchema,
           audioPath: z.string(),
-          speakers: z.array(z.object({
-            id: z.string(),
-            name: z.string(),
-            role: z.enum(["agent", "questioner"]),
-            avatarPath: z.string(),
-            voiceId: z.string().optional(),
-          })),
+          speakers: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              role: z.enum(["agent", "questioner"]),
+              avatarPath: z.string(),
+              voiceId: z.string().optional(),
+            }),
+          ),
         })}
         calculateMetadata={calculateVideoMetadata}
         defaultProps={{

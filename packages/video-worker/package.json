@@ -6,10 +6,13 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@remotion/animation-utils": "^4.0.420",
     "@remotion/cli": "4.0.419",
+    "@remotion/light-leaks": "^4.0.420",
     "@remotion/media": "4.0.419",
     "@remotion/renderer": "4.0.419",
     "@remotion/tailwind-v4": "4.0.419",
+    "@remotion/transitions": "^4.0.420",
     "@remotion/zod-types": "4.0.419",
     "neverthrow": "^8.2.0",
     "react": "19.2.3",

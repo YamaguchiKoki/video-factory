@@ -112,12 +112,21 @@ importers:
       commander:
         specifier: ^14.0.3
         version: 14.0.3
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
 
   packages/video-worker:
     dependencies:
+      '@remotion/animation-utils':
+        specifier: ^4.0.420
+        version: 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@remotion/cli':
         specifier: 4.0.419
         version: 4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@remotion/light-leaks':
+        specifier: ^4.0.420
+        version: 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@remotion/media':
         specifier: 4.0.419
         version: 4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -127,6 +136,9 @@ importers:
       '@remotion/tailwind-v4':
         specifier: 4.0.419
         version: 4.0.419(@remotion/bundler@4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(typescript@5.9.3)(webpack@5.96.1)
+      '@remotion/transitions':
+        specifier: ^4.0.420
+        version: 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@remotion/zod-types':
         specifier: 4.0.419
         version: 4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@3.22.3)
@@ -2304,6 +2316,12 @@ packages:
   '@protobufjs/utf8@1.1.0':
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
 
+  '@remotion/animation-utils@4.0.420':
+    resolution: {integrity: sha512-HrRJkvMM8t55duP4Zb0aWlDJZHLqlWjhTaeOmVtmEqqpLEDwh64PTPJDr1/hj5TOZNCS1q2nv1GJwGe6u888Ow==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
   '@remotion/bundler@4.0.419':
     resolution: {integrity: sha512-gHs12YFHWppFRKrmu1y598BmjWFJqtHwvXyRy03ZvLPVxOZOFUR0FHeAUkp9NzmYCp/XQtZzrHRwNBiB4yvvYw==}
     peerDependencies:
@@ -2360,6 +2378,12 @@ packages:
   '@remotion/licensing@4.0.419':
     resolution: {integrity: sha512-aSPX7/nPhQ4Z8djHMRsRybfEs5re/fYgFbIz6igtgZfU/v+INVyVG1Wny2GQZQsJG6aGZcPPqVR1Eu5CUvmuCg==}
 
+  '@remotion/light-leaks@4.0.420':
+    resolution: {integrity: sha512-hP0tbWcG7HF1pSklpoZDeDQslsPGcStRu4wvmuzAXZWW7kbu3odynDaPp1Y9AH24qnVO1lytEfnbh9YR7gLKyQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
   '@remotion/media-parser@4.0.419':
     resolution: {integrity: sha512-uJV6vYg4Et94cNUfxn//V1cBpL7tEJMwOt/DD06JV1MeJ2x9gDlFBEQjrQjhQGj8zu0OJVCibO07XuAhtCDhnA==}
 
@@ -2375,6 +2399,9 @@ packages:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
 
+  '@remotion/paths@4.0.420':
+    resolution: {integrity: sha512-Wfh8MztTFsWAyur2uLRx898C0O9E0VEVZa0nWVvrB4z7Ev1ELbGB0CTbMrvZ9vm3FgiIhSWjF3AESKA+Qc62lA==}
+
   '@remotion/player@4.0.419':
     resolution: {integrity: sha512-bG0K9rJifXs8iHKBq/cHIM+Ivzvk/tw75pKTK+rRZ6lGdTvriNBwx9dl4bGjhkcjqhUBzES1zkNzKfeoyEs/6g==}
     peerDependencies:
@@ -2383,6 +2410,12 @@ packages:
 
   '@remotion/renderer@4.0.419':
     resolution: {integrity: sha512-VA8YAfC9TlTnNtjELMF01SK4xADr6jm5HWuBztFzihsKkXD/HLcpTi1sFI04NeCM6pBq2/0dg5G849CSEPqUUw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@remotion/shapes@4.0.420':
+    resolution: {integrity: sha512-ElYd3zRyL2XrpJ7fCTeTBiMOK46NM0KkMYfAS0dmm/HiH2Yah09WwPdSq4GSTVms1f4g0V5psCvK5JWK9B6rBQ==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -2406,6 +2439,12 @@ packages:
     resolution: {integrity: sha512-YQ259LhjcHSYokGfuo2gRwTe9VPsAEoyITiRjMqznthbFoqlvK4GnseOagXB0iWu/lCHJ3IV3P0NQYcRxjG/pA==}
     peerDependencies:
       '@remotion/bundler': 4.0.419
+
+  '@remotion/transitions@4.0.420':
+    resolution: {integrity: sha512-hs6NxaglhK7asirM4aaBifeHkCBHMnd32PCBF853yu+upudVFYAXzwVzSldpZdYK5gZxjqR1WoWnNkMqfprAow==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@remotion/web-renderer@4.0.419':
     resolution: {integrity: sha512-DNAb86pl+vhdf7igxnmeNwfZ7fSkb87GmAeiBPSRkYV0BsTsJpKGmQEXCgE7CaBzt1H74pl+zFA1vUP8G78vgQ==}
@@ -5548,6 +5587,12 @@ packages:
 
   remotion@4.0.419:
     resolution: {integrity: sha512-h00WpNrcksePPfpyC5RZhZKBIUqGWERN6RTtVjLWvHijTpGKgO0LkXkCpihzJ5y2l+V2CIOvRINl/KykcaQDRg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  remotion@4.0.420:
+    resolution: {integrity: sha512-PmFYbYWCVmi8qaDphpeYPU7/SDADjTPtieEvW5VQEQ6SQP3Ntw37Dvr/Y0pm4gOU32Iw7WwT9x96UjCxdZ3d5Q==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -9232,6 +9277,12 @@ snapshots:
 
   '@protobufjs/utf8@1.1.0': {}
 
+  '@remotion/animation-utils@4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      remotion: 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
   '@remotion/bundler@4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@remotion/media-parser': 4.0.419
@@ -9308,6 +9359,12 @@ snapshots:
 
   '@remotion/licensing@4.0.419': {}
 
+  '@remotion/light-leaks@4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      remotion: 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
   '@remotion/media-parser@4.0.419': {}
 
   '@remotion/media-utils@4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
@@ -9325,6 +9382,8 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       remotion: 4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
+  '@remotion/paths@4.0.420': {}
 
   '@remotion/player@4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
@@ -9355,6 +9414,12 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@remotion/shapes@4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@remotion/paths': 4.0.420
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   '@remotion/streaming@4.0.419': {}
 
@@ -9423,6 +9488,14 @@ snapshots:
       - '@rspack/core'
       - typescript
       - webpack
+
+  '@remotion/transitions@4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@remotion/paths': 4.0.420
+      '@remotion/shapes': 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      remotion: 4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
   '@remotion/web-renderer@4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
@@ -13038,6 +13111,11 @@ snapshots:
       strip-indent: 3.0.0
 
   remotion@4.0.419(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
+  remotion@4.0.420(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
