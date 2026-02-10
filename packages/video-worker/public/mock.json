@@ -1,0 +1,421 @@
+{
+  "title": "テックニュースウィークリー #12",
+  "newsItems": [
+    { "id": "news-1", "title": "OpenAIがGPT-5を発表、推論能力が飛躍的に向上" },
+    { "id": "news-2", "title": "Denoが企業向けサポートプランを開始" },
+    { "id": "news-3", "title": "GitHub Copilot Workspaceが正式リリース" }
+  ],
+  "totalDurationSec": 182.0,
+  "lines": [
+    {
+      "speaker": "A",
+      "text": "はい、どうもー！テックニュースウィークリー第12回です！",
+      "audioPath": "audio/line-000.wav",
+      "startSec": 0.0,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "B",
+      "text": "今週もよろしくお願いします！",
+      "audioPath": "audio/line-001.wav",
+      "startSec": 3.5,
+      "durationSec": 2.0
+    },
+    {
+      "speaker": "A",
+      "text": "今日は3つのニュースをお届けします",
+      "audioPath": "audio/line-002.wav",
+      "startSec": 5.5,
+      "durationSec": 2.5
+    },
+    {
+      "speaker": "A",
+      "text": "1つ目、OpenAIがGPT-5を発表しました",
+      "audioPath": "audio/line-003.wav",
+      "startSec": 8.0,
+      "durationSec": 3.0
+    },
+    {
+      "speaker": "A",
+      "text": "2つ目、Denoが企業向けサポートプランを開始",
+      "audioPath": "audio/line-004.wav",
+      "startSec": 11.0,
+      "durationSec": 3.0
+    },
+    {
+      "speaker": "A",
+      "text": "3つ目、GitHub Copilot Workspaceが正式リリースされました",
+      "audioPath": "audio/line-005.wav",
+      "startSec": 14.0,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "B",
+      "text": "どれも気になりますね！さっそくいきましょう",
+      "audioPath": "audio/line-006.wav",
+      "startSec": 17.5,
+      "durationSec": 2.5
+    },
+
+    {
+      "speaker": "A",
+      "text": "まず1つ目、OpenAIがGPT-5を正式に発表しました",
+      "audioPath": "audio/line-007.wav",
+      "startSec": 20.0,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "A",
+      "text": "今回の目玉は推論能力の大幅な向上で、数学やコーディングのベンチマークで既存モデルを大きく上回っています",
+      "audioPath": "audio/line-008.wav",
+      "startSec": 23.5,
+      "durationSec": 5.5
+    },
+    {
+      "speaker": "B",
+      "text": "具体的にはどのくらい上がったんですか？",
+      "audioPath": "audio/line-009.wav",
+      "startSec": 29.0,
+      "durationSec": 2.5
+    },
+    {
+      "speaker": "A",
+      "text": "数学の競技プログラミング系ベンチマークで正答率が40%から72%に跳ね上がったそうです",
+      "audioPath": "audio/line-010.wav",
+      "startSec": 31.5,
+      "durationSec": 5.0
+    },
+
+    {
+      "speaker": "B",
+      "text": "ここでちょっと前提を整理しましょう。そもそもLLMの推論能力って何を指すんでしょうか",
+      "audioPath": "audio/line-011.wav",
+      "startSec": 36.5,
+      "durationSec": 4.5
+    },
+    {
+      "speaker": "A",
+      "text": "簡単に言うと、与えられた情報から論理的に正しい結論を導き出す力ですね",
+      "audioPath": "audio/line-012.wav",
+      "startSec": 41.0,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "B",
+      "text": "単に文章を生成するだけじゃなくて、ちゃんと考えて答えを出せるかどうか、ということですね",
+      "audioPath": "audio/line-013.wav",
+      "startSec": 45.0,
+      "durationSec": 4.5
+    },
+    {
+      "speaker": "A",
+      "text": "そうです。Chain of Thoughtとか推論チェーンといった手法が注目されてきた背景もそこにあります",
+      "audioPath": "audio/line-014.wav",
+      "startSec": 49.5,
+      "durationSec": 5.0
+    },
+
+    {
+      "speaker": "B",
+      "text": "ではこのGPT-5の推論向上、開発者にとって何が変わるんでしょう",
+      "audioPath": "audio/line-015.wav",
+      "startSec": 54.5,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "A",
+      "text": "一番大きいのは、複雑なマルチステップのタスクを一発で任せられるようになることですね",
+      "audioPath": "audio/line-016.wav",
+      "startSec": 58.5,
+      "durationSec": 5.0
+    },
+    {
+      "speaker": "B",
+      "text": "例えばバグの原因特定から修正案の提示まで一気にやってくれる、みたいな？",
+      "audioPath": "audio/line-017.wav",
+      "startSec": 63.5,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "A",
+      "text": "まさにそういうことです。ただしハルシネーションの問題は残るので、鵜呑みにはできません",
+      "audioPath": "audio/line-018.wav",
+      "startSec": 67.5,
+      "durationSec": 4.5
+    },
+    {
+      "speaker": "B",
+      "text": "結局は人間がレビューする前提で使うのが大事ですよね",
+      "audioPath": "audio/line-019.wav",
+      "startSec": 72.0,
+      "durationSec": 3.5
+    },
+
+    {
+      "speaker": "A",
+      "text": "続いて2つ目、Denoが企業向けのサポートプランを発表しました",
+      "audioPath": "audio/line-020.wav",
+      "startSec": 75.5,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "B",
+      "text": "ついにエンタープライズに本格参入ですね",
+      "audioPath": "audio/line-021.wav",
+      "startSec": 79.5,
+      "durationSec": 2.5
+    },
+    {
+      "speaker": "A",
+      "text": "SLAつきのサポートと、プライベートモジュールレジストリが目玉です",
+      "audioPath": "audio/line-022.wav",
+      "startSec": 82.0,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "B",
+      "text": "Node.jsからの移行コンサルティングも含まれているそうですよ",
+      "audioPath": "audio/line-023.wav",
+      "startSec": 86.0,
+      "durationSec": 3.5
+    },
+
+    {
+      "speaker": "A",
+      "text": "そもそもDenoって何が違うんでしたっけ、という方もいると思うので簡単に",
+      "audioPath": "audio/line-024.wav",
+      "startSec": 89.5,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "B",
+      "text": "Node.jsの作者であるRyan Dahlが反省点を活かして作り直したJavaScriptランタイムですね",
+      "audioPath": "audio/line-025.wav",
+      "startSec": 93.5,
+      "durationSec": 5.0
+    },
+    {
+      "speaker": "A",
+      "text": "TypeScriptがネイティブで動く、セキュリティがデフォルトで厳格、といった特徴があります",
+      "audioPath": "audio/line-026.wav",
+      "startSec": 98.5,
+      "durationSec": 4.5
+    },
+    {
+      "speaker": "B",
+      "text": "最近はNode.jsとの互換性もかなり上がってきていますよね",
+      "audioPath": "audio/line-027.wav",
+      "startSec": 103.0,
+      "durationSec": 3.0
+    },
+
+    {
+      "speaker": "A",
+      "text": "企業がDenoを採用するメリットはどこにあるんでしょう",
+      "audioPath": "audio/line-028.wav",
+      "startSec": 106.0,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "B",
+      "text": "セキュリティモデルが厳格なので、サプライチェーン攻撃のリスクを減らせるのが大きいですね",
+      "audioPath": "audio/line-029.wav",
+      "startSec": 109.5,
+      "durationSec": 5.0
+    },
+    {
+      "speaker": "A",
+      "text": "npmの依存関係地獄から解放されるのも魅力的です",
+      "audioPath": "audio/line-030.wav",
+      "startSec": 114.5,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "B",
+      "text": "とはいえエコシステムの規模ではまだNode.jsに及ばないので、用途を見極める必要はあります",
+      "audioPath": "audio/line-031.wav",
+      "startSec": 118.0,
+      "durationSec": 5.0
+    },
+    {
+      "speaker": "A",
+      "text": "今回のエンタープライズサポートで採用のハードルが下がるかもしれませんね",
+      "audioPath": "audio/line-032.wav",
+      "startSec": 123.0,
+      "durationSec": 4.0
+    },
+
+    {
+      "speaker": "A",
+      "text": "3つ目はGitHub Copilot Workspaceの正式リリースです",
+      "audioPath": "audio/line-033.wav",
+      "startSec": 127.0,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "B",
+      "text": "ベータからかなり待ちましたね。Issueからプルリクエストまで一気通貫で作ってくれるツールです",
+      "audioPath": "audio/line-034.wav",
+      "startSec": 130.5,
+      "durationSec": 5.0
+    },
+    {
+      "speaker": "A",
+      "text": "自然言語でやりたいことを書くと、プランを立てて実装して、PRまで出してくれるんですよね",
+      "audioPath": "audio/line-035.wav",
+      "startSec": 135.5,
+      "durationSec": 5.0
+    },
+
+    {
+      "speaker": "B",
+      "text": "前提として、従来のCopilotとの違いを整理しましょう",
+      "audioPath": "audio/line-036.wav",
+      "startSec": 140.5,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "A",
+      "text": "従来のCopilotはエディタ内でのコード補完がメインでした",
+      "audioPath": "audio/line-037.wav",
+      "startSec": 144.0,
+      "durationSec": 3.5
+    },
+    {
+      "speaker": "B",
+      "text": "Workspaceはもっと上流から、タスク全体をAIが計画・実行するという違いがあります",
+      "audioPath": "audio/line-038.wav",
+      "startSec": 147.5,
+      "durationSec": 4.5
+    },
+
+    {
+      "speaker": "A",
+      "text": "実際に使ってみた人たちの反応はどうですか",
+      "audioPath": "audio/line-039.wav",
+      "startSec": 152.0,
+      "durationSec": 3.0
+    },
+    {
+      "speaker": "B",
+      "text": "小さめのバグ修正やリファクタリングには非常に有効という声が多いです",
+      "audioPath": "audio/line-040.wav",
+      "startSec": 155.0,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "A",
+      "text": "一方で大規模な設計変更にはまだ厳しいという意見もありますね",
+      "audioPath": "audio/line-041.wav",
+      "startSec": 159.0,
+      "durationSec": 4.0
+    },
+    {
+      "speaker": "B",
+      "text": "それでもIssueのトリアージだけでもかなり時間が節約できるので、導入する価値はありそうです",
+      "audioPath": "audio/line-042.wav",
+      "startSec": 163.0,
+      "durationSec": 5.0
+    },
+
+    {
+      "speaker": "A",
+      "text": "それでは今日のまとめです",
+      "audioPath": "audio/line-043.wav",
+      "startSec": 168.0,
+      "durationSec": 2.0
+    },
+    {
+      "speaker": "A",
+      "text": "GPT-5の推論能力向上、Denoのエンタープライズ参入、Copilot Workspaceの正式リリース、この3本でした",
+      "audioPath": "audio/line-044.wav",
+      "startSec": 170.0,
+      "durationSec": 5.5
+    },
+    {
+      "speaker": "B",
+      "text": "AIによる開発支援がどんどん進化していて、開発者としてはキャッチアップが大変ですが楽しい時代ですね",
+      "audioPath": "audio/line-045.wav",
+      "startSec": 175.5,
+      "durationSec": 5.0
+    },
+    {
+      "speaker": "A",
+      "text": "それではまた来週！ばいばーい！",
+      "audioPath": "audio/line-046.wav",
+      "startSec": 180.5,
+      "durationSec": 1.5
+    }
+  ],
+  "sectionMarkers": [
+    { "type": "intro", "startSec": 0.0, "endSec": 20.0 },
+
+    {
+      "type": "discussion",
+      "newsId": "news-1",
+      "phase": "summary",
+      "startSec": 20.0,
+      "endSec": 36.5
+    },
+    {
+      "type": "discussion",
+      "newsId": "news-1",
+      "phase": "background",
+      "startSec": 36.5,
+      "endSec": 54.5
+    },
+    {
+      "type": "discussion",
+      "newsId": "news-1",
+      "phase": "deepDive",
+      "startSec": 54.5,
+      "endSec": 75.5
+    },
+
+    {
+      "type": "discussion",
+      "newsId": "news-2",
+      "phase": "summary",
+      "startSec": 75.5,
+      "endSec": 89.5
+    },
+    {
+      "type": "discussion",
+      "newsId": "news-2",
+      "phase": "background",
+      "startSec": 89.5,
+      "endSec": 106.0
+    },
+    {
+      "type": "discussion",
+      "newsId": "news-2",
+      "phase": "deepDive",
+      "startSec": 106.0,
+      "endSec": 127.0
+    },
+
+    {
+      "type": "discussion",
+      "newsId": "news-3",
+      "phase": "summary",
+      "startSec": 127.0,
+      "endSec": 140.5
+    },
+    {
+      "type": "discussion",
+      "newsId": "news-3",
+      "phase": "background",
+      "startSec": 140.5,
+      "endSec": 152.0
+    },
+    {
+      "type": "discussion",
+      "newsId": "news-3",
+      "phase": "deepDive",
+      "startSec": 152.0,
+      "endSec": 168.0
+    },
+
+    { "type": "outro", "startSec": 168.0, "endSec": 182.0 }
+  ]
+}
