@@ -25,6 +25,15 @@ const IntroSectionMarkerSchema = z
     type: z.literal("intro"),
     startSec: z.number(),
     endSec: z.number(),
+    agenda: z
+      .array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+        }),
+      )
+      .optional()
+      .describe("Overview agenda items for intro section"),
   })
   .describe("導入。overview用のUI表示などを想定");
 
@@ -52,6 +61,11 @@ export const SectionMarkerSchema = z.discriminatedUnion("type", [
   OutroSectionMarkerSchema,
 ]);
 export type SectionMarker = z.infer<typeof SectionMarkerSchema>;
+export type IntroSectionMarker = z.infer<typeof IntroSectionMarkerSchema>;
+export type DiscussionSectionMarker = z.infer<
+  typeof DiscussionSectionMarkerSchema
+>;
+export type OutroSectionMarker = z.infer<typeof OutroSectionMarkerSchema>;
 
 /** Remotionコンポジションに渡すprops */
 export const VideoPropsSchema = z.object({

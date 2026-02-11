@@ -1,5 +1,12 @@
 import React from "react";
-import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  Img,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { TimedLine } from "../schema/schema";
 import { SectionVisualConfig } from "./visual-config";
 
@@ -11,6 +18,11 @@ interface Props {
 const SPEAKER_NAMES: Record<string, string> = {
   A: "ずんだもん",
   B: "四国めたん",
+};
+
+const SPEAKER_IMAGES: Record<string, { left: string; right: string }> = {
+  A: { left: "left.png", right: "" },
+  B: { left: "", right: "right.png" },
 };
 
 export const Subtitle: React.FC<Props> = ({ line, config }) => {
@@ -34,49 +46,92 @@ export const Subtitle: React.FC<Props> = ({ line, config }) => {
       style={{
         position: "absolute",
         bottom: 60,
-        left: 60,
-        right: 60,
+        left: 0,
+        right: 0,
         opacity,
         transform: `translateY(${translateY}px)`,
         display: "flex",
-        flexDirection: "column",
-        gap: 8,
+        alignItems: "flex-end",
+        justifyContent: "center",
       }}
     >
-      {/* 話者名 */}
-      <span
-        style={{
-          color: nameColor,
-          fontSize: 22,
-          fontFamily: "'Noto Sans JP', sans-serif",
-          fontWeight: 700,
-        }}
-      >
-        {SPEAKER_NAMES[line.speaker] ?? line.speaker}
-      </span>
+      {/* Left Image */}
+      {SPEAKER_IMAGES[line.speaker]?.left && (
+        <Img
+          src={staticFile(SPEAKER_IMAGES[line.speaker].left)}
+          style={{
+            position: "absolute",
+            left: "5%",
+            bottom: 0,
+            height: 180,
+            width: "auto",
+            objectFit: "contain",
+            zIndex: 20,
+          }}
+        />
+      )}
 
-      {/* セリフ */}
+      {/* Subtitle Box */}
       <div
         style={{
-          background: "rgba(0, 0, 0, 0.65)",
-          backdropFilter: "blur(8px)",
-          borderRadius: 12,
-          padding: "16px 28px",
-          borderLeft: `4px solid ${nameColor}`,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          width: "60%",
+          zIndex: 10,
         }}
       >
+        {/* 話者名 */}
         <span
           style={{
-            color: "#f0f0f0",
-            fontSize: 32,
+            color: nameColor,
+            fontSize: 22,
             fontFamily: "'Noto Sans JP', sans-serif",
-            fontWeight: 500,
-            lineHeight: 1.6,
+            fontWeight: 700,
           }}
         >
-          {line.text}
+          {SPEAKER_NAMES[line.speaker] ?? line.speaker}
         </span>
+
+        {/* セリフ */}
+        <div
+          style={{
+            background: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(8px)",
+            borderRadius: 12,
+            padding: "16px 28px",
+            borderLeft: `4px solid ${nameColor}`,
+          }}
+        >
+          <span
+            style={{
+              color: "#f0f0f0",
+              fontSize: 32,
+              fontFamily: "'Noto Sans JP', sans-serif",
+              fontWeight: 500,
+              lineHeight: 1.6,
+            }}
+          >
+            {line.text}
+          </span>
+        </div>
       </div>
+
+      {/* Right Image */}
+      {SPEAKER_IMAGES[line.speaker]?.right && (
+        <Img
+          src={staticFile(SPEAKER_IMAGES[line.speaker].right)}
+          style={{
+            position: "absolute",
+            right: "5%",
+            bottom: 0,
+            height: 180,
+            width: "auto",
+            objectFit: "contain",
+            zIndex: 20,
+          }}
+        />
+      )}
     </div>
   );
 };

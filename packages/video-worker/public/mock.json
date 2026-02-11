@@ -348,7 +348,16 @@
     }
   ],
   "sectionMarkers": [
-    { "type": "intro", "startSec": 0.0, "endSec": 20.0 },
+    {
+      "type": "intro",
+      "startSec": 0.0,
+      "endSec": 20.0,
+      "agenda": [
+        { "id": "news-1", "title": "OpenAIがGPT-5を発表、推論能力が飛躍的に向上" },
+        { "id": "news-2", "title": "Denoが企業向けサポートプランを開始" },
+        { "id": "news-3", "title": "GitHub Copilot Workspaceが正式リリース" }
+      ]
+    },
 
     {
       "type": "discussion",

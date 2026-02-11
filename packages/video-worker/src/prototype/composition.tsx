@@ -3,9 +3,10 @@ import React from "react";
 import { AbsoluteFill, Sequence, staticFile, useVideoConfig } from "remotion";
 import { VideoProps } from "../schema/schema";
 import { SectionBackground } from "./section-background";
+import { SectionContent } from "./section-content";
 import { SectionLabel } from "./section-label";
 import { Subtitle } from "./subtitle";
-import { getNewsTitle, getVisualConfig } from "./visual-config";
+import { getVisualConfig } from "./visual-config";
 
 export const VideoComposition2: React.FC<VideoProps> = ({
   newsItems,
@@ -16,7 +17,26 @@ export const VideoComposition2: React.FC<VideoProps> = ({
 
   return (
     <AbsoluteFill>
-      {/* ========= セクション背景 + ラベル ========= */}
+      {/* ========= セクション背景 ========= */}
+      {sectionMarkers.map((marker) => {
+        const fromFrame = Math.round(marker.startSec * fps);
+        const durationFrames = Math.round(
+          (marker.endSec - marker.startSec) * fps,
+        );
+        const config = getVisualConfig(marker);
+
+        return (
+          <Sequence
+            key={`section-bg-${marker.type}-${marker.startSec}`}
+            from={fromFrame}
+            durationInFrames={durationFrames}
+          >
+            <SectionBackground config={config} />
+          </Sequence>
+        );
+      })}
+
+      {/* ========= セクションラベル（左上固定） ========= */}
       {sectionMarkers.map((marker) => {
         const fromFrame = Math.round(marker.startSec * fps);
         const durationFrames = Math.round(
@@ -25,17 +45,39 @@ export const VideoComposition2: React.FC<VideoProps> = ({
         const config = getVisualConfig(marker);
         const newsTitle =
           marker.type === "discussion"
-            ? getNewsTitle(marker.newsId, newsItems)
+            ? newsItems.find((n) => n.id === marker.newsId)?.title
             : undefined;
 
         return (
           <Sequence
-            key={`bg`}
+            key={`section-label-${marker.type}-${marker.startSec}`}
             from={fromFrame}
             durationInFrames={durationFrames}
           >
-            <SectionBackground config={config} />
             <SectionLabel config={config} newsTitle={newsTitle} />
+          </Sequence>
+        );
+      })}
+
+      {/* ========= セクションコンテンツ（中央） ========= */}
+      {sectionMarkers.map((marker) => {
+        const fromFrame = Math.round(marker.startSec * fps);
+        const durationFrames = Math.round(
+          (marker.endSec - marker.startSec) * fps,
+        );
+        const config = getVisualConfig(marker);
+
+        return (
+          <Sequence
+            key={`section-content-${marker.type}-${marker.startSec}`}
+            from={fromFrame}
+            durationInFrames={durationFrames}
+          >
+            <SectionContent
+              marker={marker}
+              config={config}
+              newsItems={newsItems}
+            />
           </Sequence>
         );
       })}
