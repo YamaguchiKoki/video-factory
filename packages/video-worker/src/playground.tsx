@@ -6,7 +6,6 @@ import {
   Img,
   interpolate,
   // OffthreadVideo,
-  Sequence,
   Series,
   spring,
   staticFile,

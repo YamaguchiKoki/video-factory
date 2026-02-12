@@ -25,3 +25,5 @@ logs/
 
 # Coverage
 coverage/
+packages/script-generator/proto
+.mastra

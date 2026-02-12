@@ -24,7 +24,8 @@
       "Bash(pnpm list:*)",
       "Bash(pnpm --filter video-worker add -D fast-check@3.x)",
       "Bash(pnpm install)",
-      "Bash(node generate-audio.js:*)"
+      "Bash(node generate-audio.js:*)",
+      "Bash(find:*)"
     ]
   }
 }
