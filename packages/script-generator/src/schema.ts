@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// TODO 共通パッケージ化
 // ============================================
 // Speaker
 // ============================================
@@ -22,6 +21,7 @@ export type Line = z.infer<typeof LineSchema>;
 export const NewsItemSchema = z.object({
   id: z.string().describe("news-1, news-2, news-3"),
   title: z.string().describe("ニュースの見出し"),
+  sourceUrl: z.string().url().optional(),
 });
 export type NewsItem = z.infer<typeof NewsItemSchema>;
 
@@ -82,61 +82,3 @@ export const ScriptSchema = z.object({
   ]),
 });
 export type Script = z.infer<typeof ScriptSchema>;
-
-// ============================================
-// Layer 2: LLM出力に音声ファイルの物理情報を付与する
-// ============================================
-export const EnrichedLineSchema = LineSchema.extend({
-  audioPath: z.string().describe("S3パス"),
-  startSec: z
-    .number()
-    .describe("音声全体でみた時の開始位置(秒) wav生成時のオフセット"),
-  durationSec: z.number().describe("継続時間 wav実測値"),
-});
-
-export const EnrichedIntroSectionSchema = z.object({
-  type: z.literal("intro"),
-  startSec: z.number(),
-  endSec: z.number(),
-  greeting: z.array(EnrichedLineSchema),
-  newsOverview: z.array(EnrichedLineSchema),
-});
-
-export const EnrichedDiscussionBlockSchema = z.object({
-  phase: DiscussionPhaseSchema,
-  startSec: z.number(),
-  endSec: z.number(),
-  lines: z.array(EnrichedLineSchema),
-});
-
-export const EnrichedDiscussionSectionSchema = z.object({
-  type: z.literal("discussion"),
-  newsId: z.string(),
-  blocks: z.tuple([
-    EnrichedDiscussionBlockSchema,
-    EnrichedDiscussionBlockSchema,
-    EnrichedDiscussionBlockSchema,
-  ]),
-});
-
-export const EnrichedOutroSectionSchema = z.object({
-  type: z.literal("outro"),
-  startSec: z.number(),
-  endSec: z.number(),
-  recap: z.array(EnrichedLineSchema),
-  closing: z.array(EnrichedLineSchema),
-});
-
-export const EnrichedScriptSchema = z.object({
-  title: z.string(),
-  totalDurationSec: z.number(),
-  newsItems: z.array(NewsItemSchema).length(3),
-  sections: z.tuple([
-    EnrichedIntroSectionSchema,
-    EnrichedDiscussionSectionSchema,
-    EnrichedDiscussionSectionSchema,
-    EnrichedDiscussionSectionSchema,
-    EnrichedOutroSectionSchema,
-  ]),
-});
-export type EnrichedScript = z.infer<typeof EnrichedScriptSchema>;

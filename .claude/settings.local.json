@@ -27,5 +27,9 @@
       "Bash(node generate-audio.js:*)",
       "Bash(find:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "figma"
+  ],
+  "enableAllProjectMcpServers": true
 }

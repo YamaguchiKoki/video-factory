@@ -1,5 +1,6 @@
 import { writeFile } from "fs";
 
+const VOICEVOX_URL = process.env.VOICEVOX_URL ?? "http://localhost:50021";
 async function processScript(script: any): Promise<any> {
   const segments: any[] = [];
   let offset = 0;
@@ -26,19 +27,6 @@ async function processScript(script: any): Promise<any> {
 
     // // 3. WAV実測の長さを使う（audio_queryの積算より信頼性が高い）
     // // const durationSec = getWavDuration(audioPath);
-
-    // 4. accent_phrases からフレーズタイミングも保持
-    // const accentPhrases = buildPhraseTimeline(query.accent_phrases);
-
-    // segments.push({
-    //   ...seg,
-    //   audioPath,
-    //   durationSec,
-    //   startSec: offset,
-    //   accentPhrases,
-    // });
-
-    // offset += durationSec;
   }
 
   return segments;

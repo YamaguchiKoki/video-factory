@@ -9,6 +9,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "local": "tsx --env-file=.env src/local.ts",
     "proto": "tsx --env-file=.env src/proto.ts",
     "dev": "mastra dev",
     "typecheck": "tsc --noEmit"
