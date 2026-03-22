@@ -1,5 +1,6 @@
 import { err, fromPromise, ok, safeTry } from "neverthrow";
 import { mastra } from "./mastra";
+import { tavilyMcp } from "./mcp/tavily";
 import { WorkflowInputSchema } from "./steps/topic-selection";
 import { ScriptSchema, type Script } from "./schema";
 import { toError } from "./shared/errors";
@@ -61,6 +62,10 @@ export const handler = async (event: HandlerEvent): Promise<Script> => {
     const script = yield* parseOutput(workflowResult);
     return ok(script);
   });
+
+  // Disconnect MCP client regardless of success/failure to prevent stale
+  // connections across Lambda freeze/thaw cycles.
+  await tavilyMcp.disconnect();
 
   return result.match(
     (script) => script,

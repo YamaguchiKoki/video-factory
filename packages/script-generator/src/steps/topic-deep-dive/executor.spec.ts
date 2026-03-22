@@ -47,6 +47,31 @@ describe("topicDeepDiveStep", () => {
     ).rejects.toThrow("Model overloaded");
   });
 
+  it("should throw when response.object fails EnrichedTopicSchema validation", async () => {
+    // Arrange — response.object is missing required fields (xOpinions, detailedContext, sourceUrls)
+    const invalidObject = { id: "news-1", title: "some title" };
+    const mockMastra = buildMockMastra({ object: invalidObject });
+
+    // Act + Assert — validation failure must propagate as a thrown error
+    await expect(
+      topicDeepDiveStep.execute(
+        buildParams(buildInputTopic("news-1"), mockMastra),
+      ),
+    ).rejects.toThrow(/Structured output validation failed/);
+  });
+
+  it("should throw when response.object is null", async () => {
+    // Arrange — null object simulates a model returning no structured output
+    const mockMastra = buildMockMastra({ object: null });
+
+    // Act + Assert
+    await expect(
+      topicDeepDiveStep.execute(
+        buildParams(buildInputTopic("news-1"), mockMastra),
+      ),
+    ).rejects.toThrow(/Structured output validation failed/);
+  });
+
   it("should call getAgent with the correct agent id", async () => {
     // Arrange
     const mockAgent = {

@@ -20,6 +20,8 @@
   "packageManager": "pnpm@10.25.0",
   "devDependencies": {
     "@fast-check/vitest": "^0.2.4",
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@strands-agents/sdk": "^0.2.0",
     "@types/node": "^25.0.10",
     "@vitest/ui": "^4.0.18",
     "fast-check": "^4.5.3",
@@ -30,6 +32,7 @@
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.48",
+    "@ai-sdk/xai": "^3.0.72",
     "@anthropic-ai/claude-agent-sdk": "^0.2.9",
     "@aws-sdk/client-bedrock-agentcore": "^3.982.0",
     "@aws-sdk/credential-providers": "^3.982.0",
@@ -41,9 +44,7 @@
     "@mastra/memory": "^1.2.0",
     "@mastra/observability": "^1.2.0",
     "@mastra/otel-bridge": "^1.0.2",
-    "@modelcontextprotocol/sdk": "^1.25.3",
     "@opentelemetry/auto-instrumentations-node": "^0.69.0",
-    "@strands-agents/sdk": "^0.2.0",
     "ai": "^6.0.79",
     "arktype": "^2.1.29",
     "bedrock-agentcore": "^0.2.0",

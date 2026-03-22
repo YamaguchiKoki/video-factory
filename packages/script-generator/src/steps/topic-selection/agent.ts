@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { bedrock } from "../../shared/bedrock";
+import { tavilyMcp } from "../../mcp/tavily";
 
 export const TOPIC_SELECTION_AGENT_ID = "topic-selection-agent";
 
@@ -13,4 +14,5 @@ export const topicSelectionAgent = new Agent({
     Think in English, respond in Japanese.
   `,
   model: bedrock("us.anthropic.claude-sonnet-4-5-20250929-v1:0"),
+  tools: async () => tavilyMcp.listTools(),
 });
