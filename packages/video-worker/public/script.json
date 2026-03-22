@@ -1,166 +1,717 @@
 {
-  "metadata": {
-    "title": "2026年2月9日のニュース",
-    "createdAt": "2026-02-09T09:00:00Z",
-    "durationSeconds": 120
-  },
-  "speakers": [
+  "title": "経済ニュース深掘り解説 - 日銀政策転換と日本経済の行方",
+  "totalDurationSec": 782.7306666666666,
+  "outputWavS3Key": "output/sample-script/経済ニュース深掘り解説 - 日銀政策転換と日本経済の行方.wav",
+  "newsItems": [
     {
-      "id": "agent",
-      "name": "AI Agent",
-      "role": "agent",
-      "avatarPath": "assets/agent-avatar.png"
+      "id": "news-1",
+      "title": "日銀、金融政策の正常化を継続へ　植田総裁が追加利上げに意欲",
+      "sourceUrl": "https://www.boj.or.jp/"
     },
     {
-      "id": "man",
-      "name": "田中さん",
-      "role": "questioner",
-      "avatarPath": "assets/man-avatar.png"
+      "id": "news-2",
+      "title": "政府、2025年度予算案を閣議決定　過去最大の115兆円規模",
+      "sourceUrl": "https://www.mof.go.jp/policy/budget/budger_workflow/budget/index.html"
+    },
+    {
+      "id": "news-3",
+      "title": "東京株式市場、日経平均が続伸　円安進行で輸出関連株に買い",
+      "sourceUrl": "https://www.nikkei.com/markets/kabu/"
     }
   ],
-  "segments": [
+  "sections": [
     {
-      "id": "seg-001",
-      "speakerId": "man",
-      "text": "今日のニュースを教えてください",
-      "startTime": 0,
-      "endTime": 3
+      "type": "intro",
+      "greeting": [
+        {
+          "speaker": "A",
+          "text": "こんにちは。経済ニュース深掘り解説の時間です。解説役のAです。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 0,
+          "durationSec": 5.8453333333333335
+        },
+        {
+          "speaker": "B",
+          "text": "質問役のBです。よろしくお願いします。今日はどんなニュースを取り上げるんですか？",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 5.8453333333333335,
+          "durationSec": 7.509333333333333
+        },
+        {
+          "speaker": "A",
+          "text": "今日は日本経済の大きな転換点を示す3つのニュースをお届けします。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 13.354666666666667,
+          "durationSec": 5.216
+        }
+      ],
+      "newsOverview": [
+        {
+          "speaker": "B",
+          "text": "転換点、ですか。気になりますね。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 18.570666666666668,
+          "durationSec": 3.8933333333333335
+        },
+        {
+          "speaker": "A",
+          "text": "まず1つ目は、日本銀行が金融政策の正常化を進めているというニュースです。植田総裁のもと、約8年ぶりにマイナス金利を解除し、追加利上げにも意欲を示しています。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 22.464000000000002,
+          "durationSec": 13.962666666666667
+        },
+        {
+          "speaker": "B",
+          "text": "長く続いた異例の金融緩和が終わるんですね。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 36.42666666666667,
+          "durationSec": 4.213333333333333
+        },
+        {
+          "speaker": "A",
+          "text": "2つ目は、政府が2025年度予算案を閣議決定したニュースです。過去最大の115兆円規模で、13年連続の最大更新となりました。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 40.64,
+          "durationSec": 11.893333333333333
+        },
+        {
+          "speaker": "B",
+          "text": "毎年増え続けているんですね。財政は大丈夫なんでしょうか。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 52.53333333333333,
+          "durationSec": 5.76
+        },
+        {
+          "speaker": "A",
+          "text": "そして3つ目は、東京株式市場で日経平均が続伸しているというニュースです。円安が進行する中、輸出関連株に買いが集まっています。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 58.29333333333333,
+          "durationSec": 11.424
+        },
+        {
+          "speaker": "B",
+          "text": "この3つのニュース、それぞれ関連しているんでしょうか？",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 69.71733333333333,
+          "durationSec": 4.981333333333334
+        },
+        {
+          "speaker": "A",
+          "text": "鋭い質問ですね。実は金融政策、財政、為替、株価は密接に絡み合っています。それでは順番に見ていきましょう。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 74.69866666666667,
+          "durationSec": 10.666666666666666
+        }
+      ]
     },
     {
-      "id": "seg-002",
-      "speakerId": "agent",
-      "text": "承知しました。今日は以下の3つのニュースについて取り上げます",
-      "startTime": 3,
-      "endTime": 8,
-      "visualComponent": {
-        "type": "news-list",
-        "data": {
-          "items": [
+      "type": "discussion",
+      "newsId": "news-1",
+      "blocks": [
+        {
+          "phase": "summary",
+          "lines": [
             {
-              "title": "政府が新経済対策を発表",
-              "category": "政治",
-              "date": "2026-02-09"
+              "speaker": "A",
+              "text": "まずは日本銀行の金融政策正常化についてです。2024年3月、日銀はマイナス金利政策を解除しました。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 85.36533333333334,
+              "durationSec": 9.610666666666667
             },
             {
-              "title": "AI技術の新展開",
-              "category": "テクノロジー",
-              "date": "2026-02-09"
+              "speaker": "B",
+              "text": "マイナス金利って、2016年から続いていたんですよね？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 94.976,
+              "durationSec": 5.8133333333333335
             },
             {
-              "title": "環境問題への新たな取り組み",
-              "category": "環境",
-              "date": "2026-02-09"
+              "speaker": "A",
+              "text": "その通りです。2016年1月の導入以来、約8年ぶりの大きな政策変更でした。さらに2024年7月には政策金利を0.25%に引き上げています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 100.78933333333333,
+              "durationSec": 14.112
+            },
+            {
+              "speaker": "B",
+              "text": "0.25%というと、まだ低い水準ですが、方向性が変わったということですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 114.90133333333333,
+              "durationSec": 8.426666666666666
+            },
+            {
+              "speaker": "A",
+              "text": "まさにそこがポイントです。植田和男総裁は、データを見ながら慎重に判断する姿勢を示しつつも、追加利上げの可能性を示唆しています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 123.32799999999999,
+              "durationSec": 10.56
+            }
+          ]
+        },
+        {
+          "phase": "background",
+          "lines": [
+            {
+              "speaker": "B",
+              "text": "そもそも、なぜ今になって金融政策を正常化するんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 133.88799999999998,
+              "durationSec": 5.802666666666667
+            },
+            {
+              "speaker": "A",
+              "text": "大きな理由は2つあります。1つは、2024年春闘で大手企業を中心に高水準の賃上げが実現したこと。もう1つは、物価上昇が続いていることです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 139.69066666666663,
+              "durationSec": 12.757333333333333
+            },
+            {
+              "speaker": "B",
+              "text": "賃金が上がって物価も上がる、つまりデフレから脱却できそうだということですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 152.44799999999995,
+              "durationSec": 7.125333333333334
+            },
+            {
+              "speaker": "A",
+              "text": "日銀はそう判断しています。ただし、賃金上昇の持続性については慎重な見方もあります。大手企業の賃上げは確認できますが、中小企業への波及はまだ限定的だという指摘もあるんです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 159.5733333333333,
+              "durationSec": 15.072
+            },
+            {
+              "speaker": "B",
+              "text": "なるほど。だから植田総裁は「データ依存」を強調しているんですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 174.6453333333333,
+              "durationSec": 6.8693333333333335
+            },
+            {
+              "speaker": "A",
+              "text": "その通りです。次回の利上げのタイミングについても、市場予測は2024年内から2025年まで幅広く分かれています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 181.51466666666664,
+              "durationSec": 9.525333333333334
+            }
+          ]
+        },
+        {
+          "phase": "deepDive",
+          "lines": [
+            {
+              "speaker": "B",
+              "text": "世界的に見ると、日本の金融政策は特殊なんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 191.03999999999996,
+              "durationSec": 5.8133333333333335
+            },
+            {
+              "speaker": "A",
+              "text": "実は今、非常に興味深い状況になっています。FRB、つまりアメリカの中央銀行やECB、ヨーロッパ中央銀行が利下げ局面に入る中、日本だけが利上げ方向なんです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 196.8533333333333,
+              "durationSec": 15.114666666666666
+            },
+            {
+              "speaker": "B",
+              "text": "真逆の動きをしているんですね。それって何か影響があるんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 211.96799999999996,
+              "durationSec": 5.973333333333334
+            },
+            {
+              "speaker": "A",
+              "text": "大きな影響があります。これが後ほど話す円安や株価の動きにも関係してくるんです。また、日本の長期金融緩和は金融機関の収益を圧迫してきました。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 217.9413333333333,
+              "durationSec": 12.522666666666666
+            },
+            {
+              "speaker": "B",
+              "text": "銀行が儲からなくなっていたということですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 230.46399999999994,
+              "durationSec": 4.010666666666666
+            },
+            {
+              "speaker": "A",
+              "text": "金利がほぼゼロでは、お金を貸しても利息収入が得られませんからね。金融政策の正常化は、金融システムの健全性という観点からも必要とされていました。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 234.47466666666662,
+              "durationSec": 12.170666666666667
+            },
+            {
+              "speaker": "B",
+              "text": "でも、利上げすると住宅ローンの金利も上がりますよね？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 246.6453333333333,
+              "durationSec": 5.216
+            },
+            {
+              "speaker": "A",
+              "text": "そこが難しいところです。家計や企業の負担増加と、金融システムの健全化、そして物価の安定。これらのバランスを取りながら、慎重に政策を進めていく必要があります。さらに2025年には団塊世代が全員75歳以上となる「2025年問題」も控えており、社会保障費の増加も見込まれています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 251.8613333333333,
+              "durationSec": 25.344
+            },
+            {
+              "speaker": "B",
+              "text": "日銀の舵取りは本当に難しそうですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 277.20533333333333,
+              "durationSec": 4.032
             }
           ]
         }
-      }
+      ]
     },
     {
-      "id": "seg-003",
-      "speakerId": "man",
-      "text": "AIの新展開について詳しく教えてください",
-      "startTime": 10,
-      "endTime": 13
-    },
-    {
-      "id": "seg-004",
-      "speakerId": "agent",
-      "text": "AI技術は大きく3つの段階で発展してきました",
-      "startTime": 13,
-      "endTime": 20,
-      "visualComponent": {
-        "type": "concept-explanation",
-        "data": {
-          "title": "AI技術の発展段階",
-          "template": "timeline",
-          "timelineEvents": [
+      "type": "discussion",
+      "newsId": "news-2",
+      "blocks": [
+        {
+          "phase": "summary",
+          "lines": [
             {
-              "date": "2010-2015",
-              "label": "ディープラーニングの台頭",
-              "description": "画像認識、音声認識の精度向上"
+              "speaker": "A",
+              "text": "続いて、2025年度予算案についてです。政府は過去最大の115兆円規模の予算案を閣議決定しました。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 281.2373333333333,
+              "durationSec": 9.28
             },
             {
-              "date": "2016-2022",
-              "label": "大規模言語モデルの登場",
-              "description": "GPT、BERTなどの自然言語処理モデル"
+              "speaker": "B",
+              "text": "115兆円って、想像もつかない金額ですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 290.5173333333333,
+              "durationSec": 4.896
             },
             {
-              "date": "2023-現在",
-              "label": "マルチモーダルAI",
-              "description": "テキスト、画像、音声を統合的に処理"
+              "speaker": "A",
+              "text": "実はこれ、13年連続で過去最大を更新しているんです。つまり、毎年予算が膨らみ続けているということです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 295.4133333333333,
+              "durationSec": 9.248
+            },
+            {
+              "speaker": "B",
+              "text": "13年連続ですか！なぜそんなに増え続けているんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 304.6613333333333,
+              "durationSec": 5.749333333333333
+            },
+            {
+              "speaker": "A",
+              "text": "最大の要因は社会保障費です。毎年約1兆円規模で自然増しているんです。これは財務省の資料でも確認されている構造的な問題です。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 310.4106666666666,
+              "durationSec": 10.848
+            }
+          ]
+        },
+        {
+          "phase": "background",
+          "lines": [
+            {
+              "speaker": "B",
+              "text": "社会保障費以外には、どんな支出が増えているんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 321.2586666666666,
+              "durationSec": 5.173333333333333
+            },
+            {
+              "speaker": "A",
+              "text": "注目すべきは防衛費です。2022年12月に「国家安全保障戦略」が閣議決定され、2027年度までに防衛費をGDP比2%に引き上げる方針が示されました。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 326.43199999999996,
+              "durationSec": 15.050666666666666
+            },
+            {
+              "speaker": "B",
+              "text": "GDP比2%というのは、どのくらいの水準なんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 341.4826666666666,
+              "durationSec": 5.834666666666666
+            },
+            {
+              "speaker": "A",
+              "text": "NATO、北大西洋条約機構の加盟国が目標としている水準と同じです。日本としては大幅な増額になります。2025年度予算では約8兆円台が見込まれています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 347.3173333333333,
+              "durationSec": 13.824
+            },
+            {
+              "speaker": "B",
+              "text": "その財源はどうするんですか？新規国債を発行するんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 361.1413333333333,
+              "durationSec": 6.08
+            },
+            {
+              "speaker": "A",
+              "text": "新規国債発行額は約28兆円台と見られています。一方で、税収見込みは約75兆円から78兆円程度とされていますが、これは経済見通しによって変動します。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 367.2213333333333,
+              "durationSec": 14.645333333333333
+            }
+          ]
+        },
+        {
+          "phase": "deepDive",
+          "lines": [
+            {
+              "speaker": "B",
+              "text": "日本の財政状況って、実際のところどうなんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 381.8666666666666,
+              "durationSec": 5.504
+            },
+            {
+              "speaker": "A",
+              "text": "率直に言って、非常に厳しい状況です。日本の政府債務残高はGDP比約260%で、先進国最悪の水準なんです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 387.37066666666664,
+              "durationSec": 11.36
+            },
+            {
+              "speaker": "B",
+              "text": "260%！それって大丈夫なんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 398.73066666666665,
+              "durationSec": 4.896
+            },
+            {
+              "speaker": "A",
+              "text": "政府はプライマリーバランス、つまり基礎的財政収支の黒字化を目標にしていますが、達成は困難な状況です。複数の経済分析でも指摘されています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 403.62666666666667,
+              "durationSec": 12.245333333333333
+            },
+            {
+              "speaker": "B",
+              "text": "でも、日本が財政破綻したという話は聞きませんよね？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 415.872,
+              "durationSec": 5.642666666666667
+            },
+            {
+              "speaker": "A",
+              "text": "それには理由があります。日本の国債の約9割は国内で保有されているんです。これは日本銀行の資金循環統計で確認できます。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 421.5146666666667,
+              "durationSec": 10.538666666666666
+            },
+            {
+              "speaker": "B",
+              "text": "国内で保有されていると、何が違うんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 432.05333333333334,
+              "durationSec": 4.650666666666667
+            },
+            {
+              "speaker": "A",
+              "text": "海外投資家に依存していないため、急激な資金流出のリスクが低いんです。ただし、これは安心材料ではありません。先ほど話した日銀の金融政策正常化で金利が上がれば、国債の利払い費も増加します。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 436.704,
+              "durationSec": 16.565333333333335
+            },
+            {
+              "speaker": "B",
+              "text": "あ、そこで最初のニュースとつながるんですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 453.26933333333335,
+              "durationSec": 4.128
+            },
+            {
+              "speaker": "A",
+              "text": "その通りです。金融政策と財政政策は密接に関連しています。また、少子化対策の予算についても、不十分だという指摘がありますが、これは評価が分かれるところです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 457.39733333333334,
+              "durationSec": 13.674666666666667
+            },
+            {
+              "speaker": "B",
+              "text": "予算を増やすにも限界があるし、でも必要な支出は増え続ける。本当に難しい問題ですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 471.072,
+              "durationSec": 9.226666666666667
             }
           ]
         }
-      }
+      ]
     },
     {
-      "id": "seg-005",
-      "speakerId": "man",
-      "text": "なるほど、それでは環境問題についてはどうでしょうか",
-      "startTime": 22,
-      "endTime": 26
-    },
-    {
-      "id": "seg-006",
-      "speakerId": "agent",
-      "text": "環境問題への取り組みとして、以下の重要なポイントがあります",
-      "startTime": 26,
-      "endTime": 32,
-      "visualComponent": {
-        "type": "concept-explanation",
-        "data": {
-          "title": "環境問題への取り組み",
-          "template": "bullet-points",
-          "bulletPoints": [
+      "type": "discussion",
+      "newsId": "news-3",
+      "blocks": [
+        {
+          "phase": "summary",
+          "lines": [
             {
-              "text": "再生可能エネルギーの導入拡大",
-              "emphasis": "high"
+              "speaker": "A",
+              "text": "最後は株式市場と為替の話題です。東京株式市場で日経平均が続伸し、円安が進行する中で輸出関連株に買いが集まっています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 480.2986666666667,
+              "durationSec": 11.424
             },
             {
-              "text": "循環型経済の推進",
-              "emphasis": "medium"
+              "speaker": "B",
+              "text": "円安だと輸出企業に有利なんですよね？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 491.72266666666667,
+              "durationSec": 3.936
             },
             {
-              "text": "カーボンニュートラルの実現",
-              "emphasis": "high"
+              "speaker": "A",
+              "text": "よくご存知ですね。円安になると、輸出企業が海外で稼いだドルを円に換算したときの収益が増加するんです。これは会計上の確立されたメカニズムです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 495.65866666666665,
+              "durationSec": 12.298666666666668
+            },
+            {
+              "speaker": "B",
+              "text": "具体的にはどんな企業が恩恵を受けるんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 507.95733333333334,
+              "durationSec": 4.330666666666667
+            },
+            {
+              "speaker": "A",
+              "text": "トヨタやソニーなどの主要輸出企業ですね。各社の決算資料でも、為替変動の影響が明記されています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 512.288,
+              "durationSec": 8.202666666666667
+            }
+          ]
+        },
+        {
+          "phase": "background",
+          "lines": [
+            {
+              "speaker": "B",
+              "text": "そもそも、なぜ円安が進んでいるんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 520.4906666666667,
+              "durationSec": 4.181333333333333
+            },
+            {
+              "speaker": "A",
+              "text": "ここで最初のニュースに戻ります。日米の金利差が大きな要因なんです。アメリカが高金利を維持する一方、日本は長く低金利でした。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 524.672,
+              "durationSec": 10.528
+            },
+            {
+              "speaker": "B",
+              "text": "金利が高い方にお金が流れるということですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 535.2,
+              "durationSec": 4.330666666666667
+            },
+            {
+              "speaker": "A",
+              "text": "まさにその通りです。日米金利差の拡大が円安要因となることは、為替理論で広く認められています。ただし、日銀が利上げを進めれば、この金利差は縮小する可能性があります。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 539.5306666666667,
+              "durationSec": 14.474666666666666
+            },
+            {
+              "speaker": "B",
+              "text": "円安が進みすぎると、政府は何か対策を取るんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 554.0053333333333,
+              "durationSec": 5.8453333333333335
+            },
+            {
+              "speaker": "A",
+              "text": "実は2022年に、日本政府は円買いの為替介入を実施しました。これは財務省の公式発表で確認されています。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 559.8506666666666,
+              "durationSec": 9.664
+            }
+          ]
+        },
+        {
+          "phase": "deepDive",
+          "lines": [
+            {
+              "speaker": "B",
+              "text": "円安って、良いことばかりじゃないですよね？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 569.5146666666666,
+              "durationSec": 4.192
+            },
+            {
+              "speaker": "A",
+              "text": "鋭い指摘です。円安には光と影があります。輸出企業には有利ですが、輸入物価が上昇して消費者物価に影響を与えます。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 573.7066666666666,
+              "durationSec": 10.570666666666666
+            },
+            {
+              "speaker": "B",
+              "text": "食料品やエネルギーの値段が上がるということですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 584.2773333333332,
+              "durationSec": 4.501333333333333
+            },
+            {
+              "speaker": "A",
+              "text": "その通りです。このメカニズムは経済学的に確立されています。また、外国人投資家から見ると、円安時には日本株が割安に見えるという効果もあります。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 588.7786666666666,
+              "durationSec": 12.576
+            },
+            {
+              "speaker": "B",
+              "text": "それで株価が上がっているんですね。でも、株価が上がっても実感がないという声も聞きますが。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 601.3546666666666,
+              "durationSec": 8.288
+            },
+            {
+              "speaker": "A",
+              "text": "重要な指摘です。実際、SNS上では「日経平均は上がっても実感がない」という意見も多く見られます。株式を保有していない人にとっては、直接的な恩恵は感じにくいでしょう。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 609.6426666666666,
+              "durationSec": 15.146666666666667
+            },
+            {
+              "speaker": "B",
+              "text": "円安の「適正水準」ってあるんですか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 624.7893333333333,
+              "durationSec": 5.002666666666666
+            },
+            {
+              "speaker": "A",
+              "text": "これは難しい問題です。円安の「行き過ぎ」や「適正水準」については、専門家間でも評価が大きく分かれており、客観的な基準はありません。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 629.7919999999999,
+              "durationSec": 13.418666666666667
+            },
+            {
+              "speaker": "B",
+              "text": "この株高は続くんでしょうか？",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 643.2106666666666,
+              "durationSec": 2.8693333333333335
+            },
+            {
+              "speaker": "A",
+              "text": "株価は日々変動しますし、将来予測は確定的ではありません。楽観論と悲観論が混在しているのが現状です。ただ、日銀の金融政策、政府の財政政策、為替動向、これらすべてが複雑に絡み合って市場に影響を与えていることは確かです。",
+              "voicevoxSpeakerId": 0,
+              "offsetSec": 646.0799999999999,
+              "durationSec": 20.736
+            },
+            {
+              "speaker": "B",
+              "text": "3つのニュースが全部つながっているんですね。",
+              "voicevoxSpeakerId": 1,
+              "offsetSec": 666.8159999999999,
+              "durationSec": 3.6586666666666665
             }
           ]
         }
-      }
+      ]
     },
     {
-      "id": "seg-007",
-      "speakerId": "man",
-      "text": "ありがとうございました。非常に参考になりました",
-      "startTime": 34,
-      "endTime": 38
-    },
-    {
-      "id": "seg-008",
-      "speakerId": "agent",
-      "text": "今日のニュースをまとめます",
-      "startTime": 38,
-      "endTime": 42,
-      "visualComponent": {
-        "type": "conversation-summary",
-        "data": {
-          "summaryText": "本日は政治、テクノロジー、環境の3つのトピックについて深掘りしました",
-          "keyPoints": [
-            {
-              "text": "新経済対策が発表され、景気回復への期待が高まっている",
-              "importance": "high"
-            },
-            {
-              "text": "AI技術はマルチモーダルの時代に入り、より複雑なタスクに対応できるようになった",
-              "importance": "high"
-            },
-            {
-              "text": "環境問題への取り組みは、再生可能エネルギーと循環型経済が鍵となる",
-              "importance": "medium"
-            }
-          ]
+      "type": "outro",
+      "recap": [
+        {
+          "speaker": "A",
+          "text": "今日は日本経済の転換点を示す3つのニュースを見てきました。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 670.4746666666666,
+          "durationSec": 4.64
+        },
+        {
+          "speaker": "B",
+          "text": "日銀の金融政策正常化、過去最大の予算案、そして円安と株高でしたね。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 675.1146666666666,
+          "durationSec": 8.256
+        },
+        {
+          "speaker": "A",
+          "text": "日銀は約8年ぶりにマイナス金利を解除し、2024年7月には政策金利を0.25%に引き上げました。植田総裁はデータを見ながら、追加利上げの可能性を示唆しています。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 683.3706666666666,
+          "durationSec": 14.826666666666666
+        },
+        {
+          "speaker": "B",
+          "text": "世界が利下げする中、日本だけが利上げ方向というのが印象的でした。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 698.1973333333333,
+          "durationSec": 6.549333333333333
+        },
+        {
+          "speaker": "A",
+          "text": "一方で、政府の2025年度予算案は過去最大の115兆円規模。13年連続の最大更新で、社会保障費や防衛費の増加が背景にあります。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 704.7466666666667,
+          "durationSec": 12.928
+        },
+        {
+          "speaker": "B",
+          "text": "政府債務残高がGDP比約260%という数字には驚きました。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 717.6746666666667,
+          "durationSec": 7.466666666666667
+        },
+        {
+          "speaker": "A",
+          "text": "そして株式市場では、円安を背景に輸出関連株に買いが集まっています。ただし、円安には輸入物価上昇という影響もあり、評価が分かれるところです。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 725.1413333333334,
+          "durationSec": 12.757333333333333
+        },
+        {
+          "speaker": "B",
+          "text": "金融政策、財政政策、為替、株価、すべてが関連しているんですね。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 737.8986666666667,
+          "durationSec": 8.736
         }
-      }
+      ],
+      "closing": [
+        {
+          "speaker": "A",
+          "text": "日本経済は今、大きな転換期を迎えています。長く続いた異例の金融緩和からの脱却、膨張し続ける財政、そして変動する為替と株価。これらの動きを注意深く見守る必要があります。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 746.6346666666667,
+          "durationSec": 15.776
+        },
+        {
+          "speaker": "B",
+          "text": "私たちの生活にも直接関わってくる問題ですもんね。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 762.4106666666667,
+          "durationSec": 5.1306666666666665
+        },
+        {
+          "speaker": "A",
+          "text": "その通りです。金利の変化は住宅ローンに影響し、円安は物価に影響します。これからも経済ニュースに注目していきましょう。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 767.5413333333333,
+          "durationSec": 10.122666666666667
+        },
+        {
+          "speaker": "B",
+          "text": "今日はありがとうございました。",
+          "voicevoxSpeakerId": 1,
+          "offsetSec": 777.664,
+          "durationSec": 2.3893333333333335
+        },
+        {
+          "speaker": "A",
+          "text": "それでは、また次回お会いしましょう。",
+          "voicevoxSpeakerId": 0,
+          "offsetSec": 780.0533333333333,
+          "durationSec": 2.6773333333333333
+        }
+      ]
     }
   ]
 }

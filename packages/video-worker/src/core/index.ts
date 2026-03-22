@@ -1,8 +1,3 @@
-/**
- * Core domain layer exports
- * Pure business logic and domain types
- */
-
 export type {
   FileSystemError,
   FileSystemErrorType,
@@ -20,35 +15,8 @@ export {
   createS3DownloadError,
   createValidationError,
 } from "./errors";
-// Render config builder
-export { buildRenderConfig } from "./render-config";
+
 export type {
   CompositionConfig,
-  InputProps,
   RenderConfig,
 } from "./render-config";
-// Script parser
-export { parseScript } from "./script-parser";
-// Script types and schemas
-export type {
-  ConceptExplanationData,
-  ConversationSummaryData,
-  NewsListData,
-  ParsedScript,
-  ScriptMetadata,
-  Segment,
-  Speaker,
-  VisualComponent,
-  VisualComponentData,
-} from "./script-types";
-export {
-  conceptExplanationDataSchema,
-  conversationSummaryDataSchema,
-  newsListDataSchema,
-  parsedScriptSchema,
-  scriptMetadataSchema,
-  segmentSchema,
-  speakerRoleSchema,
-  speakerSchema,
-  visualComponentSchema,
-} from "./script-types";

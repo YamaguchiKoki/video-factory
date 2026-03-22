@@ -1,21 +1,14 @@
-/**
- * VideoService Tests
- * Tests for the video rendering workflow orchestration
- */
-
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { err, errAsync, ok, okAsync } from "neverthrow";
 import { createFileSystemError, createValidationError, createRenderError } from "../core/errors";
-import type { ParsedScript } from "../core/script-types";
-import type { RenderConfig } from "../core/render-config";
+import type { VideoProps } from "../schema/schema";
 import { createRenderVideoWorkflow, type RenderVideoWorkflowDeps } from "./video-service";
 
 describe("renderVideoWorkflow", () => {
-  // Mock dependencies
   const mockDeps = (): RenderVideoWorkflowDeps => ({
     readFile: vi.fn(),
-    parseScript: vi.fn(),
-    buildRenderConfig: vi.fn(),
+    parseEnrichedScript: vi.fn(),
+    bundleComposition: vi.fn(),
     renderVideo: vi.fn(),
     writeFile: vi.fn(),
     createTempDir: vi.fn(),
@@ -26,41 +19,30 @@ describe("renderVideoWorkflow", () => {
       warn: vi.fn(),
       error: vi.fn(),
     },
+    entryPoint: "/app/src/remotion/index.ts",
   });
 
-  const validScript: ParsedScript = {
-    metadata: {
-      title: "Test Video",
-      createdAt: "2026-02-09T00:00:00Z",
-      durationSeconds: 10,
-    },
-    speakers: [
-      { id: "speaker1", name: "Agent", role: "agent", avatarPath: "avatar1.png" },
+  const validVideoProps: VideoProps = {
+    title: "テストビデオ",
+    totalDurationSec: 30.0,
+    newsItems: [{ id: "news-1", title: "ニュース1" }],
+    lines: [
+      {
+        speaker: "A",
+        text: "こんにちは",
+        audioPath: "/input/audio.wav",
+        startSec: 0,
+        durationSec: 3.0,
+      },
     ],
-    segments: [
-      { id: "seg1", speakerId: "speaker1", text: "Hello", startTime: 0, endTime: 3 },
+    sectionMarkers: [
+      {
+        type: "intro",
+        startSec: 0,
+        endSec: 3.0,
+        agenda: [{ id: "news-1", title: "ニュース1" }],
+      },
     ],
-  };
-
-  const validRenderConfig: RenderConfig = {
-    composition: {
-      id: "RadioVideo",
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      durationInFrames: 300,
-    },
-    inputProps: {
-      audioPath: "/tmp/audio.wav",
-      segments: validScript.segments,
-      speakers: validScript.speakers,
-    },
-    codec: "h264",
-    crf: 23,
-    imageFormat: "jpeg",
-    timeoutInMilliseconds: 900000,
-    concurrency: 2,
-    enableMultiProcessOnLinux: true,
   };
 
   beforeEach(() => {
@@ -74,11 +56,12 @@ describe("renderVideoWorkflow", () => {
       const audioPath = "/input/audio.wav";
       const outputPath = "/output/video.mp4";
 
-      // Setup successful mock responses
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
       vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from('{"test": "data"}')));
-      vi.mocked(deps.parseScript).mockReturnValue(ok(validScript));
-      vi.mocked(deps.buildRenderConfig).mockReturnValue(ok(validRenderConfig));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(
+        okAsync("http://localhost:3000/bundle"),
+      );
       vi.mocked(deps.renderVideo).mockReturnValue(okAsync("/tmp/rendered.mp4"));
       vi.mocked(deps.writeFile).mockReturnValue(okAsync(undefined));
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
@@ -91,44 +74,65 @@ describe("renderVideoWorkflow", () => {
         expect(result.value).toBe(outputPath);
       }
 
-      // Verify all steps were called
       expect(deps.createTempDir).toHaveBeenCalledTimes(1);
       expect(deps.readFile).toHaveBeenCalledWith(scriptPath);
-      expect(deps.parseScript).toHaveBeenCalled();
-      expect(deps.buildRenderConfig).toHaveBeenCalled();
+      expect(deps.parseEnrichedScript).toHaveBeenCalledWith(expect.any(String), "audio.wav");
+      expect(deps.bundleComposition).toHaveBeenCalledWith(
+        deps.entryPoint,
+        expect.any(String),
+      );
       expect(deps.renderVideo).toHaveBeenCalled();
       expect(deps.writeFile).toHaveBeenCalled();
       expect(deps.cleanupTempDir).toHaveBeenCalled();
     });
 
-    it("should log start and completion times", async () => {
+    it("renderVideo is called with TechNews composition id and bundle serveUrl", async () => {
       const deps = mockDeps();
-      const scriptPath = "/input/script.json";
-      const audioPath = "/input/audio.wav";
-      const outputPath = "/output/video.mp4";
+      const bundleUrl = "http://localhost:3000/bundle";
 
-      // Setup successful mock responses
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
-      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from('{"test": "data"}')));
-      vi.mocked(deps.parseScript).mockReturnValue(ok(validScript));
-      vi.mocked(deps.buildRenderConfig).mockReturnValue(ok(validRenderConfig));
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync(bundleUrl));
       vi.mocked(deps.renderVideo).mockReturnValue(okAsync("/tmp/rendered.mp4"));
       vi.mocked(deps.writeFile).mockReturnValue(okAsync(undefined));
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
 
       const renderWorkflow = createRenderVideoWorkflow(deps);
-      await renderWorkflow(scriptPath, audioPath, outputPath);
+      await renderWorkflow("/input/s.json", "/input/a.wav", "/output/v.mp4");
+
+      expect(deps.renderVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          composition: expect.objectContaining({ id: "TechNews" }),
+          serveUrl: bundleUrl,
+        }),
+      );
+    });
+
+    it("should log start and completion times", async () => {
+      const deps = mockDeps();
+
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
+      vi.mocked(deps.renderVideo).mockReturnValue(okAsync("/tmp/rendered.mp4"));
+      vi.mocked(deps.writeFile).mockReturnValue(okAsync(undefined));
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      await renderWorkflow("/s.json", "/a.wav", "/output/v.mp4");
 
       expect(deps.logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Starting video workflow"),
-        expect.any(Object)
+        expect.any(Object),
       );
       expect(deps.logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Video workflow completed"),
         expect.objectContaining({
-          outputPath,
+          outputPath: "/output/v.mp4",
           elapsedTime: expect.any(String),
-        })
+        }),
       );
     });
   });
@@ -136,15 +140,12 @@ describe("renderVideoWorkflow", () => {
   describe("error handling - file read failure", () => {
     it("should return early if script file read fails", async () => {
       const deps = mockDeps();
-      const scriptPath = "/input/script.json";
-      const audioPath = "/input/audio.wav";
-      const outputPath = "/output/video.mp4";
 
       const fileError = createFileSystemError(
         "IO_ERROR",
         "File not found",
         null,
-        { path: scriptPath }
+        { path: "/input/script.json" },
       );
 
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
@@ -152,46 +153,72 @@ describe("renderVideoWorkflow", () => {
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
 
       const renderWorkflow = createRenderVideoWorkflow(deps);
-      const result = await renderWorkflow(scriptPath, audioPath, outputPath);
+      const result = await renderWorkflow("/input/script.json", "/a.wav", "/output/v.mp4");
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error.type).toBe("FILE_READ_ERROR");
       }
 
-      // Verify cleanup was called despite error
       expect(deps.cleanupTempDir).toHaveBeenCalled();
-      // Verify subsequent steps were not called
-      expect(deps.parseScript).not.toHaveBeenCalled();
+      expect(deps.parseEnrichedScript).not.toHaveBeenCalled();
       expect(deps.renderVideo).not.toHaveBeenCalled();
     });
   });
 
   describe("error handling - script validation failure", () => {
-    it("should return early if script validation fails", async () => {
+    it("should return early if parseEnrichedScript fails", async () => {
       const deps = mockDeps();
-      const scriptPath = "/input/script.json";
-      const audioPath = "/input/audio.wav";
-      const outputPath = "/output/video.mp4";
 
       const validationError = createValidationError(
         "SCHEMA_VALIDATION_ERROR",
         "Invalid schema",
         null,
-        { fieldPath: "metadata" }
+        { fieldPath: "sections" },
       );
 
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
-      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from('{"test": "data"}')));
-      vi.mocked(deps.parseScript).mockReturnValue(err(validationError));
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(err(validationError));
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
 
       const renderWorkflow = createRenderVideoWorkflow(deps);
-      const result = await renderWorkflow(scriptPath, audioPath, outputPath);
+      const result = await renderWorkflow("/s.json", "/a.wav", "/output/v.mp4");
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error.type).toBe("VALIDATION_ERROR");
+      }
+
+      expect(deps.cleanupTempDir).toHaveBeenCalled();
+      expect(deps.bundleComposition).not.toHaveBeenCalled();
+      expect(deps.renderVideo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("error handling - bundle failure", () => {
+    it("should return error if bundleComposition fails", async () => {
+      const deps = mockDeps();
+
+      const renderError = createRenderError(
+        "RENDER_FAILED",
+        "Webpack build failed",
+        null,
+        {},
+      );
+
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(errAsync(renderError));
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      const result = await renderWorkflow("/s.json", "/a.wav", "/output/v.mp4");
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe("RENDER_ERROR");
       }
 
       expect(deps.cleanupTempDir).toHaveBeenCalled();
@@ -200,28 +227,25 @@ describe("renderVideoWorkflow", () => {
   });
 
   describe("error handling - render failure", () => {
-    it("should return error if render fails", async () => {
+    it("should return error if renderVideo fails", async () => {
       const deps = mockDeps();
-      const scriptPath = "/input/script.json";
-      const audioPath = "/input/audio.wav";
-      const outputPath = "/output/video.mp4";
 
       const renderError = createRenderError(
         "RENDER_FAILED",
         "Rendering failed",
         null,
-        { frameNumber: 100 }
+        { frameNumber: 100 },
       );
 
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync("/tmp/video-worker-123"));
-      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from('{"test": "data"}')));
-      vi.mocked(deps.parseScript).mockReturnValue(ok(validScript));
-      vi.mocked(deps.buildRenderConfig).mockReturnValue(ok(validRenderConfig));
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
       vi.mocked(deps.renderVideo).mockReturnValue(errAsync(renderError));
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
 
       const renderWorkflow = createRenderVideoWorkflow(deps);
-      const result = await renderWorkflow(scriptPath, audioPath, outputPath);
+      const result = await renderWorkflow("/s.json", "/a.wav", "/output/v.mp4");
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -235,42 +259,34 @@ describe("renderVideoWorkflow", () => {
   describe("cleanup guarantee", () => {
     it("should cleanup temp directory even on failure", async () => {
       const deps = mockDeps();
-      const scriptPath = "/input/script.json";
-      const audioPath = "/input/audio.wav";
-      const outputPath = "/output/video.mp4";
-
       const tempDir = "/tmp/video-worker-123";
 
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync(tempDir));
       vi.mocked(deps.readFile).mockReturnValue(
-        errAsync(createFileSystemError("IO_ERROR", "Read failed", null, {}))
+        errAsync(createFileSystemError("IO_ERROR", "Read failed", null, {})),
       );
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
 
       const renderWorkflow = createRenderVideoWorkflow(deps);
-      await renderWorkflow(scriptPath, audioPath, outputPath);
+      await renderWorkflow("/s.json", "/a.wav", "/output/v.mp4");
 
       expect(deps.cleanupTempDir).toHaveBeenCalledWith(tempDir);
     });
 
     it("should cleanup temp directory on success", async () => {
       const deps = mockDeps();
-      const scriptPath = "/input/script.json";
-      const audioPath = "/input/audio.wav";
-      const outputPath = "/output/video.mp4";
-
       const tempDir = "/tmp/video-worker-123";
 
       vi.mocked(deps.createTempDir).mockReturnValue(okAsync(tempDir));
-      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from('{"test": "data"}')));
-      vi.mocked(deps.parseScript).mockReturnValue(ok(validScript));
-      vi.mocked(deps.buildRenderConfig).mockReturnValue(ok(validRenderConfig));
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
       vi.mocked(deps.renderVideo).mockReturnValue(okAsync("/tmp/rendered.mp4"));
       vi.mocked(deps.writeFile).mockReturnValue(okAsync(undefined));
       vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
 
       const renderWorkflow = createRenderVideoWorkflow(deps);
-      await renderWorkflow(scriptPath, audioPath, outputPath);
+      await renderWorkflow("/s.json", "/a.wav", "/output/v.mp4");
 
       expect(deps.cleanupTempDir).toHaveBeenCalledWith(tempDir);
     });

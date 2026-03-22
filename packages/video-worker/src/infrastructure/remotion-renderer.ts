@@ -92,7 +92,7 @@ export const createRenderVideo = (logger: Logger) => {
     return ResultAsync.fromPromise(
       renderMedia({
         composition: videoConfig,
-        serveUrl: "https://example.com", // Required by API but not used in our case
+        serveUrl: config.serveUrl,
         codec: config.codec,
         crf: config.crf,
         imageFormat: config.imageFormat,

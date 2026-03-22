@@ -28,6 +28,7 @@ describe("renderVideo", () => {
       fps: 30,
       durationInFrames: 900,
     },
+    serveUrl: "http://localhost:3000/bundle",
     inputProps: {
       audioPath: "/tmp/test-audio.wav",
       segments: [],

@@ -1,6 +1,5 @@
-import { Audio } from "@remotion/media";
 import React from "react";
-import { AbsoluteFill, Sequence, staticFile, useVideoConfig } from "remotion";
+import { Audio, AbsoluteFill, Sequence, staticFile, useVideoConfig } from "remotion";
 import { VideoProps } from "../schema/schema";
 import { SectionBackground } from "./section-background";
 import { SectionContent } from "./section-content";
@@ -83,11 +82,10 @@ export const VideoComposition2: React.FC<VideoProps> = ({
       })}
 
       {/* ========= 音声 + 字幕 ========= */}
-      {lines.map((line) => {
+      {lines.map((line, index) => {
         const fromFrame = Math.round(line.startSec * fps);
         const durationFrames = Math.round(line.durationSec * fps);
 
-        // この発話が属するセクションのビジュアル設定を取得
         const marker = sectionMarkers.find(
           (m) => line.startSec >= m.startSec && line.startSec < m.endSec,
         );
@@ -97,11 +95,11 @@ export const VideoComposition2: React.FC<VideoProps> = ({
 
         return (
           <Sequence
-            key={`line`}
+            key={`line-${index}`}
             from={fromFrame}
             durationInFrames={durationFrames}
           >
-            <Audio src={staticFile(line.audioPath)} />
+            <Audio src={staticFile(line.audioPath)} startFrom={Math.round(line.startSec * fps)} />
             <Subtitle line={line} config={config} />
           </Sequence>
         );

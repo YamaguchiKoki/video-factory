@@ -1,19 +1,10 @@
-/**
- * End-to-End Tests for Complete Video Generation
- * Task 10.1: Complete video rendering with mock data
- *
- * Requirements:
- * - 3.1, 3.2, 3.3: Complete video rendering workflow
- * - Verifies audio-text synchronization
- * - Verifies VisualComponent display
- * - Verifies avatar animations
- */
-
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { readFile as fsReadFile, unlink, stat, mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { existsSync } from "node:fs";
+import { fromPromise, okAsync } from "neverthrow";
 import { createRenderVideoWorkflow } from "./service/video-service";
 import {
   readFile,
@@ -21,9 +12,14 @@ import {
   createTempDir,
   cleanupTempDir,
   createRenderVideo,
+  bundleComposition,
 } from "./infrastructure";
-import { parseScript, buildRenderConfig } from "./core";
+import { parseEnrichedScript } from "./core/enriched-parser";
 import { createLogger } from "./infrastructure/logger";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const entryPoint = resolve(__dirname, "remotion/index.ts");
 
 // Skip E2E tests unless explicitly enabled
 const shouldRunE2E = process.env.RUN_E2E_TESTS === "true";
@@ -36,12 +32,10 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
   const audioPath = join(process.cwd(), "mock-data/audio.wav");
 
   beforeAll(async () => {
-    // Create output directory
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
     }
 
-    // Verify mock data exists
     const scriptExists = existsSync(scriptPath);
     const audioExists = existsSync(audioPath);
 
@@ -54,37 +48,30 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
   });
 
   afterAll(async () => {
-    // Clean up output file
-    try {
-      if (existsSync(outputPath)) {
-        await unlink(outputPath);
-      }
-    } catch {
-      // Ignore cleanup errors
-    }
+    await fromPromise(unlink(outputPath), (e) => e).orElse(() =>
+      okAsync(undefined)
+    );
   });
 
   it("should generate complete video from mock data", async () => {
     const requestId = crypto.randomUUID();
     const logger = createLogger(requestId);
 
-    // Create workflow with real dependencies
     const renderVideo = createRenderVideo(logger);
     const workflow = createRenderVideoWorkflow({
       readFile,
-      parseScript,
-      buildRenderConfig,
+      parseEnrichedScript,
+      bundleComposition,
       renderVideo,
       writeFile,
       createTempDir,
       cleanupTempDir,
       logger,
+      entryPoint,
     });
 
-    // Execute workflow
     const result = await workflow(scriptPath, audioPath, outputPath);
 
-    // Verify success
     expect(result.isOk()).toBe(true);
 
     if (result.isErr()) {
@@ -92,15 +79,12 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
       throw new Error(`Workflow failed: ${result.error.message}`);
     }
 
-    // Verify output file exists
     const fileExists = existsSync(outputPath);
     expect(fileExists).toBe(true);
 
-    // Verify output file has content
     const stats = await stat(outputPath);
     expect(stats.size).toBeGreaterThan(0);
 
-    // Log file size for debugging
     logger.info("Generated video file", {
       path: outputPath,
       sizeBytes: stats.size,
@@ -112,28 +96,27 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
     const requestId = crypto.randomUUID();
     const logger = createLogger(requestId);
 
-    // Read and parse script to verify expected duration
     const scriptContent = await fsReadFile(scriptPath, "utf-8");
     const scriptData = JSON.parse(scriptContent);
-    const expectedDuration = scriptData.metadata.durationSeconds;
+    const expectedDuration = scriptData.totalDurationSec;
 
     const renderVideo = createRenderVideo(logger);
     const workflow = createRenderVideoWorkflow({
       readFile,
-      parseScript,
-      buildRenderConfig,
+      parseEnrichedScript,
+      bundleComposition,
       renderVideo,
       writeFile,
       createTempDir,
       cleanupTempDir,
       logger,
+      entryPoint,
     });
 
     const result = await workflow(scriptPath, audioPath, outputPath);
 
     expect(result.isOk()).toBe(true);
 
-    // Verify file exists and has reasonable size for video duration
     const stats = await stat(outputPath);
 
     // Expected: ~1MB per second of video (conservative estimate for h264 CRF 23)
@@ -151,43 +134,40 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
     });
   }, 900000);
 
-  it("should handle all VisualComponent types", async () => {
+  it("should handle all section types", async () => {
     const requestId = crypto.randomUUID();
     const logger = createLogger(requestId);
 
-    // Verify script contains all component types
     const scriptContent = await fsReadFile(scriptPath, "utf-8");
     const scriptData = JSON.parse(scriptContent);
 
-    const componentTypes = new Set(
-      scriptData.segments
-        .filter((seg: { visualComponent?: { type: string } }) => seg.visualComponent)
-        .map((seg: { visualComponent: { type: string } }) => seg.visualComponent.type)
+    const sectionTypes = new Set(
+      (scriptData.sections as Array<{ type: string }>).map((s) => s.type)
     );
 
-    expect(componentTypes.has("news-list")).toBe(true);
-    expect(componentTypes.has("concept-explanation")).toBe(true);
-    expect(componentTypes.has("conversation-summary")).toBe(true);
+    expect(sectionTypes.has("intro")).toBe(true);
+    expect(sectionTypes.has("discussion")).toBe(true);
+    expect(sectionTypes.has("outro")).toBe(true);
 
-    // Render video with all component types
     const renderVideo = createRenderVideo(logger);
     const workflow = createRenderVideoWorkflow({
       readFile,
-      parseScript,
-      buildRenderConfig,
+      parseEnrichedScript,
+      bundleComposition,
       renderVideo,
       writeFile,
       createTempDir,
       cleanupTempDir,
       logger,
+      entryPoint,
     });
 
     const result = await workflow(scriptPath, audioPath, outputPath);
 
     expect(result.isOk()).toBe(true);
 
-    logger.info("All VisualComponent types verified", {
-      types: Array.from(componentTypes),
+    logger.info("All section types verified", {
+      types: Array.from(sectionTypes),
     });
   }, 900000);
 });

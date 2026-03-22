@@ -1,10 +1,6 @@
-/**
- * VideoService - Orchestrates the video rendering workflow
- * Coordinates file operations, script parsing, rendering, and output
- */
-
-import { ResultAsync, errAsync, okAsync } from "neverthrow";
-import type { Result } from "neverthrow";
+import path from "path";
+import { ResultAsync, errAsync, okAsync, Result } from "neverthrow";
+import type { VideoProps } from "../schema/schema";
 import type {
   FileSystemError,
   ValidationError,
@@ -12,91 +8,104 @@ import type {
   VideoServiceError,
 } from "../core/errors";
 import { createVideoServiceError } from "../core/errors";
-import type { ParsedScript } from "../core/script-types";
 import type { RenderConfig } from "../core/render-config";
 import type { Logger } from "../infrastructure/remotion-renderer";
 
-/**
- * Dependencies for renderVideoWorkflow (for dependency injection via currying)
- */
 export interface RenderVideoWorkflowDeps {
   readFile: (path: string) => ResultAsync<Buffer, FileSystemError>;
-  parseScript: (jsonContent: string) => Result<ParsedScript, ValidationError>;
-  buildRenderConfig: (
-    script: ParsedScript,
-    audioPath: string
-  ) => Result<RenderConfig, ValidationError>;
+  parseEnrichedScript: (jsonContent: string, wavPath: string) => Result<VideoProps, ValidationError>;
+  bundleComposition: (entryPoint: string, publicDir: string) => ResultAsync<string, RenderError>;
   renderVideo: (config: RenderConfig) => ResultAsync<string, RenderError>;
   writeFile: (path: string, data: Buffer) => ResultAsync<void, FileSystemError>;
   createTempDir: () => ResultAsync<string, FileSystemError>;
   cleanupTempDir: (path: string) => ResultAsync<void, FileSystemError>;
   logger: Logger;
+  entryPoint: string;
 }
 
-/**
- * Map domain errors to VideoServiceError types
- */
+// ---------------------------------------------------------------------------
+// Error mappers
+// ---------------------------------------------------------------------------
+
 const mapFileSystemError = (
   error: FileSystemError,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
 ): VideoServiceError =>
   createVideoServiceError(
     "FILE_READ_ERROR",
     error.message,
     error.cause,
-    { ...error.context, ...context }
+    { ...error.context, ...context },
   );
 
 const mapValidationError = (
   error: ValidationError,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
 ): VideoServiceError =>
   createVideoServiceError(
     "VALIDATION_ERROR",
     error.message,
     error.cause,
-    { ...error.context, ...context }
+    { ...error.context, ...context },
   );
 
 const mapRenderError = (
   error: RenderError,
-  context: Record<string, unknown>
+  context: Record<string, unknown>,
 ): VideoServiceError =>
   createVideoServiceError(
     "RENDER_ERROR",
     error.message,
     error.cause,
-    { ...error.context, ...context }
+    { ...error.context, ...context },
   );
 
-/**
- * Create renderVideoWorkflow function with dependencies injected
- * @param deps - Dependencies for the workflow
- * @returns Function that executes the video rendering workflow
- */
+// ---------------------------------------------------------------------------
+// Render config builder
+// ---------------------------------------------------------------------------
+
+const FPS = 30;
+const COMPOSITION_ID = "TechNews";
+
+const buildVideoRenderConfig = (videoProps: VideoProps, serveUrl: string): RenderConfig => ({
+  composition: {
+    id: COMPOSITION_ID,
+    width: 1920,
+    height: 1080,
+    fps: FPS,
+    durationInFrames: Math.ceil(videoProps.totalDurationSec * FPS),
+  },
+  serveUrl,
+  inputProps: videoProps as Record<string, unknown>,
+  codec: "h264",
+  crf: 23,
+  imageFormat: "jpeg",
+  timeoutInMilliseconds: 900_000,
+  concurrency: 2,
+  enableMultiProcessOnLinux: true,
+});
+
+// ---------------------------------------------------------------------------
+// Workflow
+// ---------------------------------------------------------------------------
+
 export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
   const {
     readFile,
-    parseScript,
-    buildRenderConfig,
+    parseEnrichedScript,
+    bundleComposition,
     renderVideo,
     writeFile,
     createTempDir,
     cleanupTempDir,
     logger,
+    entryPoint,
   } = deps;
 
-  /**
-   * Execute the complete video rendering workflow
-   * @param scriptPath - Path to script JSON file
-   * @param audioPath - Path to audio WAV file
-   * @param outputPath - Path to write output MP4 file
-   * @returns ResultAsync with output path on success, VideoServiceError on failure
-   */
   const renderVideoWorkflow = (
     scriptPath: string,
     audioPath: string,
-    outputPath: string
+    outputPath: string,
   ): ResultAsync<string, VideoServiceError> => {
     const startTime = Date.now();
     const requestId = crypto.randomUUID();
@@ -108,134 +117,94 @@ export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
       outputPath,
     });
 
-    // Track temp directory for cleanup
-    const state = { tempDir: null as string | null };
-
-    // Helper to convert Result to ResultAsync
-    const resultToResultAsync = <T, E>(result: Result<T, E>) => {
-      return result.isOk()
-        ? okAsync<T, E>(result.value)
-        : errAsync<T, E>(result.error);
-    };
-
-    // Main workflow: create temp dir → read → parse → build config → render → write → cleanup
-    const workflow = createTempDir()
+    return createTempDir()
       .mapErr((err) => mapFileSystemError(err, { step: "createTempDir" }))
       .andThen((tempDir) => {
-        state.tempDir = tempDir;
         logger.debug("Temporary directory created", { tempDir });
 
-        // Read script file
-        return readFile(scriptPath)
+        const innerWorkflow = readFile(scriptPath)
           .mapErr((err) => mapFileSystemError(err, { step: "readScriptFile", scriptPath }))
           .andThen((scriptBuffer) => {
             const scriptContent = scriptBuffer.toString("utf-8");
+            const publicDir = path.dirname(audioPath);
 
-            // Parse script (convert Result to ResultAsync)
-            const parseResult = parseScript(scriptContent);
-            return resultToResultAsync(
-              parseResult.mapErr((err) =>
-                mapValidationError(err, { step: "parseScript", scriptPath })
-              )
-            ).andThen((parsedScript) => {
-              logger.debug("Script parsed successfully", {
-                segmentCount: parsedScript.segments.length,
-                speakerCount: parsedScript.speakers.length,
-              });
-
-              // Build render config (convert Result to ResultAsync)
-              const configResult = buildRenderConfig(parsedScript, audioPath);
-              return resultToResultAsync(
-                configResult.mapErr((err) =>
-                  mapValidationError(err, {
-                    step: "buildRenderConfig",
-                    audioPath,
-                  })
-                )
-              ).andThen((renderConfig) => {
-                logger.debug("Render config built", {
-                  composition: renderConfig.composition.id,
-                  durationInFrames: renderConfig.composition.durationInFrames,
+            return parseEnrichedScript(scriptContent, path.basename(audioPath))
+              .mapErr((err) => mapValidationError(err, { step: "parseEnrichedScript", scriptPath }))
+              .asyncAndThen((videoProps) => {
+                logger.debug("Script parsed successfully", {
+                  linesCount: videoProps.lines.length,
+                  sectionMarkersCount: videoProps.sectionMarkers.length,
                 });
 
-                // Render video
-                return renderVideo(renderConfig)
-                  .mapErr((err) => mapRenderError(err, { step: "renderVideo" }))
-                  .andThen((renderedPath) => {
-                    logger.debug("Video rendered", { renderedPath });
+                return bundleComposition(entryPoint, publicDir)
+                  .mapErr((err) => mapRenderError(err, { step: "bundleComposition" }))
+                  .andThen((serveUrl) => {
+                    logger.debug("Composition bundled", { serveUrl });
 
-                    // Read rendered file
-                    return readFile(renderedPath)
-                      .mapErr((err) =>
-                        mapFileSystemError(err, { step: "readRenderedFile", renderedPath })
-                      )
-                      .andThen((videoBuffer) => {
-                        // Write to output path
-                        return writeFile(outputPath, videoBuffer)
+                    const renderConfig = buildVideoRenderConfig(videoProps, serveUrl);
+
+                    return renderVideo(renderConfig)
+                      .mapErr((err) => mapRenderError(err, { step: "renderVideo" }))
+                      .andThen((renderedPath) => {
+                        logger.debug("Video rendered", { renderedPath });
+
+                        return readFile(renderedPath)
                           .mapErr((err) =>
-                            mapFileSystemError(err, { step: "writeOutputFile", outputPath })
+                            mapFileSystemError(err, { step: "readRenderedFile", renderedPath }),
                           )
-                          .map(() => {
-                            const endTime = Date.now();
-                            const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
-
-                            logger.info("Video workflow completed", {
-                              requestId,
-                              outputPath,
-                              elapsedTime: `${elapsedSeconds}s`,
-                            });
-
-                            return outputPath;
-                          });
+                          .andThen((videoBuffer) =>
+                            writeFile(outputPath, videoBuffer)
+                              .mapErr((err) =>
+                                mapFileSystemError(err, { step: "writeOutputFile", outputPath }),
+                              )
+                              .map(() => {
+                                const elapsedSeconds = Math.floor(
+                                  (Date.now() - startTime) / 1000,
+                                );
+                                logger.info("Video workflow completed", {
+                                  requestId,
+                                  outputPath,
+                                  elapsedTime: `${elapsedSeconds}s`,
+                                });
+                                return outputPath;
+                              }),
+                          );
                       });
                   });
               });
-            });
           });
-      });
 
-    // Ensure cleanup happens regardless of success or failure
-    return workflow
-      .andThen((result) => {
-        // Cleanup on success
-        if (state.tempDir) {
-          return cleanupTempDir(state.tempDir)
-            .map(() => result)
-            .mapErr((cleanupErr) => {
-              logger.warn("Failed to cleanup temp directory on success", {
-                tempDir: state.tempDir,
-                error: cleanupErr.message,
-              });
-              // Don't fail workflow if cleanup fails on success
-              return mapFileSystemError(cleanupErr, { step: "cleanup" });
-            })
-            .orElse(() => okAsync(result));
-        }
-        return okAsync(result);
-      })
-      .orElse((error) => {
-        // Cleanup on error
-        logger.error("Video workflow failed", error.cause, {
-          requestId,
-          errorType: error.type,
-          errorMessage: error.message,
-          context: error.context,
-        });
-
-        if (state.tempDir) {
-          return cleanupTempDir(state.tempDir)
-            .andThen(() => errAsync(error))
-            .orElse((cleanupErr) => {
-              logger.warn("Failed to cleanup temp directory after error", {
-                tempDir: state.tempDir,
-                cleanupError: cleanupErr.message,
-              });
-              // Return original error, not cleanup error
-              return errAsync(error);
+        return innerWorkflow
+          .andThen((result) =>
+            cleanupTempDir(tempDir)
+              .map(() => result)
+              .mapErr((cleanupErr) => {
+                logger.warn("Failed to cleanup temp directory on success", {
+                  tempDir,
+                  error: cleanupErr.message,
+                });
+                return mapFileSystemError(cleanupErr, { step: "cleanup" });
+              })
+              .orElse(() => okAsync(result)),
+          )
+          .orElse((error) => {
+            logger.error("Video workflow failed", error.cause, {
+              requestId,
+              errorType: error.type,
+              errorMessage: error.message,
+              context: error.context,
             });
-        }
 
-        return errAsync(error);
+            return cleanupTempDir(tempDir)
+              .andThen(() => errAsync(error))
+              .orElse((cleanupErr) => {
+                logger.warn("Failed to cleanup temp directory after error", {
+                  tempDir,
+                  cleanupError: cleanupErr.message,
+                });
+                return errAsync(error);
+              });
+          });
       });
   };
 
