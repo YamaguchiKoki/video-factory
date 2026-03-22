@@ -47,6 +47,7 @@
     "ai": "^6.0.79",
     "arktype": "^2.1.29",
     "bedrock-agentcore": "^0.2.0",
+    "date-fns": "^4.1.0",
     "neverthrow": "^8.2.0",
     "zod": "^4.3.6"
   }
