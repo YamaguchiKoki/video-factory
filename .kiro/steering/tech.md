@@ -16,7 +16,7 @@ AWS Step Functions orchestrates four sequential stages: script generation (Lambd
 
 - **Functional Error Handling**: neverthrow (Railway Oriented Programming pattern)
 - **Validation**: Zod schemas with safeParse (no direct `.parse()`)
-- **AI/Agent Framework**: Strands SDK (@strands-agents/sdk), Bedrock Agent SDK
+- **AI/Agent Framework**: Mastra (@mastra/core, @mastra/mcp), AWS Bedrock (@aws-sdk/client-bedrock-runtime, @ai-sdk/amazon-bedrock), xAI Grok (@ai-sdk/xai)
 - **Video**: Remotion 4.x with React 19, Tailwind CSS v4
 - **Testing**: Vitest (workspace-aware), fast-check (property-based testing)
 - **Code Quality**: Biome (linting + formatting)
@@ -96,7 +96,7 @@ cd infra && pnpm cdk deploy
 
 **Remotion for video**: Programmatic video generation via React components, type-safe props with Zod schemas, Tailwind CSS for styling.
 
-**Strands SDK for agentic workflows**: Manages multi-step agent orchestration (research, planning, execution) for script generation with Bedrock integration.
+**Mastra for agentic workflows**: Manages multi-step agent orchestration (topic selection, deep dive research, fact-checking, script generation) with @mastra/core for agent/workflow definitions and @mastra/mcp for MCP tool integration (Tavily search via SSE). Bedrock (Claude) handles most agents; xAI Grok handles real-time X data retrieval.
 
 ---
 _Document standards and patterns, not every dependency_

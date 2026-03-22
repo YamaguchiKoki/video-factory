@@ -6,6 +6,18 @@ import { TOPIC_DEEP_DIVE_AGENT_ID } from "./agent";
 import { toError } from "../../shared/errors";
 import type { Topic } from "../topic-selection/schema";
 
+const parseEnrichedTopic = (raw: unknown) => {
+  const parsed = EnrichedTopicSchema.safeParse(raw);
+  if (!parsed.success) {
+    return err(
+      new Error(
+        `Structured output validation failed: ${parsed.error.message}`,
+      ),
+    );
+  }
+  return ok(parsed.data);
+};
+
 export const topicDeepDiveStep = createStep({
   id: "topic-deep-dive",
   inputSchema: TopicSchema,
@@ -22,7 +34,9 @@ export const topicDeepDiveStep = createStep({
         toError,
       );
 
-      return ok(response.object);
+      const enrichedTopic = yield* parseEnrichedTopic(response.object);
+
+      return ok(enrichedTopic);
     });
 
     if (result.isErr()) throw result.error;
