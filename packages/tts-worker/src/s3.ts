@@ -1,9 +1,26 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client, type S3ClientConfig } from "@aws-sdk/client-s3";
 import { err, fromPromise, fromThrowable, ok, type ResultAsync } from "neverthrow";
-import { ScriptSchema, type Script } from "./schema.js";
+import { ScriptSchema, type Script, type EnrichedScript } from "./schema.js";
 import { toError, type S3Error } from "./errors.js";
 
-const s3 = new S3Client({});
+export const createS3ClientConfig = (): S3ClientConfig => {
+  const endpointUrl = process.env["S3_ENDPOINT_URL"];
+  if (!endpointUrl) {
+    return {};
+  }
+  const accessKeyId = process.env["S3_ACCESS_KEY_ID"];
+  const secretAccessKey = process.env["S3_SECRET_ACCESS_KEY"];
+  return {
+    endpoint: endpointUrl,
+    region: "ap-northeast-1",
+    forcePathStyle: true,
+    ...(accessKeyId && secretAccessKey
+      ? { credentials: { accessKeyId, secretAccessKey } }
+      : {}),
+  };
+};
+
+const s3 = new S3Client(createS3ClientConfig());
 
 export const getScriptFromS3 = (
   bucket: string,
@@ -55,6 +72,25 @@ export const uploadWavToS3 = (
           Key: key,
           Body: Buffer.from(data),
           ContentType: "audio/wav",
+        }),
+      )
+      .then(() => undefined),
+    (e): S3Error => ({ type: "PUT_OBJECT_ERROR", message: toError(e).message }),
+  );
+
+export const uploadEnrichedScriptToS3 = (
+  bucket: string,
+  key: string,
+  data: EnrichedScript,
+): ResultAsync<void, S3Error> =>
+  fromPromise(
+    s3
+      .send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: Buffer.from(JSON.stringify(data)),
+          ContentType: "application/json",
         }),
       )
       .then(() => undefined),

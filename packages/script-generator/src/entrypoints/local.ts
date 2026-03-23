@@ -1,4 +1,4 @@
-import { handler } from "./handler";
+import { handler } from "../handler";
 
 const genre = process.argv[2] ?? "テクノロジー";
 

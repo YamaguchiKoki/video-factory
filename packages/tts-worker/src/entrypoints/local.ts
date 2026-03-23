@@ -1,8 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { runPipeline } from "./pipeline.js";
-import { createLocalStorage } from "./local-storage.js";
+import { runPipeline } from "../pipeline.js";
+import { createLocalStorage } from "../local-storage.js";
 
 const main = async (): Promise<void> => {
   const scriptPath = process.argv[2];
@@ -37,6 +36,4 @@ const main = async (): Promise<void> => {
   console.log(`Duration: ${enriched.totalDurationSec.toFixed(1)}s`);
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  main();
-}
+main();

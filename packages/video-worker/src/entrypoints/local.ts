@@ -1,6 +1,6 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { parseEnrichedScript } from "./core/enriched-parser";
+import { parseEnrichedScript } from "../core/enriched-parser";
 import {
   readFile,
   writeFile,
@@ -8,9 +8,9 @@ import {
   cleanupTempDir,
   createRenderVideo,
   bundleComposition,
-} from "./infrastructure";
-import { createRenderVideoWorkflow } from "./service/video-service";
-import { createLogger } from "./infrastructure/logger";
+} from "../infrastructure";
+import { createRenderVideoWorkflow } from "../service/video-service";
+import { createLogger } from "../infrastructure/logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +38,7 @@ export const main = async (): Promise<void> => {
 
   if (!mockMode && (!args.script || !args.audio || !args.output)) {
     console.error("Error: Missing required arguments");
-    console.error("Usage: node index.js --script <path> --audio <path> --output <path>");
+    console.error("Usage: tsx src/entrypoints/local.ts --script <path> --audio <path> --output <path>");
     console.error("Or set MOCK_MODE=true to use mock data");
     process.exit(1);
   }
@@ -55,7 +55,7 @@ export const main = async (): Promise<void> => {
   const audioPath = mockMode ? "public/audio.wav" : args.audio!;
   const outputPath = args.output;
 
-  const entryPoint = path.resolve(__dirname, "remotion/index.ts");
+  const entryPoint = path.resolve(__dirname, "../remotion/index.ts");
 
   const renderVideo = createRenderVideo(logger);
   const renderWorkflow = createRenderVideoWorkflow({
@@ -88,7 +88,7 @@ export const main = async (): Promise<void> => {
   );
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1]?.includes("local")) {
   main().catch((error) => {
     console.error("Unhandled error:", error);
     process.exit(1);

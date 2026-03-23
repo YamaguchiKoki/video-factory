@@ -1,37 +1,14 @@
-/**
- * Remotion Video Renderer
- * Wraps @remotion/renderer's renderMedia() API with neverthrow Result type
- */
-
 import { renderMedia } from "@remotion/renderer";
 import type { VideoConfig } from "remotion/no-react";
 import { ResultAsync } from "neverthrow";
 import type { RenderConfig } from "../core/render-config";
 import { createRenderError, type RenderError } from "../core/errors";
+import type { Logger } from "./logger";
 
-/**
- * Logger interface for dependency injection
- */
-export interface Logger {
-  debug: (message: string, context?: Record<string, unknown>) => void;
-  info: (message: string, context?: Record<string, unknown>) => void;
-  warn: (message: string, context?: Record<string, unknown>) => void;
-  error: (message: string, error: Error | null, context?: Record<string, unknown>) => void;
-}
-
-/**
- * Memory warning threshold (4GB in bytes)
- */
 const MEMORY_WARNING_THRESHOLD = 3.8 * 1024 * 1024 * 1024; // 3.8 GB
 
-/**
- * Progress logging threshold (log every 10%)
- */
 const PROGRESS_LOG_INTERVAL = 0.1;
 
-/**
- * Categorize render error based on error message
- */
 const categorizeRenderError = (errorMessage: string, cause: Error | null): RenderError => {
   const lowerMessage = errorMessage.toLowerCase();
   const isTimeout = lowerMessage.includes("timeout");
@@ -46,26 +23,12 @@ const categorizeRenderError = (errorMessage: string, cause: Error | null): Rende
   return createRenderError("RENDER_FAILED", `Render failed: ${errorMessage}`, cause, {});
 };
 
-/**
- * Convert memory bytes to GB string
- */
 const bytesToGB = (bytes: number): string => (bytes / (1024 * 1024 * 1024)).toFixed(2);
 
-/**
- * Create a renderVideo function with logger dependency injection
- * @param logger - Logger instance for progress and error reporting
- * @returns Function that renders video and returns Result<outputPath, RenderError>
- */
 export const createRenderVideo = (logger: Logger) => {
-  /**
-   * Render video using Remotion renderMedia() API
-   * @param config - Render configuration
-   * @returns ResultAsync with output file path on success, RenderError on failure
-   */
   const renderVideo = (config: RenderConfig): ResultAsync<string, RenderError> => {
     const startTime = Date.now();
     const outputLocation = `/tmp/remotion-render-${Date.now()}/output.mp4`;
-    // Use closure to track last logged progress (immutable reference)
     const progressTracker = { lastLogged: 0 };
 
     logger.info("Starting video render", {
@@ -77,7 +40,6 @@ export const createRenderVideo = (logger: Logger) => {
       outputLocation,
     });
 
-    // Convert RenderConfig.composition to VideoConfig required by renderMedia
     const videoConfig: VideoConfig = {
       ...config.composition,
       props: config.inputProps,
@@ -101,7 +63,6 @@ export const createRenderVideo = (logger: Logger) => {
         timeoutInMilliseconds: config.timeoutInMilliseconds,
         concurrency: config.concurrency,
         onProgress: ({ progress, renderedFrames, encodedFrames }) => {
-          // Log progress every 10%
           const progressPercent = Math.floor(progress * 100);
           const shouldLog = progress - progressTracker.lastLogged >= PROGRESS_LOG_INTERVAL;
 
@@ -115,7 +76,6 @@ export const createRenderVideo = (logger: Logger) => {
             progressTracker.lastLogged = progress;
           }
 
-          // Monitor memory usage
           const memoryUsage = process.memoryUsage();
           if (memoryUsage.heapUsed > MEMORY_WARNING_THRESHOLD) {
             logger.warn("Memory usage approaching limit", {

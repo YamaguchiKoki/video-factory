@@ -43,7 +43,7 @@ describe("main()", () => {
       "/path/to/output.mp4",
     ];
 
-    const { main } = await import("./index");
+    const { main } = await import("./local");
 
     // We'll mock the workflow to verify arguments are passed correctly
     expect(main).toBeDefined();
@@ -52,7 +52,7 @@ describe("main()", () => {
   it("should exit with code 1 when required arguments are missing", async () => {
     process.argv = ["node", "index.js"];
 
-    const { main } = await import("./index");
+    const { main } = await import("./local");
     await main();
 
     expect(process.exit).toHaveBeenCalledWith(1);
@@ -71,7 +71,7 @@ describe("main()", () => {
       "/path/to/output.mp4",
     ];
 
-    const { main } = await import("./index");
+    const { main } = await import("./local");
 
     expect(main).toBeDefined();
   });
@@ -85,7 +85,7 @@ describe("main()", () => {
       "/path/to/output.mp4",
     ];
 
-    const { main } = await import("./index");
+    const { main } = await import("./local");
 
     expect(main).toBeDefined();
   });

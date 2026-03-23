@@ -33,7 +33,7 @@ describeE2E("CLI End-to-End Tests", () => {
     process.env.LOG_LEVEL = "INFO";
 
     // Import main function
-    const { main } = await import("./index");
+    const { main } = await import("./entrypoints/local");
 
     // Override process.argv
     const originalArgv = process.argv;
@@ -78,7 +78,7 @@ describeE2E("CLI End-to-End Tests", () => {
   }, 120000); // 2 minutes timeout for video rendering
 
   it("should fail with exit code 1 when output path is missing", async () => {
-    const { main } = await import("./index");
+    const { main } = await import("./entrypoints/local");
 
     const originalArgv = process.argv;
     const originalExit = process.exit;

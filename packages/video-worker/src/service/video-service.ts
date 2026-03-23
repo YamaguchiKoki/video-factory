@@ -9,7 +9,7 @@ import type {
 } from "../core/errors";
 import { createVideoServiceError } from "../core/errors";
 import type { RenderConfig } from "../core/render-config";
-import type { Logger } from "../infrastructure/remotion-renderer";
+import type { Logger } from "../infrastructure/logger";
 
 export interface RenderVideoWorkflowDeps {
   readFile: (path: string) => ResultAsync<Buffer, FileSystemError>;
@@ -21,11 +21,8 @@ export interface RenderVideoWorkflowDeps {
   cleanupTempDir: (path: string) => ResultAsync<void, FileSystemError>;
   logger: Logger;
   entryPoint: string;
+  publicDir?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Error mappers
-// ---------------------------------------------------------------------------
 
 const mapFileSystemError = (
   error: FileSystemError,
@@ -60,10 +57,6 @@ const mapRenderError = (
     { ...error.context, ...context },
   );
 
-// ---------------------------------------------------------------------------
-// Render config builder
-// ---------------------------------------------------------------------------
-
 const FPS = 30;
 const COMPOSITION_ID = "TechNews";
 
@@ -85,10 +78,6 @@ const buildVideoRenderConfig = (videoProps: VideoProps, serveUrl: string): Rende
   enableMultiProcessOnLinux: true,
 });
 
-// ---------------------------------------------------------------------------
-// Workflow
-// ---------------------------------------------------------------------------
-
 export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
   const {
     readFile,
@@ -100,6 +89,7 @@ export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
     cleanupTempDir,
     logger,
     entryPoint,
+    publicDir: explicitPublicDir,
   } = deps;
 
   const renderVideoWorkflow = (
@@ -126,7 +116,7 @@ export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
           .mapErr((err) => mapFileSystemError(err, { step: "readScriptFile", scriptPath }))
           .andThen((scriptBuffer) => {
             const scriptContent = scriptBuffer.toString("utf-8");
-            const publicDir = path.dirname(audioPath);
+            const publicDir = explicitPublicDir ?? path.dirname(audioPath);
 
             return parseEnrichedScript(scriptContent, path.basename(audioPath))
               .mapErr((err) => mapValidationError(err, { step: "parseEnrichedScript", scriptPath }))
