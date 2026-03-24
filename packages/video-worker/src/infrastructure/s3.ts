@@ -12,13 +12,19 @@ export type S3Error = {
   readonly message: string;
 };
 
-export const createS3ClientConfig = (): S3ClientConfig => {
-  const endpointUrl = process.env["S3_ENDPOINT_URL"];
+export type S3EnvConfig = {
+  readonly S3_ENDPOINT_URL?: string;
+  readonly S3_ACCESS_KEY_ID?: string;
+  readonly S3_SECRET_ACCESS_KEY?: string;
+};
+
+export const createS3ClientConfig = (env: S3EnvConfig = {}): S3ClientConfig => {
+  const endpointUrl = env.S3_ENDPOINT_URL;
   if (!endpointUrl) {
     return {};
   }
-  const accessKeyId = process.env["S3_ACCESS_KEY_ID"];
-  const secretAccessKey = process.env["S3_SECRET_ACCESS_KEY"];
+  const accessKeyId = env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = env.S3_SECRET_ACCESS_KEY;
   return {
     endpoint: endpointUrl,
     region: "ap-northeast-1",
@@ -29,8 +35,8 @@ export const createS3ClientConfig = (): S3ClientConfig => {
   };
 };
 
-export const createS3Client = (): S3Client =>
-  new S3Client(createS3ClientConfig());
+export const createS3Client = (env: S3EnvConfig = {}): S3Client =>
+  new S3Client(createS3ClientConfig(env));
 
 const toMessage = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);

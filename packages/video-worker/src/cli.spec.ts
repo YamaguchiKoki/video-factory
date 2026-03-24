@@ -20,14 +20,12 @@ const {
   mockCreateRenderVideo,
   mockBundleComposition,
   mockReadFile,
-  mockWriteFile,
 } = vi.hoisted(() => ({
   mockCreateTempDir: vi.fn(),
   mockCleanupTempDir: vi.fn(),
   mockCreateRenderVideo: vi.fn(),
   mockBundleComposition: vi.fn(),
   mockReadFile: vi.fn(),
-  mockWriteFile: vi.fn(),
 }));
 
 vi.mock("./infrastructure", () => ({
@@ -36,7 +34,6 @@ vi.mock("./infrastructure", () => ({
   createRenderVideo: mockCreateRenderVideo,
   bundleComposition: mockBundleComposition,
   readFile: mockReadFile,
-  writeFile: mockWriteFile,
 }));
 
 // ============================================
@@ -97,25 +94,6 @@ import { DEFAULT_AUDIO_KEY, DEFAULT_OUTPUT_KEY, DEFAULT_SCRIPT_KEY, createProgra
 // Test data
 // ============================================
 
-const TEMP_DIR = "/tmp/video-worker-test";
-
-const fileSystemError = {
-  type: "IO_ERROR" as const,
-  message: "filesystem error",
-  cause: null,
-  context: {},
-};
-
-const s3Error = {
-  type: "GET_OBJECT_ERROR" as const,
-  message: "s3 download error",
-};
-
-const uploadS3Error = {
-  type: "PUT_OBJECT_ERROR" as const,
-  message: "s3 upload error",
-};
-
 const videoServiceError = {
   type: "RENDER_ERROR" as const,
   message: "render failed",
@@ -171,11 +149,7 @@ describe("createProgram", () => {
     mockCreateLogger.mockReturnValue(mockLogger);
     mockCreateS3Client.mockReturnValue({});
     mockCreateRenderVideo.mockReturnValue(vi.fn());
-    mockCreateTempDir.mockReturnValue(okAsync(TEMP_DIR));
-    mockCleanupTempDir.mockReturnValue(okAsync(undefined));
-    mockDownloadToFile.mockReturnValue(okAsync(undefined));
-    mockRenderWorkflow.mockReturnValue(okAsync(`${TEMP_DIR}/video.mp4`));
-    mockUploadFromFile.mockReturnValue(okAsync(undefined));
+    mockRenderWorkflow.mockReturnValue(okAsync("video-worker/video.mp4"));
   });
 
   afterEach(() => {
@@ -191,32 +165,6 @@ describe("createProgram", () => {
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
-  it("exits with code 1 when createTempDir fails", async () => {
-    mockCreateTempDir.mockReturnValue(errAsync(fileSystemError));
-
-    await runProgram().catch(() => undefined);
-
-    expect(process.exit).toHaveBeenCalledWith(1);
-  });
-
-  it("exits with code 1 when script download fails", async () => {
-    mockDownloadToFile.mockReturnValueOnce(errAsync(s3Error));
-
-    await runProgram();
-
-    expect(process.exit).toHaveBeenCalledWith(1);
-  });
-
-  it("exits with code 1 when audio download fails", async () => {
-    mockDownloadToFile
-      .mockReturnValueOnce(okAsync(undefined))
-      .mockReturnValueOnce(errAsync(s3Error));
-
-    await runProgram();
-
-    expect(process.exit).toHaveBeenCalledWith(1);
-  });
-
   it("exits with code 1 when render workflow fails", async () => {
     mockRenderWorkflow.mockReturnValue(errAsync(videoServiceError));
 
@@ -225,69 +173,49 @@ describe("createProgram", () => {
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
-  it("exits with code 1 when S3 upload fails", async () => {
-    mockUploadFromFile.mockReturnValue(errAsync(uploadS3Error));
-
+  it("calls renderWorkflow with default S3 keys when no options provided", async () => {
     await runProgram();
 
-    expect(process.exit).toHaveBeenCalledWith(1);
-  });
-
-  it("uses default keys when no options are provided", async () => {
-    await runProgram();
-
-    expect(mockDownloadToFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      "video-factory",
+    expect(mockRenderWorkflow).toHaveBeenCalledWith(
       DEFAULT_SCRIPT_KEY,
-      expect.any(String),
-    );
-    expect(mockDownloadToFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      "video-factory",
       DEFAULT_AUDIO_KEY,
-      expect.any(String),
-    );
-    expect(mockUploadFromFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      "video-factory",
       DEFAULT_OUTPUT_KEY,
-      expect.any(String),
-      "video/mp4",
     );
   });
 
-  it("passes custom --script-key to downloadToFile", async () => {
+  it("passes custom --script-key to renderWorkflow", async () => {
     await runProgram("--script-key", "custom/script.json");
 
-    expect(mockDownloadToFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      "video-factory",
+    expect(mockRenderWorkflow).toHaveBeenCalledWith(
       "custom/script.json",
+      expect.any(String),
       expect.any(String),
     );
   });
 
-  it("passes custom --audio-key to downloadToFile", async () => {
+  it("passes custom --audio-key to renderWorkflow", async () => {
     await runProgram("--audio-key", "custom/audio.wav");
 
-    expect(mockDownloadToFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      "video-factory",
+    expect(mockRenderWorkflow).toHaveBeenCalledWith(
+      expect.any(String),
       "custom/audio.wav",
       expect.any(String),
     );
   });
 
-  it("passes custom --output-key to uploadFromFile", async () => {
+  it("passes custom --output-key to renderWorkflow", async () => {
     await runProgram("--output-key", "custom/video.mp4");
 
-    expect(mockUploadFromFile).toHaveBeenCalledWith(
-      expect.any(Object),
-      "video-factory",
-      "custom/video.mp4",
+    expect(mockRenderWorkflow).toHaveBeenCalledWith(
       expect.any(String),
-      "video/mp4",
+      expect.any(String),
+      "custom/video.mp4",
     );
+  });
+
+  it("does not exit when render workflow succeeds", async () => {
+    await runProgram();
+
+    expect(process.exit).not.toHaveBeenCalled();
   });
 });

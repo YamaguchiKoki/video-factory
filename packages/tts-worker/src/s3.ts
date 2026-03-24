@@ -2,14 +2,21 @@ import { GetObjectCommand, PutObjectCommand, S3Client, type S3ClientConfig } fro
 import { err, fromPromise, fromThrowable, ok, type ResultAsync } from "neverthrow";
 import { ScriptSchema, type Script, type EnrichedScript } from "./schema.js";
 import { toError, type S3Error } from "./errors.js";
+import type { StorageDeps } from "./storage.js";
 
-export const createS3ClientConfig = (): S3ClientConfig => {
-  const endpointUrl = process.env["S3_ENDPOINT_URL"];
+export type S3EnvConfig = {
+  readonly S3_ENDPOINT_URL?: string;
+  readonly S3_ACCESS_KEY_ID?: string;
+  readonly S3_SECRET_ACCESS_KEY?: string;
+};
+
+export const createS3ClientConfig = (env: S3EnvConfig = {}): S3ClientConfig => {
+  const endpointUrl = env.S3_ENDPOINT_URL;
   if (!endpointUrl) {
     return {};
   }
-  const accessKeyId = process.env["S3_ACCESS_KEY_ID"];
-  const secretAccessKey = process.env["S3_SECRET_ACCESS_KEY"];
+  const accessKeyId = env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = env.S3_SECRET_ACCESS_KEY;
   return {
     endpoint: endpointUrl,
     region: "ap-northeast-1",
@@ -97,5 +104,18 @@ export const uploadEnrichedScriptToS3 = (
     (e): S3Error => ({ type: "PUT_OBJECT_ERROR", message: toError(e).message }),
   );
 
-export const buildOutputWavKey = (date: string, title: string): string =>
-  `audio/${date}/${title}.wav`;
+export const extractDateFromKey = (key: string): string => {
+  const filename = key.split("/").at(-1) ?? key;
+  return filename.replace(".json", "");
+};
+
+export const createDockerStorage = (
+  bucket: string,
+  outputWavKey: string,
+  outputScriptKey: string,
+): StorageDeps => ({
+  getScript: (key) => getScriptFromS3(bucket, key),
+  uploadWav: (key, data) => uploadWavToS3(bucket, key, data),
+  uploadEnrichedScript: (data) => uploadEnrichedScriptToS3(bucket, outputScriptKey, data),
+  buildOutputKey: (_date, _title) => outputWavKey,
+});

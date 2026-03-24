@@ -72,29 +72,18 @@ import {
 // ============================================
 
 describe("createS3ClientConfig", () => {
-  afterEach(() => {
-    delete process.env["S3_ENDPOINT_URL"];
+  it("returns empty object when no env config provided", () => {
+    const config = createS3ClientConfig();
+    expect(config).toEqual({});
   });
 
   it("returns empty object when S3_ENDPOINT_URL is not set", () => {
-    // Given
-    delete process.env["S3_ENDPOINT_URL"];
-
-    // When
-    const config = createS3ClientConfig();
-
-    // Then
+    const config = createS3ClientConfig({});
     expect(config).toEqual({});
   });
 
   it("returns endpoint and forcePathStyle:true when S3_ENDPOINT_URL is set", () => {
-    // Given
-    process.env["S3_ENDPOINT_URL"] = "http://rustfs:9000";
-
-    // When
-    const config = createS3ClientConfig();
-
-    // Then
+    const config = createS3ClientConfig({ S3_ENDPOINT_URL: "http://rustfs:9000" });
     expect(config).toEqual({
       endpoint: "http://rustfs:9000",
       region: "ap-northeast-1",
@@ -103,15 +92,20 @@ describe("createS3ClientConfig", () => {
   });
 
   it("preserves the full URL without modification", () => {
-    // Given
     const url = "http://localhost:9000";
-    process.env["S3_ENDPOINT_URL"] = url;
-
-    // When
-    const config = createS3ClientConfig();
-
-    // Then
+    const config = createS3ClientConfig({ S3_ENDPOINT_URL: url });
     expect(config).toMatchObject({ endpoint: url });
+  });
+
+  it("includes credentials when both access key and secret are provided", () => {
+    const config = createS3ClientConfig({
+      S3_ENDPOINT_URL: "http://localhost:9000",
+      S3_ACCESS_KEY_ID: "key",
+      S3_SECRET_ACCESS_KEY: "secret",
+    });
+    expect(config).toMatchObject({
+      credentials: { accessKeyId: "key", secretAccessKey: "secret" },
+    });
   });
 });
 

@@ -1,6 +1,7 @@
-import { run } from "../cli.js";
+import { fromPromise } from "neverthrow";
+import { run } from "./docker-runner.js";
 
-run().catch((error: unknown) => {
+fromPromise(run(), (error) => {
   console.error("Unhandled error:", error);
-  process.exit(1);
-});
+  return error;
+}).mapErr(() => process.exit(1));

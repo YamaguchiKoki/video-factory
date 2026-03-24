@@ -1,83 +1,34 @@
-import path from "path";
+import { Command } from "commander";
+import { fromPromise } from "neverthrow";
 import { fileURLToPath } from "url";
-import { parseEnrichedScript } from "../core/enriched-parser";
-import {
-  readFile,
-  writeFile,
-  createTempDir,
-  cleanupTempDir,
-  createRenderVideo,
-  bundleComposition,
-} from "../infrastructure";
 import { createRenderVideoWorkflow } from "../service/video-service";
-import { createLogger } from "../infrastructure/logger";
+import { createLocalDeps } from "../deps";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-interface CliArgs {
-  script?: string;
-  audio?: string;
-  output?: string;
-}
-
-const parseCliArgs = (argv: string[]): CliArgs =>
-  argv.slice(2).reduce<CliArgs>((acc, _, idx, arr) => {
-    if (idx % 2 !== 0) return acc;
-    const flag = arr[idx];
-    const value = arr[idx + 1];
-    if (flag === "--script") return { ...acc, script: value };
-    if (flag === "--audio") return { ...acc, audio: value };
-    if (flag === "--output") return { ...acc, output: value };
-    return acc;
-  }, {});
 
 export const main = async (): Promise<void> => {
-  const args = parseCliArgs(process.argv);
-  const mockMode = process.env.MOCK_MODE === "true";
+  const program = new Command()
+    .option("--script <path>", "Path to the script JSON file")
+    .option("--audio <path>", "Path to the audio WAV file")
+    .option("--output <path>", "Path for the output video");
 
-  if (!mockMode && (!args.script || !args.audio || !args.output)) {
-    console.error("Error: Missing required arguments");
-    console.error("Usage: tsx src/entrypoints/local.ts --script <path> --audio <path> --output <path>");
-    console.error("Or set MOCK_MODE=true to use mock data");
+  program.parse(process.argv);
+  const opts = program.opts<{ script?: string; audio?: string; output?: string }>();
+
+  if (!opts.script || !opts.audio || !opts.output) {
+    console.error("Error: --script, --audio, and --output are all required");
     process.exit(1);
   }
 
-  if (!args.output) {
-    console.error("Error: --output argument is required");
-    process.exit(1);
-  }
-
-  const requestId = crypto.randomUUID();
-  const logger = createLogger(requestId);
-
-  const scriptPath = mockMode ? "public/script.json" : args.script!;
-  const audioPath = mockMode ? "public/audio.wav" : args.audio!;
-  const outputPath = args.output;
-
-  const entryPoint = path.resolve(__dirname, "../remotion/index.ts");
-
-  const renderVideo = createRenderVideo(logger);
-  const renderWorkflow = createRenderVideoWorkflow({
-    readFile,
-    parseEnrichedScript,
-    bundleComposition,
-    renderVideo,
-    writeFile,
-    createTempDir,
-    cleanupTempDir,
-    logger,
-    entryPoint,
-  });
-
-  const result = await renderWorkflow(scriptPath, audioPath, outputPath);
+  const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+  const renderWorkflow = createRenderVideoWorkflow(deps);
+  const result = await renderWorkflow(opts.script, opts.audio, opts.output);
 
   result.match(
-    (outputFilePath: string) => {
-      logger.info("Video rendering successful", { outputPath: outputFilePath });
-      process.exit(0);
+    (outputFilePath) => {
+      deps.logger.info("Video rendering successful", { outputPath: outputFilePath });
     },
-    (error: { message: string; type: string; context?: Record<string, unknown> }) => {
+    (error) => {
       console.error("Error:", error.message);
       console.error("Type:", error.type);
       if (error.context) {
@@ -88,9 +39,9 @@ export const main = async (): Promise<void> => {
   );
 };
 
-if (process.argv[1]?.includes("local")) {
-  main().catch((error) => {
+if (process.argv[1] === __filename) {
+  fromPromise(main(), (error) => {
     console.error("Unhandled error:", error);
-    process.exit(1);
-  });
+    return error;
+  }).mapErr(() => process.exit(1));
 }
