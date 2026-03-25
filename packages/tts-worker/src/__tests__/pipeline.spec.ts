@@ -94,6 +94,7 @@ const MOCK_OUTPUT_KEY = "audio/2026-03-21/テストラジオ 2026年3月21日号
 const createMockStorage = (): StorageDeps => ({
   getScript: vi.fn().mockReturnValue(okAsync(MINIMAL_SCRIPT as unknown as Script)),
   uploadWav: vi.fn().mockReturnValue(okAsync(undefined)),
+  uploadEnrichedScript: vi.fn().mockReturnValue(okAsync(undefined)),
   buildOutputKey: vi.fn().mockReturnValue(MOCK_OUTPUT_KEY),
 });
 
@@ -325,5 +326,97 @@ describe("runPipeline — errors", () => {
     await runPipeline(mockStorage, "scripts/2026-03-21.json");
 
     expect(mockStorage.uploadWav).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================
+// runPipeline — uploadEnrichedScript integration
+// ============================================
+
+describe("runPipeline — uploadEnrichedScript integration", () => {
+  it("calls storage.uploadEnrichedScript after uploadWav on success", async () => {
+    await runPipeline(mockStorage, "scripts/2026-03-21.json");
+
+    expect(mockStorage.uploadWav).toHaveBeenCalledTimes(1);
+    expect(mockStorage.uploadEnrichedScript).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls uploadEnrichedScript with the assembled EnrichedScript", async () => {
+    await runPipeline(mockStorage, "scripts/2026-03-21.json");
+
+    expect(mockStorage.uploadEnrichedScript).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: MINIMAL_SCRIPT.title,
+        outputWavS3Key: MOCK_OUTPUT_KEY,
+      }),
+    );
+  });
+
+  it("calls uploadEnrichedScript AFTER uploadWav (ordering constraint)", async () => {
+    const callOrder: string[] = [];
+    vi.mocked(mockStorage.uploadWav).mockImplementation(() => {
+      callOrder.push("uploadWav");
+      return okAsync(undefined);
+    });
+    vi.mocked(mockStorage.uploadEnrichedScript).mockImplementation(() => {
+      callOrder.push("uploadEnrichedScript");
+      return okAsync(undefined);
+    });
+
+    await runPipeline(mockStorage, "scripts/2026-03-21.json");
+
+    expect(callOrder).toEqual(["uploadWav", "uploadEnrichedScript"]);
+  });
+
+  it("returns Err when uploadEnrichedScript fails", async () => {
+    const storage = {
+      ...mockStorage,
+      uploadEnrichedScript: vi.fn().mockReturnValue(
+        errAsync({ type: "PUT_OBJECT_ERROR" as const, message: "Enriched script upload failed" }),
+      ),
+    };
+
+    const result = await runPipeline(storage, "scripts/2026-03-21.json");
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.type).toBe("PUT_OBJECT_ERROR");
+    }
+  });
+
+  it("does not call uploadEnrichedScript when uploadWav fails", async () => {
+    const storage = {
+      ...mockStorage,
+      uploadWav: vi.fn().mockReturnValue(
+        errAsync({ type: "PUT_OBJECT_ERROR" as const, message: "WAV upload failed" }),
+      ),
+    };
+
+    await runPipeline(storage, "scripts/2026-03-21.json");
+
+    expect(storage.uploadEnrichedScript).not.toHaveBeenCalled();
+  });
+
+  it("does not call uploadEnrichedScript when WAV concatenation fails", async () => {
+    vi.mocked(concatenateWavs).mockReturnValue(
+      err({ type: "FORMAT_MISMATCH" as const, message: "Incompatible formats" }),
+    );
+
+    await runPipeline(mockStorage, "scripts/2026-03-21.json");
+
+    expect(mockStorage.uploadEnrichedScript).not.toHaveBeenCalled();
+  });
+
+  it("does not call uploadEnrichedScript when script fetch fails", async () => {
+    const storage = {
+      ...mockStorage,
+      getScript: vi.fn().mockReturnValue(
+        errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
+      ),
+    };
+
+    await runPipeline(storage, "scripts/2026-03-21.json");
+
+    expect(storage.uploadEnrichedScript).not.toHaveBeenCalled();
   });
 });

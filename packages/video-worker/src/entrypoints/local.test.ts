@@ -1,92 +1,197 @@
-/**
- * Entry point tests
- * Tests for CLI argument parsing and main() function
- */
+// Tests for the local.ts entrypoint.
+//
+// Design contract:
+//   - Uses commander: --script <path>, --audio <path>, --output <path>
+//   - main(): Promise<void> is exported as a pure function
+//   - Missing --script or --audio or --output → exits 1 with an error message
+//   - All required args present → runs renderWorkflow and exits based on result
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { okAsync, errAsync } from "neverthrow";
 
-// Mock process.exit to prevent actual process termination
-vi.mock("process", () => ({
-  exit: vi.fn(),
-  env: {},
-  argv: [],
+// ============================================
+// Mock heavy dependencies
+// ============================================
+
+const {
+  mockCreateTempDir,
+  mockCleanupTempDir,
+  mockCreateRenderVideo,
+  mockBundleComposition,
+  mockReadFile,
+} = vi.hoisted(() => ({
+  mockCreateTempDir: vi.fn(),
+  mockCleanupTempDir: vi.fn(),
+  mockCreateRenderVideo: vi.fn(),
+  mockBundleComposition: vi.fn(),
+  mockReadFile: vi.fn(),
 }));
 
-describe("main()", () => {
-  const originalArgv = process.argv;
-  const originalEnv = process.env;
-  const originalExit = process.exit;
+vi.mock("../infrastructure", () => ({
+  createTempDir: mockCreateTempDir,
+  cleanupTempDir: mockCleanupTempDir,
+  createRenderVideo: mockCreateRenderVideo,
+  bundleComposition: mockBundleComposition,
+  readFile: mockReadFile,
+}));
 
-  beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks();
-    process.exit = vi.fn() as unknown as typeof process.exit;
-    process.env = { ...originalEnv };
-  });
+const { mockCreateLogger } = vi.hoisted(() => ({
+  mockCreateLogger: vi.fn(),
+}));
 
-  afterEach(() => {
-    process.argv = originalArgv;
-    process.env = originalEnv;
-    process.exit = originalExit;
-  });
+vi.mock("../infrastructure/logger", () => ({
+  createLogger: mockCreateLogger,
+}));
 
-  it("should parse CLI arguments correctly", async () => {
-    // RED: Test should fail because main() is not implemented yet
-    process.argv = [
-      "node",
-      "index.js",
-      "--script",
-      "/path/to/script.json",
-      "--audio",
-      "/path/to/audio.wav",
-      "--output",
-      "/path/to/output.mp4",
-    ];
+const { mockRenderWorkflow, mockCreateRenderVideoWorkflow } = vi.hoisted(() => {
+  const mockRenderWorkflow = vi.fn();
+  return {
+    mockRenderWorkflow,
+    mockCreateRenderVideoWorkflow: vi.fn(() => mockRenderWorkflow),
+  };
+});
 
-    const { main } = await import("./local");
+vi.mock("../service/video-service", () => ({
+  createRenderVideoWorkflow: mockCreateRenderVideoWorkflow,
+}));
 
-    // We'll mock the workflow to verify arguments are passed correctly
-    expect(main).toBeDefined();
-  });
+vi.mock("../core/enriched-parser", () => ({
+  parseEnrichedScript: vi.fn(),
+}));
 
-  it("should exit with code 1 when required arguments are missing", async () => {
-    process.argv = ["node", "index.js"];
+// ============================================
+// Setup
+// ============================================
 
-    const { main } = await import("./local");
-    await main();
+const mockLogger = {
+  info: vi.fn(),
+  debug: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
+
+const videoServiceError = {
+  type: "RENDER_ERROR" as const,
+  message: "render failed",
+  cause: null,
+  context: {},
+};
+
+const TEMP_DIR = "/tmp/video-worker-local";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.spyOn(process, "exit").mockReturnValue(undefined as never);
+  mockCreateLogger.mockReturnValue(mockLogger);
+  mockCreateRenderVideo.mockReturnValue(vi.fn());
+  mockCreateTempDir.mockReturnValue(okAsync(TEMP_DIR));
+  mockCleanupTempDir.mockReturnValue(okAsync(undefined));
+  mockRenderWorkflow.mockReturnValue(okAsync("/path/to/output.mp4"));
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+// ============================================
+// Helper — run main() with given argv
+// ============================================
+
+const runMain = async (args: string[]) => {
+  const savedArgv = process.argv;
+  process.argv = ["node", "local.ts", ...args];
+  const { main } = await import("./local");
+  await main();
+  process.argv = savedArgv;
+};
+
+// ============================================
+// CLI argument validation
+// ============================================
+
+describe("local.ts main() — argument validation (commander)", () => {
+  it("exits with code 1 when --script is missing", async () => {
+    await runMain(["--audio", "/path/audio.wav", "--output", "/path/output.mp4"]);
 
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
-  it("should read LOG_LEVEL from environment variable", async () => {
-    process.env.LOG_LEVEL = "DEBUG";
-    process.argv = [
-      "node",
-      "index.js",
-      "--script",
-      "/path/to/script.json",
-      "--audio",
-      "/path/to/audio.wav",
-      "--output",
-      "/path/to/output.mp4",
-    ];
+  it("exits with code 1 when --audio is missing", async () => {
+    await runMain(["--script", "/path/script.json", "--output", "/path/output.mp4"]);
 
-    const { main } = await import("./local");
-
-    expect(main).toBeDefined();
+    expect(process.exit).toHaveBeenCalledWith(1);
   });
 
-  it("should handle MOCK_MODE environment variable", async () => {
-    process.env.MOCK_MODE = "true";
-    process.argv = [
-      "node",
-      "index.js",
-      "--output",
-      "/path/to/output.mp4",
-    ];
+  it("exits with code 1 when --output is missing", async () => {
+    await runMain(["--script", "/path/script.json", "--audio", "/path/audio.wav"]);
 
-    const { main } = await import("./local");
+    expect(process.exit).toHaveBeenCalledWith(1);
+  });
 
-    expect(main).toBeDefined();
+  it("exits with code 1 when no arguments are provided", async () => {
+    await runMain([]);
+
+    expect(process.exit).toHaveBeenCalledWith(1);
+  });
+});
+
+// ============================================
+// Successful execution
+// ============================================
+
+describe("local.ts main() — successful execution", () => {
+  it("does not exit when all arguments are provided and workflow succeeds", async () => {
+    await runMain([
+      "--script", "/path/script.json",
+      "--audio", "/path/audio.wav",
+      "--output", "/path/output.mp4",
+    ]);
+
+    expect(process.exit).not.toHaveBeenCalledWith(1);
+  });
+
+  it("calls createRenderVideoWorkflow with the correct paths", async () => {
+    await runMain([
+      "--script", "/path/script.json",
+      "--audio", "/path/audio.wav",
+      "--output", "/path/output.mp4",
+    ]);
+
+    expect(mockRenderWorkflow).toHaveBeenCalledWith(
+      "/path/script.json",
+      "/path/audio.wav",
+      "/path/output.mp4",
+    );
+  });
+});
+
+// ============================================
+// Error handling
+// ============================================
+
+describe("local.ts main() — error handling", () => {
+  it("exits with code 1 when renderWorkflow returns an error", async () => {
+    mockRenderWorkflow.mockReturnValue(errAsync(videoServiceError));
+
+    await runMain([
+      "--script", "/path/script.json",
+      "--audio", "/path/audio.wav",
+      "--output", "/path/output.mp4",
+    ]);
+
+    expect(process.exit).toHaveBeenCalledWith(1);
+  });
+});
+
+// ============================================
+// No auto-execution guard
+// ============================================
+
+describe("local.ts — no execution guard", () => {
+  it("exports main() as a regular function without side effects on module load", async () => {
+    const mod = await import("./local");
+
+    expect(typeof mod.main).toBe("function");
+    expect(process.exit).not.toHaveBeenCalled();
   });
 });

@@ -3,16 +3,16 @@
  * Structured JSON logging for CloudWatch Logs
  */
 
-export interface Logger {
-  debug: (message: string, context?: Record<string, unknown>) => void;
-  info: (message: string, context?: Record<string, unknown>) => void;
-  warn: (message: string, context?: Record<string, unknown>) => void;
-  error: (
+export type Logger = {
+  readonly debug: (message: string, context?: Record<string, unknown>) => void;
+  readonly info: (message: string, context?: Record<string, unknown>) => void;
+  readonly warn: (message: string, context?: Record<string, unknown>) => void;
+  readonly error: (
     message: string,
     error: Error | null,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) => void;
-}
+};
 
 /**
  * Log level type

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { err, errAsync, ok, okAsync } from "neverthrow";
+import { err, errAsync, ok, okAsync, type ResultAsync } from "neverthrow";
 import { createFileSystemError, createValidationError, createRenderError } from "../core/errors";
 import type { VideoProps } from "../schema/schema";
+import type { S3Error } from "../infrastructure/s3";
 import { createRenderVideoWorkflow, type RenderVideoWorkflowDeps } from "./video-service";
 
 describe("renderVideoWorkflow", () => {
@@ -300,6 +301,145 @@ describe("renderVideoWorkflow", () => {
       await renderWorkflow("script.json", "audio.wav", "/output/v.mp4");
 
       expect(deps.cleanupTempDir).toHaveBeenCalledWith(tempDir);
+    });
+  });
+
+  describe("S3 download details", () => {
+    const s3Success = () => okAsync<void, S3Error>(undefined);
+    const s3Error = (msg = "S3 error"): ResultAsync<void, S3Error> =>
+      errAsync({ type: "GET_OBJECT_ERROR" as const, message: msg });
+    const s3PutError = (msg = "Upload error"): ResultAsync<void, S3Error> =>
+      errAsync({ type: "PUT_OBJECT_ERROR" as const, message: msg });
+
+    const SCRIPT_KEY = "tts-worker/script.json";
+    const AUDIO_KEY = "tts-worker/audio.wav";
+    const OUTPUT_KEY = "video-worker/video.mp4";
+    const TEMP_DIR = "/tmp/video-worker-123";
+
+    it("downloads script using the provided scriptKey", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3).mockReturnValue(s3Success());
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
+      vi.mocked(deps.renderVideo).mockReturnValue(okAsync(`${TEMP_DIR}/rendered.mp4`));
+      vi.mocked(deps.uploadToS3).mockReturnValue(s3Success());
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      const firstCall = vi.mocked(deps.downloadFromS3).mock.calls[0];
+      expect(firstCall?.[0]).toBe(SCRIPT_KEY);
+    });
+
+    it("downloads audio using the provided audioKey", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3).mockReturnValue(s3Success());
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
+      vi.mocked(deps.renderVideo).mockReturnValue(okAsync(`${TEMP_DIR}/rendered.mp4`));
+      vi.mocked(deps.uploadToS3).mockReturnValue(s3Success());
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      const secondCall = vi.mocked(deps.downloadFromS3).mock.calls[1];
+      expect(secondCall?.[0]).toBe(AUDIO_KEY);
+    });
+
+    it("uploads rendered video with video/mp4 content type", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3).mockReturnValue(s3Success());
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
+      vi.mocked(deps.renderVideo).mockReturnValue(okAsync(`${TEMP_DIR}/rendered.mp4`));
+      vi.mocked(deps.uploadToS3).mockReturnValue(s3Success());
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      expect(deps.uploadToS3).toHaveBeenCalledWith(
+        OUTPUT_KEY,
+        expect.any(String),
+        "video/mp4",
+      );
+    });
+
+    it("returns Err FILE_READ_ERROR when script download fails", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3).mockReturnValueOnce(s3Error("Script not found"));
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      const result = await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe("FILE_READ_ERROR");
+      }
+    });
+
+    it("returns Err FILE_READ_ERROR when audio download fails", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3)
+        .mockReturnValueOnce(s3Success())
+        .mockReturnValueOnce(s3Error("Audio not found"));
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      const result = await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe("FILE_READ_ERROR");
+      }
+    });
+
+    it("returns Err FILE_WRITE_ERROR when uploadToS3 fails", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3).mockReturnValue(s3Success());
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
+      vi.mocked(deps.renderVideo).mockReturnValue(okAsync(`${TEMP_DIR}/rendered.mp4`));
+      vi.mocked(deps.uploadToS3).mockReturnValue(s3PutError("Upload quota exceeded"));
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      const result = await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe("FILE_WRITE_ERROR");
+      }
+    });
+
+    it("cleans up temp directory even when upload fails", async () => {
+      const deps = mockDeps();
+      vi.mocked(deps.createTempDir).mockReturnValue(okAsync(TEMP_DIR));
+      vi.mocked(deps.downloadFromS3).mockReturnValue(s3Success());
+      vi.mocked(deps.readFile).mockReturnValue(okAsync(Buffer.from("{}")));
+      vi.mocked(deps.parseEnrichedScript).mockReturnValue(ok(validVideoProps));
+      vi.mocked(deps.bundleComposition).mockReturnValue(okAsync("http://localhost:3000/bundle"));
+      vi.mocked(deps.renderVideo).mockReturnValue(okAsync(`${TEMP_DIR}/rendered.mp4`));
+      vi.mocked(deps.uploadToS3).mockReturnValue(s3PutError());
+      vi.mocked(deps.cleanupTempDir).mockReturnValue(okAsync(undefined));
+
+      const renderWorkflow = createRenderVideoWorkflow(deps);
+      await renderWorkflow(SCRIPT_KEY, AUDIO_KEY, OUTPUT_KEY);
+
+      expect(deps.cleanupTempDir).toHaveBeenCalledWith(TEMP_DIR);
     });
   });
 });

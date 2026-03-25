@@ -5,6 +5,7 @@ import type { StorageDeps } from "./storage.js";
 import { getSpeakerId } from "./speaker.js";
 import { audioQuery, synthesis } from "./voicevox.js";
 import { concatenateWavs, getWavDurationSec } from "./wav.js";
+import { extractDateFromKey } from "./s3.js";
 
 export type PipelineError = VoicevoxError | S3Error | WavError;
 
@@ -30,7 +31,13 @@ export const runPipeline = (
       (e): PipelineError => e,
     );
 
-    return ok(rebuildEnrichedScript(script, enrichedLines, outputWavKey, totalDurationSec));
+    const enrichedScript = rebuildEnrichedScript(script, enrichedLines, outputWavKey, totalDurationSec);
+
+    yield* storage.uploadEnrichedScript(enrichedScript).mapErr(
+      (e): PipelineError => e,
+    );
+
+    return ok(enrichedScript);
   });
 
 type LineResult = {
@@ -97,11 +104,7 @@ const flattenDiscussionLines = (disc: DiscussionSection): readonly Line[] =>
   disc.blocks.flatMap((b) => b.lines);
 
 const flattenScriptLines = (script: Script): readonly Line[] => {
-  const intro = script.sections[0];
-  const disc1 = script.sections[1];
-  const disc2 = script.sections[2];
-  const disc3 = script.sections[3];
-  const outro = script.sections[4];
+  const [intro, disc1, disc2, disc3, outro] = script.sections;
 
   return [
     ...intro.greeting,
@@ -112,11 +115,6 @@ const flattenScriptLines = (script: Script): readonly Line[] => {
     ...outro.recap,
     ...outro.closing,
   ];
-};
-
-export const extractDateFromKey = (key: string): string => {
-  const filename = key.split("/").at(-1) ?? key;
-  return filename.replace(".json", "");
 };
 
 type CursorState = {
@@ -155,11 +153,7 @@ const rebuildEnrichedScript = (
   outputWavKey: string,
   totalDurationSec: number,
 ): EnrichedScript => {
-  const intro = script.sections[0];
-  const disc1 = script.sections[1];
-  const disc2 = script.sections[2];
-  const disc3 = script.sections[3];
-  const outro = script.sections[4];
+  const [intro, disc1, disc2, disc3, outro] = script.sections;
 
   const s0: CursorState = { cursor: 0, lines: enrichedLines };
 

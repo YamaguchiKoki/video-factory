@@ -28,3 +28,4 @@ logs/
 coverage/
 packages/script-generator/proto
 .mastra
+.claude/worktrees/

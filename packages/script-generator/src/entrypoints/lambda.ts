@@ -1,1 +1,1 @@
-export { handler } from "../handler";
+export { handler } from "../workflow-runner";

@@ -1,23 +1,22 @@
-import { err, fromPromise, ok, safeTry } from "neverthrow";
+import { err, fromPromise, ok, safeTry, type ResultAsync } from "neverthrow";
+import { z } from "zod";
 import { mastra } from "./mastra";
 import { tavilyMcp } from "./mcp/tavily";
 import { WorkflowInputSchema } from "./steps/topic-selection";
 import { ScriptSchema, type Script } from "./schema";
 import { toError } from "./shared/errors";
 
-type HandlerEvent = {
-  readonly genre: string;
-};
+export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
 
-type HandlerError = {
+export type WorkflowError = {
   readonly type: "VALIDATION_ERROR" | "WORKFLOW_ERROR";
   readonly message: string;
 };
 
-const parseInput = (event: HandlerEvent) => {
-  const result = WorkflowInputSchema.safeParse(event);
+const parseInput = (input: WorkflowInput) => {
+  const result = WorkflowInputSchema.safeParse(input);
   if (!result.success) {
-    return err<never, HandlerError>({
+    return err<never, WorkflowError>({
       type: "VALIDATION_ERROR",
       message: result.error.message,
     });
@@ -38,7 +37,7 @@ const executeWorkflow = (input: { readonly genre: string }) =>
 
       return result.result;
     })(),
-    (e): HandlerError => ({
+    (e): WorkflowError => ({
       type: "WORKFLOW_ERROR",
       message: toError(e).message,
     }),
@@ -47,7 +46,7 @@ const executeWorkflow = (input: { readonly genre: string }) =>
 const parseOutput = (result: unknown) => {
   const parsed = ScriptSchema.safeParse(result);
   if (!parsed.success) {
-    return err<never, HandlerError>({
+    return err<never, WorkflowError>({
       type: "VALIDATION_ERROR",
       message: `Output validation failed: ${parsed.error.message}`,
     });
@@ -55,22 +54,29 @@ const parseOutput = (result: unknown) => {
   return ok(parsed.data);
 };
 
-export const handler = async (event: HandlerEvent): Promise<Script> => {
-  const result = await safeTry(async function* () {
-    const input = yield* parseInput(event);
-    const workflowResult = yield* executeWorkflow(input);
-    const script = yield* parseOutput(workflowResult);
-    return ok(script);
+const disconnectMcp = () =>
+  fromPromise(tavilyMcp.disconnect(), (e) => {
+    console.error("Failed to disconnect Tavily MCP client:", e);
+    return e;
   });
 
-  // Disconnect MCP client regardless of success/failure to prevent stale
-  // connections across Lambda freeze/thaw cycles.
-  await tavilyMcp.disconnect();
+export const runWorkflow = (input: WorkflowInput): ResultAsync<Script, WorkflowError> =>
+  safeTry(async function* () {
+    const validated = yield* parseInput(input);
+    const workflowResult = yield* executeWorkflow(validated);
+    const script = yield* parseOutput(workflowResult);
+    return ok(script);
+  })
+    .andThen((script) =>
+      disconnectMcp()
+        .map(() => script)
+        .orElse(() => ok(script)),
+    )
+    .orElse((error) =>
+      disconnectMcp()
+        .andThen(() => err(error))
+        .orElse(() => err(error)),
+    );
 
-  return result.match(
-    (script) => script,
-    (error) => {
-      throw new Error(`[${error.type}] ${error.message}`);
-    },
-  );
-};
+// Lambda-compatible alias: preserves the external handler function interface
+export const handler = runWorkflow;

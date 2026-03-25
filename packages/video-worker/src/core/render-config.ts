@@ -1,19 +1,19 @@
-export interface CompositionConfig {
-  id: string;
-  width: number;
-  height: number;
-  fps: number;
-  durationInFrames: number;
-}
+export type CompositionConfig = {
+  readonly id: string;
+  readonly width: number;
+  readonly height: number;
+  readonly fps: number;
+  readonly durationInFrames: number;
+};
 
-export interface RenderConfig {
-  composition: CompositionConfig;
-  serveUrl: string;
-  inputProps: Record<string, unknown>;
-  codec: "h264";
-  crf: number;
-  imageFormat: "jpeg";
-  timeoutInMilliseconds: number;
-  concurrency: number;
-  enableMultiProcessOnLinux: boolean;
-}
+export type RenderConfig = {
+  readonly composition: CompositionConfig;
+  readonly serveUrl: string;
+  readonly inputProps: Record<string, unknown>;
+  readonly codec: "h264";
+  readonly crf: number;
+  readonly imageFormat: "jpeg";
+  readonly timeoutInMilliseconds: number;
+  readonly concurrency: number;
+  readonly enableMultiProcessOnLinux: boolean;
+};

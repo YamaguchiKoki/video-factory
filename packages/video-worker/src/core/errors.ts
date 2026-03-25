@@ -3,6 +3,20 @@
  * All errors follow Railway Oriented Programming pattern with Result<T, E>
  */
 
+type DomainError<T extends string> = {
+  readonly type: T;
+  readonly message: string;
+  readonly cause: Error | null;
+  readonly context: Record<string, unknown>;
+};
+
+const createDomainError = <T extends string>(
+  type: T,
+  message: string,
+  cause: Error | null,
+  context: Record<string, unknown>,
+): DomainError<T> => ({ type, message, cause, context });
+
 /**
  * Validation error types for script parsing and schema validation
  */
@@ -11,12 +25,14 @@ export type ValidationErrorType =
   | "SCHEMA_VALIDATION_ERROR"
   | "TIMESTAMP_ERROR";
 
-export interface ValidationError {
-  type: ValidationErrorType;
-  message: string;
-  cause: Error | null;
-  context: Record<string, unknown>;
-}
+export type ValidationError = DomainError<ValidationErrorType>;
+
+export const createValidationError = (
+  type: ValidationErrorType,
+  message: string,
+  cause: Error | null,
+  context: Record<string, unknown>,
+): ValidationError => createDomainError(type, message, cause, context);
 
 /**
  * S3 download error types
@@ -26,12 +42,14 @@ export type S3DownloadErrorType =
   | "S3_ACCESS_DENIED"
   | "S3_NETWORK_ERROR";
 
-export interface S3DownloadError {
-  type: S3DownloadErrorType;
-  message: string;
-  cause: Error | null;
-  context: Record<string, unknown>;
-}
+export type S3DownloadError = DomainError<S3DownloadErrorType>;
+
+export const createS3DownloadError = (
+  type: S3DownloadErrorType,
+  message: string,
+  cause: Error | null,
+  context: Record<string, unknown>,
+): S3DownloadError => createDomainError(type, message, cause, context);
 
 /**
  * Remotion rendering error types
@@ -41,12 +59,14 @@ export type RenderErrorType =
   | "RENDER_FAILED"
   | "BROWSER_ERROR";
 
-export interface RenderError {
-  type: RenderErrorType;
-  message: string;
-  cause: Error | null;
-  context: Record<string, unknown>;
-}
+export type RenderError = DomainError<RenderErrorType>;
+
+export const createRenderError = (
+  type: RenderErrorType,
+  message: string,
+  cause: Error | null,
+  context: Record<string, unknown>,
+): RenderError => createDomainError(type, message, cause, context);
 
 /**
  * File system operation error types
@@ -56,60 +76,14 @@ export type FileSystemErrorType =
   | "PERMISSION_DENIED"
   | "IO_ERROR";
 
-export interface FileSystemError {
-  type: FileSystemErrorType;
-  message: string;
-  cause: Error | null;
-  context: Record<string, unknown>;
-}
+export type FileSystemError = DomainError<FileSystemErrorType>;
 
-/**
- * Helper function to create ValidationError
- */
-export function createValidationError(
-  type: ValidationErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): ValidationError {
-  return { type, message, cause, context };
-}
-
-/**
- * Helper function to create S3DownloadError
- */
-export function createS3DownloadError(
-  type: S3DownloadErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): S3DownloadError {
-  return { type, message, cause, context };
-}
-
-/**
- * Helper function to create RenderError
- */
-export function createRenderError(
-  type: RenderErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): RenderError {
-  return { type, message, cause, context };
-}
-
-/**
- * Helper function to create FileSystemError
- */
-export function createFileSystemError(
+export const createFileSystemError = (
   type: FileSystemErrorType,
   message: string,
   cause: Error | null,
   context: Record<string, unknown>,
-): FileSystemError {
-  return { type, message, cause, context };
-}
+): FileSystemError => createDomainError(type, message, cause, context);
 
 /**
  * VideoService error types (high-level workflow errors)
@@ -120,21 +94,11 @@ export type VideoServiceErrorType =
   | "RENDER_ERROR"
   | "FILE_WRITE_ERROR";
 
-export interface VideoServiceError {
-  type: VideoServiceErrorType;
-  message: string;
-  cause: Error | null;
-  context: Record<string, unknown>;
-}
+export type VideoServiceError = DomainError<VideoServiceErrorType>;
 
-/**
- * Helper function to create VideoServiceError
- */
-export function createVideoServiceError(
+export const createVideoServiceError = (
   type: VideoServiceErrorType,
   message: string,
   cause: Error | null,
   context: Record<string, unknown>,
-): VideoServiceError {
-  return { type, message, cause, context };
-}
+): VideoServiceError => createDomainError(type, message, cause, context);
