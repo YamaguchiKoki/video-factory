@@ -24,6 +24,8 @@ export const createVideoFactoryStack = (
     },
   });
 
+  const imageTag = scope.node.tryGetContext("imageTag") ?? "latest";
+
   const { bucket, tavilySecret, googleDriveSecret } =
     createStorageResources(stack);
 
@@ -34,6 +36,7 @@ export const createVideoFactoryStack = (
     vpc,
     ttsEcrRepo,
     videoEcrRepo,
+    imageTag,
   });
 
   const { scriptGeneratorLambda, uploadLambda } = createLambdaFunctions(
@@ -43,6 +46,7 @@ export const createVideoFactoryStack = (
       tavilySecret,
       googleDriveSecret,
       scriptGeneratorEcrRepo,
+      imageTag,
     },
   );
 

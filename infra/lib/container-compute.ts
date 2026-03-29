@@ -15,13 +15,14 @@ type EcsResourcesInput = {
   readonly vpc: ec2.IVpc;
   readonly ttsEcrRepo: ecr.Repository;
   readonly videoEcrRepo: ecr.Repository;
+  readonly imageTag: string;
 };
 
 export const createEcsResources = (
   stack: cdk.Stack,
   input: EcsResourcesInput,
 ): EcsResources => {
-  const { bucket, vpc, ttsEcrRepo, videoEcrRepo } = input;
+  const { bucket, vpc, ttsEcrRepo, videoEcrRepo, imageTag } = input;
 
   const cluster = new ecs.Cluster(stack, "VideoFactoryCluster", {
     vpc,
@@ -39,6 +40,7 @@ export const createEcsResources = (
     ecrRepo: ttsEcrRepo,
     bucket,
     streamPrefix: "tts-worker",
+    imageTag,
   });
 
   const videoTaskDef = createWorkerTaskDef(stack, {
@@ -47,6 +49,7 @@ export const createEcsResources = (
     ecrRepo: videoEcrRepo,
     bucket,
     streamPrefix: "video-worker",
+    imageTag,
   });
 
   return { cluster, ttsTaskDef, videoTaskDef };
@@ -58,13 +61,14 @@ type WorkerTaskDefInput = {
   readonly ecrRepo: ecr.Repository;
   readonly bucket: s3.Bucket;
   readonly streamPrefix: string;
+  readonly imageTag: string;
 };
 
 const createWorkerTaskDef = (
   stack: cdk.Stack,
   input: WorkerTaskDefInput,
 ): ecs.FargateTaskDefinition => {
-  const { id, containerName, ecrRepo, bucket, streamPrefix } = input;
+  const { id, containerName, ecrRepo, bucket, streamPrefix, imageTag } = input;
 
   const taskDef = new ecs.FargateTaskDefinition(stack, id, {
     cpu: 2048,
@@ -74,7 +78,7 @@ const createWorkerTaskDef = (
   bucket.grantReadWrite(taskDef.taskRole);
 
   taskDef.addContainer(containerName, {
-    image: ecs.ContainerImage.fromEcrRepository(ecrRepo, "latest"),
+    image: ecs.ContainerImage.fromEcrRepository(ecrRepo, imageTag),
     essential: true,
     environment: {
       S3_BUCKET: bucket.bucketName,
@@ -91,7 +95,7 @@ const createTtsTaskDef = (
   stack: cdk.Stack,
   input: WorkerTaskDefInput,
 ): ecs.FargateTaskDefinition => {
-  const { id, ecrRepo, bucket, streamPrefix } = input;
+  const { id, ecrRepo, bucket, streamPrefix, imageTag } = input;
 
   const taskDef = new ecs.FargateTaskDefinition(stack, id, {
     cpu: 2048,
@@ -115,7 +119,7 @@ const createTtsTaskDef = (
   });
 
   const ttsWorker = taskDef.addContainer("tts-worker", {
-    image: ecs.ContainerImage.fromEcrRepository(ecrRepo, "latest"),
+    image: ecs.ContainerImage.fromEcrRepository(ecrRepo, imageTag),
     essential: true,
     environment: {
       S3_BUCKET: bucket.bucketName,

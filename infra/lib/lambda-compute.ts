@@ -15,19 +15,21 @@ type LambdaFunctionsInput = {
   readonly tavilySecret: secretsmanager.Secret;
   readonly googleDriveSecret: secretsmanager.Secret;
   readonly scriptGeneratorEcrRepo: ecr.Repository;
+  readonly imageTag: string;
 };
 
 export const createLambdaFunctions = (
   stack: cdk.Stack,
   input: LambdaFunctionsInput,
 ): LambdaFunctions => {
-  const { bucket, tavilySecret, googleDriveSecret, scriptGeneratorEcrRepo } =
+  const { bucket, tavilySecret, googleDriveSecret, scriptGeneratorEcrRepo, imageTag } =
     input;
 
   const scriptGeneratorLambda = createScriptGeneratorLambda(stack, {
     bucket,
     tavilySecret,
     scriptGeneratorEcrRepo,
+    imageTag,
   });
 
   const uploadLambda = createUploadLambda(stack, {
@@ -42,16 +44,17 @@ type ScriptGeneratorInput = {
   readonly bucket: s3.Bucket;
   readonly tavilySecret: secretsmanager.Secret;
   readonly scriptGeneratorEcrRepo: ecr.Repository;
+  readonly imageTag: string;
 };
 
 const createScriptGeneratorLambda = (
   stack: cdk.Stack,
   input: ScriptGeneratorInput,
 ): lambda.DockerImageFunction => {
-  const { bucket, tavilySecret, scriptGeneratorEcrRepo } = input;
+  const { bucket, tavilySecret, scriptGeneratorEcrRepo, imageTag } = input;
 
   const fn = new lambda.DockerImageFunction(stack, "ScriptGeneratorLambda", {
-    code: lambda.DockerImageCode.fromEcr(scriptGeneratorEcrRepo),
+    code: lambda.DockerImageCode.fromEcr(scriptGeneratorEcrRepo, { tagOrDigest: imageTag }),
     timeout: cdk.Duration.minutes(15),
     environment: {
       S3_BUCKET: bucket.bucketName,

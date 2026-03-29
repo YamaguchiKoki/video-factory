@@ -90,5 +90,9 @@ export const createScheduledTrigger = (
     ),
   });
 
-  rule.addTarget(new eventsTargets.SfnStateMachine(stateMachine));
+  rule.addTarget(
+    new eventsTargets.SfnStateMachine(stateMachine, {
+      input: events.RuleTargetInput.fromObject({ genre: "政治経済" }),
+    }),
+  );
 };
