@@ -3,17 +3,14 @@
  * Wraps Node.js fs operations with neverthrow Result type
  */
 
-import { ResultAsync } from "neverthrow";
-import {
-  readFile as fsReadFile,
-  writeFile as fsWriteFile,
-  access,
-} from "node:fs/promises";
 import { constants } from "node:fs";
 import {
-  createFileSystemError,
-  type FileSystemError,
-} from "../core/errors";
+  access,
+  readFile as fsReadFile,
+  writeFile as fsWriteFile,
+} from "node:fs/promises";
+import { ResultAsync } from "neverthrow";
+import { createFileSystemError, type FileSystemError } from "../core/errors";
 
 /**
  * Determine FileSystemError type from Node.js error code
@@ -42,18 +39,15 @@ const getErrorType = (error: unknown): FileSystemError["type"] => {
  * @returns ResultAsync containing Buffer or FileSystemError
  */
 export const readFile = (path: string): ResultAsync<Buffer, FileSystemError> =>
-  ResultAsync.fromPromise(
-    fsReadFile(path),
-    (error) => {
-      const errorType = getErrorType(error);
-      return createFileSystemError(
-        errorType,
-        `Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        error instanceof Error ? error : null,
-        { path },
-      );
-    },
-  );
+  ResultAsync.fromPromise(fsReadFile(path), (error) => {
+    const errorType = getErrorType(error);
+    return createFileSystemError(
+      errorType,
+      `Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error instanceof Error ? error : null,
+      { path },
+    );
+  });
 
 /**
  * Write file content to file system
@@ -65,18 +59,15 @@ export const writeFile = (
   path: string,
   data: Buffer,
 ): ResultAsync<void, FileSystemError> =>
-  ResultAsync.fromPromise(
-    fsWriteFile(path, data),
-    (error) => {
-      const errorType = getErrorType(error);
-      return createFileSystemError(
-        errorType,
-        `Failed to write file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        error instanceof Error ? error : null,
-        { path },
-      );
-    },
-  );
+  ResultAsync.fromPromise(fsWriteFile(path, data), (error) => {
+    const errorType = getErrorType(error);
+    return createFileSystemError(
+      errorType,
+      `Failed to write file: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error instanceof Error ? error : null,
+      { path },
+    );
+  });
 
 /**
  * Check if file exists at given path

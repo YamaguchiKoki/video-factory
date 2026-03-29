@@ -1,7 +1,7 @@
-import React from "react";
-import { SectionMarker, VideoProps } from "../schema/schema";
+import type React from "react";
+import type { SectionMarker, VideoProps } from "../schema/schema";
 import { IntroContent } from "./sections/intro-content";
-import { SectionVisualConfig } from "./visual-config";
+import type { SectionVisualConfig } from "./visual-config";
 
 interface SectionContentProps {
   marker: SectionMarker;

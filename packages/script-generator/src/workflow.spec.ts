@@ -8,13 +8,20 @@
  *
  * No Mastra runtime is invoked; these are purely structural / schema-level checks.
  */
-import { describe, expect } from "vitest";
+
 import { it } from "@fast-check/vitest";
-import { generateScriptWorkflow } from "./workflow";
-import { TopicsOutputSchema, TopicSchema } from "./steps/topic-selection/schema";
-import { EnrichedTopicSchema, EnrichedTopicsOutputSchema } from "./steps/topic-deep-dive/schema";
-import { VerifiedTopicsOutputSchema } from "./steps/fact-check/schema";
+import { describe, expect } from "vitest";
 import { ScriptSchema } from "./schema";
+import { VerifiedTopicsOutputSchema } from "./steps/fact-check/schema";
+import {
+  EnrichedTopicSchema,
+  EnrichedTopicsOutputSchema,
+} from "./steps/topic-deep-dive/schema";
+import {
+  TopicSchema,
+  TopicsOutputSchema,
+} from "./steps/topic-selection/schema";
+import { generateScriptWorkflow } from "./workflow";
 
 describe("generateScriptWorkflow", () => {
   it("should have the correct workflow id", () => {
@@ -68,7 +75,11 @@ describe("step boundary schema compatibility", () => {
   // Step 1 output → Step 2 (forEach) input
   it("each element of TopicsOutputSchema should be parsed by TopicSchema (step-1 → step-2 boundary)", () => {
     // Arrange
-    const topics = [buildTopic("news-1"), buildTopic("news-2"), buildTopic("news-3")];
+    const topics = [
+      buildTopic("news-1"),
+      buildTopic("news-2"),
+      buildTopic("news-3"),
+    ];
 
     // Act — TopicsOutputSchema is an array; each element must satisfy TopicSchema
     const topicsResult = TopicsOutputSchema.safeParse(topics);
@@ -96,7 +107,11 @@ describe("step boundary schema compatibility", () => {
   // Step 3 output → Step 4 input
   it("VerifiedTopicsOutputSchema should accept verified topics as step-4 input (step-3 → step-4 boundary)", () => {
     // Arrange
-    const verified = [buildVerifiedTopic("news-1"), buildVerifiedTopic("news-2"), buildVerifiedTopic("news-3")];
+    const verified = [
+      buildVerifiedTopic("news-1"),
+      buildVerifiedTopic("news-2"),
+      buildVerifiedTopic("news-3"),
+    ];
 
     // Act
     const result = VerifiedTopicsOutputSchema.safeParse(verified);
@@ -112,7 +127,8 @@ describe("step boundary schema compatibility", () => {
 
     // Act
     const stepOutputResult = ScriptSchema.safeParse(script);
-    const workflowOutputResult = generateScriptWorkflow.outputSchema.safeParse(script);
+    const workflowOutputResult =
+      generateScriptWorkflow.outputSchema.safeParse(script);
 
     // Assert — both schemas must agree on the same value
     expect(stepOutputResult.success).toBe(workflowOutputResult.success);
@@ -151,9 +167,18 @@ const buildDiscussionSection = (newsId: string) => ({
   type: "discussion" as const,
   newsId,
   blocks: [
-    { phase: "summary" as const, lines: [buildLine("A", "解説"), buildLine("B", "質問")] },
-    { phase: "background" as const, lines: [buildLine("A", "背景"), buildLine("B", "確認")] },
-    { phase: "deepDive" as const, lines: [buildLine("A", "深掘り"), buildLine("B", "感想")] },
+    {
+      phase: "summary" as const,
+      lines: [buildLine("A", "解説"), buildLine("B", "質問")],
+    },
+    {
+      phase: "background" as const,
+      lines: [buildLine("A", "背景"), buildLine("B", "確認")],
+    },
+    {
+      phase: "deepDive" as const,
+      lines: [buildLine("A", "深掘り"), buildLine("B", "感想")],
+    },
   ],
 });
 

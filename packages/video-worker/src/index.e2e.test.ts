@@ -3,10 +3,10 @@
  * Tests complete video generation flow with mock data
  */
 
-import { describe, it, expect, afterAll } from "vitest";
 import { readFile as fsReadFile, unlink } from "node:fs/promises";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
 
 // Skip E2E tests unless explicitly enabled
 const shouldRunE2E = process.env.RUN_E2E_TESTS === "true";
@@ -39,12 +39,7 @@ describeE2E("CLI End-to-End Tests", () => {
     const originalArgv = process.argv;
     const originalExit = process.exit;
 
-    process.argv = [
-      "node",
-      "index.js",
-      "--output",
-      outputPath,
-    ];
+    process.argv = ["node", "index.js", "--output", outputPath];
 
     // Mock process.exit to capture exit code
     const exitCodes: number[] = [];

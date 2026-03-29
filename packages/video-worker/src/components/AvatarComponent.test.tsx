@@ -3,7 +3,7 @@
  * Type-safe tests for speaker avatar component
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { Speaker } from "../core/script-types";
 import { AvatarComponent } from "./AvatarComponent";
 

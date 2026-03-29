@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { writeFile as fsWriteFile, unlink, mkdir } from "node:fs/promises";
-import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { tmpdir } from "node:os";
 import { existsSync } from "node:fs";
+import { writeFile as fsWriteFile, mkdir, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { fromPromise, okAsync } from "neverthrow";
-import { createRenderVideoWorkflow } from "./service/video-service";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { parseEnrichedScript } from "./core/enriched-parser";
 import {
-  readFile,
-  writeFile,
-  createTempDir,
+  bundleComposition,
   cleanupTempDir,
   createRenderVideo,
-  bundleComposition,
+  createTempDir,
+  readFile,
+  writeFile,
 } from "./infrastructure";
-import { parseEnrichedScript } from "./core/enriched-parser";
 import { createLogger } from "./infrastructure/logger";
+import { createRenderVideoWorkflow } from "./service/video-service";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,7 +37,7 @@ describeError("Task 10.3: Error Scenarios E2E", () => {
 
   afterAll(async () => {
     await fromPromise(unlink(outputPath), (e) => e).orElse(() =>
-      okAsync(undefined)
+      okAsync(undefined),
     );
   });
 
@@ -148,7 +148,11 @@ describeError("Task 10.3: Error Scenarios E2E", () => {
       // Missing totalDurationSec, newsItems, sections
     };
 
-    await fsWriteFile(invalidSchemaPath, JSON.stringify(invalidScript), "utf-8");
+    await fsWriteFile(
+      invalidSchemaPath,
+      JSON.stringify(invalidScript),
+      "utf-8",
+    );
 
     const audioPath = join(process.cwd(), "mock-data/audio.wav");
 

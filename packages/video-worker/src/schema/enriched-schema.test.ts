@@ -1,10 +1,7 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ZodFastCheck } from "zod-fast-check";
-import {
-  EnrichedLineSchema,
-  EnrichedScriptSchema,
-} from "./enriched-schema";
+import { EnrichedLineSchema, EnrichedScriptSchema } from "./enriched-schema";
 
 // ---------------------------------------------------------------------------
 // Minimal valid fixture — mirrors real enriched.json structure
@@ -29,10 +26,22 @@ const validEnrichedScript = {
     {
       type: "intro",
       greeting: [
-        { speaker: "A", text: "こんにちは", voicevoxSpeakerId: 0, offsetSec: 0, durationSec: 3.0 },
+        {
+          speaker: "A",
+          text: "こんにちは",
+          voicevoxSpeakerId: 0,
+          offsetSec: 0,
+          durationSec: 3.0,
+        },
       ],
       newsOverview: [
-        { speaker: "B", text: "今日のニュース", voicevoxSpeakerId: 1, offsetSec: 3.0, durationSec: 4.0 },
+        {
+          speaker: "B",
+          text: "今日のニュース",
+          voicevoxSpeakerId: 1,
+          offsetSec: 3.0,
+          durationSec: 4.0,
+        },
       ],
     },
     {
@@ -42,19 +51,37 @@ const validEnrichedScript = {
         {
           phase: "summary",
           lines: [
-            { speaker: "A", text: "要約", voicevoxSpeakerId: 0, offsetSec: 7.0, durationSec: 5.0 },
+            {
+              speaker: "A",
+              text: "要約",
+              voicevoxSpeakerId: 0,
+              offsetSec: 7.0,
+              durationSec: 5.0,
+            },
           ],
         },
         {
           phase: "background",
           lines: [
-            { speaker: "B", text: "背景", voicevoxSpeakerId: 1, offsetSec: 12.0, durationSec: 5.0 },
+            {
+              speaker: "B",
+              text: "背景",
+              voicevoxSpeakerId: 1,
+              offsetSec: 12.0,
+              durationSec: 5.0,
+            },
           ],
         },
         {
           phase: "deepDive",
           lines: [
-            { speaker: "A", text: "深掘り", voicevoxSpeakerId: 0, offsetSec: 17.0, durationSec: 5.0 },
+            {
+              speaker: "A",
+              text: "深掘り",
+              voicevoxSpeakerId: 0,
+              offsetSec: 17.0,
+              durationSec: 5.0,
+            },
           ],
         },
       ],
@@ -62,10 +89,22 @@ const validEnrichedScript = {
     {
       type: "outro",
       recap: [
-        { speaker: "A", text: "まとめ", voicevoxSpeakerId: 0, offsetSec: 22.0, durationSec: 4.0 },
+        {
+          speaker: "A",
+          text: "まとめ",
+          voicevoxSpeakerId: 0,
+          offsetSec: 22.0,
+          durationSec: 4.0,
+        },
       ],
       closing: [
-        { speaker: "B", text: "さようなら", voicevoxSpeakerId: 1, offsetSec: 26.0, durationSec: 4.0 },
+        {
+          speaker: "B",
+          text: "さようなら",
+          voicevoxSpeakerId: 1,
+          offsetSec: 26.0,
+          durationSec: 4.0,
+        },
       ],
     },
   ],
@@ -137,8 +176,16 @@ describe("EnrichedScriptSchema", () => {
       const multiDiscussion = {
         ...validEnrichedScript,
         newsItems: [
-          { id: "news-1", title: "ニュース1", sourceUrl: "https://example.com/1" },
-          { id: "news-2", title: "ニュース2", sourceUrl: "https://example.com/2" },
+          {
+            id: "news-1",
+            title: "ニュース1",
+            sourceUrl: "https://example.com/1",
+          },
+          {
+            id: "news-2",
+            title: "ニュース2",
+            sourceUrl: "https://example.com/2",
+          },
         ],
         sections: [
           ...validEnrichedScript.sections,
@@ -149,7 +196,13 @@ describe("EnrichedScriptSchema", () => {
               {
                 phase: "summary",
                 lines: [
-                  { speaker: "A", text: "要約2", voicevoxSpeakerId: 0, offsetSec: 30.0, durationSec: 5.0 },
+                  {
+                    speaker: "A",
+                    text: "要約2",
+                    voicevoxSpeakerId: 0,
+                    offsetSec: 30.0,
+                    durationSec: 5.0,
+                  },
                 ],
               },
             ],
@@ -200,7 +253,13 @@ describe("EnrichedScriptSchema", () => {
               {
                 phase: "invalid",
                 lines: [
-                  { speaker: "A", text: "test", voicevoxSpeakerId: 0, offsetSec: 7.0, durationSec: 3.0 },
+                  {
+                    speaker: "A",
+                    text: "test",
+                    voicevoxSpeakerId: 0,
+                    offsetSec: 7.0,
+                    durationSec: 3.0,
+                  },
                 ],
               },
             ],
@@ -221,7 +280,13 @@ describe("EnrichedScriptSchema", () => {
               {
                 phase: "summary",
                 lines: [
-                  { speaker: "A", text: "test", voicevoxSpeakerId: 0, offsetSec: 0, durationSec: 3.0 },
+                  {
+                    speaker: "A",
+                    text: "test",
+                    voicevoxSpeakerId: 0,
+                    offsetSec: 0,
+                    durationSec: 3.0,
+                  },
                 ],
               },
             ],
@@ -270,7 +335,13 @@ describe("EnrichedScriptSchema", () => {
           {
             type: "outro",
             closing: [
-              { speaker: "A", text: "end", voicevoxSpeakerId: 0, offsetSec: 0, durationSec: 3.0 },
+              {
+                speaker: "A",
+                text: "end",
+                voicevoxSpeakerId: 0,
+                offsetSec: 0,
+                durationSec: 3.0,
+              },
             ],
           },
         ],
@@ -288,7 +359,13 @@ describe("EnrichedScriptSchema", () => {
           {
             type: "intro",
             greeting: [
-              { speaker: "X", text: "test", voicevoxSpeakerId: 0, offsetSec: 0, durationSec: 3.0 },
+              {
+                speaker: "X",
+                text: "test",
+                voicevoxSpeakerId: 0,
+                offsetSec: 0,
+                durationSec: 3.0,
+              },
             ],
             newsOverview: [],
           },

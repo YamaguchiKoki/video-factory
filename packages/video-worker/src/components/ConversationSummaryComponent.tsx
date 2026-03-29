@@ -21,7 +21,8 @@ const IMPORTANCE_STYLES = {
     iconColor: "#3b82f6",
   },
   low: {
-    className: "text-slate-500 text-lg font-medium bg-slate-50 border-slate-400",
+    className:
+      "text-slate-500 text-lg font-medium bg-slate-50 border-slate-400",
     iconColor: "#94a3b8",
   },
 } as const;
@@ -75,9 +76,7 @@ export const ConversationSummaryComponent: React.FC<
       {/* キーポイント */}
       {hasKeyPoints && (
         <div className="flex flex-col gap-5">
-          <h3 className="text-2xl font-bold text-slate-600 mb-2">
-            ポイント
-          </h3>
+          <h3 className="text-2xl font-bold text-slate-600 mb-2">ポイント</h3>
           {data.keyPoints.map((point, index) => (
             <KeyPoint key={point.text} point={point} index={index} />
           ))}
@@ -131,9 +130,7 @@ const KeyPoint: React.FC<KeyPointProps> = ({ point, index }) => {
       </div>
 
       {/* キーポイントテキスト */}
-      <p className="leading-relaxed">
-        {point.text}
-      </p>
+      <p className="leading-relaxed">{point.text}</p>
     </div>
   );
 };

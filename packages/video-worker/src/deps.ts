@@ -1,18 +1,22 @@
 import fs from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fromPromise } from "neverthrow";
 import { parseEnrichedScript } from "./core/enriched-parser";
 import {
-  readFile,
-  createTempDir,
+  bundleComposition,
   cleanupTempDir,
   createRenderVideo,
-  bundleComposition,
+  createTempDir,
+  readFile,
 } from "./infrastructure";
 import { createLogger } from "./infrastructure/logger";
-import { createS3Client, downloadToFile, uploadFromFile } from "./infrastructure/s3";
 import type { S3Error } from "./infrastructure/s3";
+import {
+  createS3Client,
+  downloadToFile,
+  uploadFromFile,
+} from "./infrastructure/s3";
 import type { RenderVideoWorkflowDeps } from "./service/video-service";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +30,9 @@ type DockerDepsConfig = {
   readonly requestId: string;
 };
 
-export const createDockerDeps = (config: DockerDepsConfig): RenderVideoWorkflowDeps => {
+export const createDockerDeps = (
+  config: DockerDepsConfig,
+): RenderVideoWorkflowDeps => {
   const logger = createLogger(config.requestId);
   const s3 = createS3Client();
   const entryPoint = resolve(__dirname, "remotion/index.ts");
@@ -37,8 +43,10 @@ export const createDockerDeps = (config: DockerDepsConfig): RenderVideoWorkflowD
     parseEnrichedScript,
     bundleComposition,
     renderVideo,
-    downloadFromS3: (key, destPath) => downloadToFile(s3, config.bucket, key, destPath),
-    uploadToS3: (key, srcPath, contentType) => uploadFromFile(s3, config.bucket, key, srcPath, contentType),
+    downloadFromS3: (key, destPath) =>
+      downloadToFile(s3, config.bucket, key, destPath),
+    uploadToS3: (key, srcPath, contentType) =>
+      uploadFromFile(s3, config.bucket, key, srcPath, contentType),
     createTempDir,
     cleanupTempDir,
     logger,
@@ -50,7 +58,9 @@ type LocalDepsConfig = {
   readonly requestId: string;
 };
 
-export const createLocalDeps = (config: LocalDepsConfig): RenderVideoWorkflowDeps => {
+export const createLocalDeps = (
+  config: LocalDepsConfig,
+): RenderVideoWorkflowDeps => {
   const logger = createLogger(config.requestId);
   const entryPoint = resolve(__dirname, "remotion/index.ts");
   const renderVideo = createRenderVideo(logger);

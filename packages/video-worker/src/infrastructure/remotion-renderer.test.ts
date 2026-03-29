@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createRenderVideo } from "./remotion-renderer";
-import type { RenderConfig } from "../core/render-config";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RenderError } from "../core/errors";
+import type { RenderConfig } from "../core/render-config";
+import { createRenderVideo } from "./remotion-renderer";
 
 // Mock @remotion/renderer
 vi.mock("@remotion/renderer", () => ({
@@ -51,6 +51,7 @@ describe("renderVideo", () => {
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
         slowestFrames: [],
+        // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
       const renderVideo = createRenderVideo(mockLogger);
@@ -58,7 +59,9 @@ describe("renderVideo", () => {
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
-        expect(result.value).toMatch(/^\/tmp\/remotion-render-\d+\/output\.mp4$/);
+        expect(result.value).toMatch(
+          /^\/tmp\/remotion-render-\d+\/output\.mp4$/,
+        );
       }
       expect(renderMedia).toHaveBeenCalledTimes(1);
     });
@@ -70,6 +73,7 @@ describe("renderVideo", () => {
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
         slowestFrames: [],
+        // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
       const renderVideo = createRenderVideo(mockLogger);
@@ -90,7 +94,9 @@ describe("renderVideo", () => {
           imageFormat: config.imageFormat,
           timeoutInMilliseconds: config.timeoutInMilliseconds,
           concurrency: config.concurrency,
-          outputLocation: expect.stringMatching(/^\/tmp\/remotion-render-\d+\/output\.mp4$/),
+          outputLocation: expect.stringMatching(
+            /^\/tmp\/remotion-render-\d+\/output\.mp4$/,
+          ),
         }),
       );
     });
@@ -158,14 +164,55 @@ describe("renderVideo", () => {
       const config = createMockRenderConfig();
 
       const { renderMedia } = await import("@remotion/renderer");
+      // biome-ignore lint/suspicious/noExplicitAny: mock implementation with dynamic options
       vi.mocked(renderMedia).mockImplementation(async (options: any) => {
         // Simulate progress callbacks
         if (options.onProgress) {
-          options.onProgress({ progress: 0.0, renderedFrames: 0, encodedFrames: 0, encodedDoneIn: null, renderedDoneIn: null, renderEstimatedTime: 0, stitchStage: "encoding" });
-          options.onProgress({ progress: 0.1, renderedFrames: 90, encodedFrames: 85, encodedDoneIn: null, renderedDoneIn: null, renderEstimatedTime: 0, stitchStage: "encoding" });
-          options.onProgress({ progress: 0.2, renderedFrames: 180, encodedFrames: 175, encodedDoneIn: null, renderedDoneIn: null, renderEstimatedTime: 0, stitchStage: "encoding" });
-          options.onProgress({ progress: 0.5, renderedFrames: 450, encodedFrames: 445, encodedDoneIn: null, renderedDoneIn: null, renderEstimatedTime: 0, stitchStage: "encoding" });
-          options.onProgress({ progress: 1.0, renderedFrames: 900, encodedFrames: 900, encodedDoneIn: 1000, renderedDoneIn: 1000, renderEstimatedTime: 0, stitchStage: "muxing" });
+          options.onProgress({
+            progress: 0.0,
+            renderedFrames: 0,
+            encodedFrames: 0,
+            encodedDoneIn: null,
+            renderedDoneIn: null,
+            renderEstimatedTime: 0,
+            stitchStage: "encoding",
+          });
+          options.onProgress({
+            progress: 0.1,
+            renderedFrames: 90,
+            encodedFrames: 85,
+            encodedDoneIn: null,
+            renderedDoneIn: null,
+            renderEstimatedTime: 0,
+            stitchStage: "encoding",
+          });
+          options.onProgress({
+            progress: 0.2,
+            renderedFrames: 180,
+            encodedFrames: 175,
+            encodedDoneIn: null,
+            renderedDoneIn: null,
+            renderEstimatedTime: 0,
+            stitchStage: "encoding",
+          });
+          options.onProgress({
+            progress: 0.5,
+            renderedFrames: 450,
+            encodedFrames: 445,
+            encodedDoneIn: null,
+            renderedDoneIn: null,
+            renderEstimatedTime: 0,
+            stitchStage: "encoding",
+          });
+          options.onProgress({
+            progress: 1.0,
+            renderedFrames: 900,
+            encodedFrames: 900,
+            encodedDoneIn: 1000,
+            renderedDoneIn: 1000,
+            renderEstimatedTime: 0,
+            stitchStage: "muxing",
+          });
         }
         return { buffer: null, slowestFrames: [] };
       });
@@ -176,8 +223,8 @@ describe("renderVideo", () => {
       // Verify logger was called with progress info
       expect(mockLogger.info).toHaveBeenCalled();
       const logCalls = mockLogger.info.mock.calls;
-      const progressLogs = logCalls.filter((call: any) =>
-        call[0].includes("Rendering progress"),
+      const progressLogs = logCalls.filter((call: unknown[]) =>
+        (call[0] as string).includes("Rendering progress"),
       );
       expect(progressLogs.length).toBeGreaterThan(0);
     });
@@ -196,13 +243,23 @@ describe("renderVideo", () => {
         external: 0,
         arrayBuffers: 0,
       });
+      // biome-ignore lint/suspicious/noExplicitAny: overriding process.memoryUsage for test
       process.memoryUsage = mockMemoryUsage as any;
 
       const { renderMedia } = await import("@remotion/renderer");
+      // biome-ignore lint/suspicious/noExplicitAny: mock implementation with dynamic options
       vi.mocked(renderMedia).mockImplementation(async (options: any) => {
         if (options.onProgress) {
           // Call onProgress which will check memory
-          options.onProgress({ progress: 0.5, renderedFrames: 450, encodedFrames: 445, encodedDoneIn: null, renderedDoneIn: null, renderEstimatedTime: 0, stitchStage: "encoding" });
+          options.onProgress({
+            progress: 0.5,
+            renderedFrames: 450,
+            encodedFrames: 445,
+            encodedDoneIn: null,
+            renderedDoneIn: null,
+            renderEstimatedTime: 0,
+            stitchStage: "encoding",
+          });
         }
         return { buffer: null, slowestFrames: [] };
       });
@@ -216,8 +273,8 @@ describe("renderVideo", () => {
       // Verify warning was logged
       expect(mockLogger.warn).toHaveBeenCalled();
       const warnCalls = mockLogger.warn.mock.calls;
-      const memoryWarnings = warnCalls.filter((call: any) =>
-        call[0].includes("Memory usage"),
+      const memoryWarnings = warnCalls.filter((call: unknown[]) =>
+        (call[0] as string).includes("Memory usage"),
       );
       expect(memoryWarnings.length).toBeGreaterThan(0);
     });
@@ -231,6 +288,7 @@ describe("renderVideo", () => {
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
         slowestFrames: [],
+        // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
       const renderVideo = createRenderVideo(mockLogger);

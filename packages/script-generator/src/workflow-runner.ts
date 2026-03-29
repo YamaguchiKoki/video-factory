@@ -1,10 +1,10 @@
-import { err, fromPromise, ok, safeTry, type ResultAsync } from "neverthrow";
-import { z } from "zod";
-import { mastra } from "./mastra";
-import { tavilyMcp } from "./mcp/tavily";
-import { WorkflowInputSchema } from "./steps/topic-selection";
-import { ScriptSchema, type Script } from "./schema";
+import { err, fromPromise, ok, type ResultAsync, safeTry } from "neverthrow";
+import type { z } from "zod";
+import { createMastraInstance } from "./mastra/instance-factory";
+import type { TavilyMcpClient } from "./mcp/tavily";
+import { type Script, ScriptSchema } from "./schema";
 import { toError } from "./shared/errors";
+import { WorkflowInputSchema } from "./steps/topic-selection";
 
 export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
 
@@ -24,10 +24,13 @@ const parseInput = (input: WorkflowInput) => {
   return ok(result.data);
 };
 
-const executeWorkflow = (input: { readonly genre: string }) =>
+const executeWorkflow = (
+  mastraInstance: ReturnType<typeof createMastraInstance>,
+  input: { readonly genre: string },
+) =>
   fromPromise(
     (async () => {
-      const workflow = mastra.getWorkflow("generateScriptWorkflow");
+      const workflow = mastraInstance.getWorkflow("generateScriptWorkflow");
       const run = await workflow.createRun();
       const result = await run.start({ inputData: input });
 
@@ -54,29 +57,32 @@ const parseOutput = (result: unknown) => {
   return ok(parsed.data);
 };
 
-const disconnectMcp = () =>
-  fromPromise(tavilyMcp.disconnect(), (e) => {
+const disconnectMcp = (tavilyClient: TavilyMcpClient) =>
+  fromPromise(tavilyClient.disconnect(), (e) => {
     console.error("Failed to disconnect Tavily MCP client:", e);
     return e;
   });
 
-export const runWorkflow = (input: WorkflowInput): ResultAsync<Script, WorkflowError> =>
-  safeTry(async function* () {
+export const runWorkflow = (
+  input: WorkflowInput,
+  tavilyClient: TavilyMcpClient,
+): ResultAsync<Script, WorkflowError> => {
+  const mastraInstance = createMastraInstance(tavilyClient);
+
+  return safeTry(async function* () {
     const validated = yield* parseInput(input);
-    const workflowResult = yield* executeWorkflow(validated);
+    const workflowResult = yield* executeWorkflow(mastraInstance, validated);
     const script = yield* parseOutput(workflowResult);
     return ok(script);
   })
     .andThen((script) =>
-      disconnectMcp()
+      disconnectMcp(tavilyClient)
         .map(() => script)
         .orElse(() => ok(script)),
     )
     .orElse((error) =>
-      disconnectMcp()
+      disconnectMcp(tavilyClient)
         .andThen(() => err(error))
         .orElse(() => err(error)),
     );
-
-// Lambda-compatible alias: preserves the external handler function interface
-export const handler = runWorkflow;
+};

@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
 import type { IntroSectionMarker } from "../../schema/schema";
-import { SectionVisualConfig } from "../visual-config";
+import type { SectionVisualConfig } from "../visual-config";
 
 interface IntroContentProps {
   marker: IntroSectionMarker;
@@ -156,4 +156,3 @@ const AgendaItem: React.FC<AgendaItemProps> = ({
     </div>
   );
 };
-

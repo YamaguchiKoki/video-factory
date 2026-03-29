@@ -3,7 +3,7 @@
  * Type-safe tests for concept explanation component
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ConceptExplanationData } from "../core/script-types";
 import { ConceptExplanationComponent } from "./ConceptExplanationComponent";
 
@@ -64,10 +64,7 @@ describe("ConceptExplanationComponent", () => {
     const mockData: ConceptExplanationData = {
       title: "テスト",
       template: "bullet-points",
-      bulletPoints: [
-        { text: "ポイント1" },
-        { text: "ポイント2" },
-      ],
+      bulletPoints: [{ text: "ポイント1" }, { text: "ポイント2" }],
     };
 
     expect(mockData.bulletPoints?.[0].emphasis).toBeUndefined();

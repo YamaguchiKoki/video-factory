@@ -22,12 +22,15 @@ const { mockS3Send } = vi.hoisted(() => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   S3Client: vi.fn(function () {
     return { send: mockS3Send };
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   GetObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   PutObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
@@ -236,7 +239,9 @@ describe("createS3ClientConfig", () => {
   });
 
   it("returns endpoint config with forcePathStyle:true when S3_ENDPOINT_URL is set", () => {
-    const config = createS3ClientConfig({ S3_ENDPOINT_URL: "http://rustfs:9000" });
+    const config = createS3ClientConfig({
+      S3_ENDPOINT_URL: "http://rustfs:9000",
+    });
     expect(config).toEqual({
       endpoint: "http://rustfs:9000",
       region: "ap-northeast-1",

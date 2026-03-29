@@ -1,4 +1,8 @@
-import { PutObjectCommand, S3Client, type S3ClientConfig } from "@aws-sdk/client-s3";
+import {
+  PutObjectCommand,
+  S3Client,
+  type S3ClientConfig,
+} from "@aws-sdk/client-s3";
 import { fromPromise, type ResultAsync } from "neverthrow";
 import type { Script } from "../schema";
 

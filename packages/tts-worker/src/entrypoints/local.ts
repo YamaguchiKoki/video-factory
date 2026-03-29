@@ -1,7 +1,7 @@
-import path from "node:path";
 import fs from "node:fs/promises";
-import { runPipeline } from "../pipeline.js";
+import path from "node:path";
 import { createLocalStorage } from "../local-storage.js";
+import { runPipeline } from "../pipeline.js";
 
 const main = async (): Promise<void> => {
   const scriptPath = process.argv[2];

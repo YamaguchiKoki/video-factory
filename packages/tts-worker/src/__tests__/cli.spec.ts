@@ -7,8 +7,8 @@
 //
 //   createProgram(): Command
 
+import { errAsync, okAsync } from "neverthrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { okAsync, errAsync } from "neverthrow";
 import type { EnrichedScript } from "../schema";
 
 // ============================================
@@ -41,14 +41,16 @@ vi.mock("../s3", () => ({
   uploadEnrichedScriptToS3: mockUploadEnrichedScriptToS3,
   createDockerStorage: mockCreateDockerStorage,
   createS3ClientConfig: vi.fn(() => ({})),
-  extractDateFromKey: vi.fn((key: string) => key.split("/").at(-1)?.replace(".json", "") ?? key),
+  extractDateFromKey: vi.fn(
+    (key: string) => key.split("/").at(-1)?.replace(".json", "") ?? key,
+  ),
 }));
 
 import {
+  createProgram,
   DEFAULT_INPUT_KEY,
   DEFAULT_OUTPUT_SCRIPT_KEY,
   DEFAULT_OUTPUT_WAV_KEY,
-  createProgram,
 } from "../cli";
 
 // ============================================
@@ -75,43 +77,170 @@ const buildValidEnrichedScript = (): EnrichedScript => ({
     {
       type: "intro",
       greeting: [
-        { speaker: "A", text: "こんにちは", voicevoxSpeakerId: 0, offsetSec: 0, durationSec: 1.0 },
+        {
+          speaker: "A",
+          text: "こんにちは",
+          voicevoxSpeakerId: 0,
+          offsetSec: 0,
+          durationSec: 1.0,
+        },
       ],
       newsOverview: [
-        { speaker: "B", text: "今日のニュース", voicevoxSpeakerId: 1, offsetSec: 1.0, durationSec: 1.0 },
+        {
+          speaker: "B",
+          text: "今日のニュース",
+          voicevoxSpeakerId: 1,
+          offsetSec: 1.0,
+          durationSec: 1.0,
+        },
       ],
     },
     {
       type: "discussion",
       newsId: "news-1",
       blocks: [
-        { phase: "summary", lines: [{ speaker: "A", text: "概要1", voicevoxSpeakerId: 0, offsetSec: 2.0, durationSec: 0.5 }] },
-        { phase: "background", lines: [{ speaker: "B", text: "背景1", voicevoxSpeakerId: 1, offsetSec: 2.5, durationSec: 0.5 }] },
-        { phase: "deepDive", lines: [{ speaker: "A", text: "深掘り1", voicevoxSpeakerId: 0, offsetSec: 3.0, durationSec: 0.5 }] },
+        {
+          phase: "summary",
+          lines: [
+            {
+              speaker: "A",
+              text: "概要1",
+              voicevoxSpeakerId: 0,
+              offsetSec: 2.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "background",
+          lines: [
+            {
+              speaker: "B",
+              text: "背景1",
+              voicevoxSpeakerId: 1,
+              offsetSec: 2.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "deepDive",
+          lines: [
+            {
+              speaker: "A",
+              text: "深掘り1",
+              voicevoxSpeakerId: 0,
+              offsetSec: 3.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
       ],
     },
     {
       type: "discussion",
       newsId: "news-2",
       blocks: [
-        { phase: "summary", lines: [{ speaker: "A", text: "概要2", voicevoxSpeakerId: 0, offsetSec: 3.5, durationSec: 0.5 }] },
-        { phase: "background", lines: [{ speaker: "B", text: "背景2", voicevoxSpeakerId: 1, offsetSec: 4.0, durationSec: 0.5 }] },
-        { phase: "deepDive", lines: [{ speaker: "A", text: "深掘り2", voicevoxSpeakerId: 0, offsetSec: 4.5, durationSec: 0.5 }] },
+        {
+          phase: "summary",
+          lines: [
+            {
+              speaker: "A",
+              text: "概要2",
+              voicevoxSpeakerId: 0,
+              offsetSec: 3.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "background",
+          lines: [
+            {
+              speaker: "B",
+              text: "背景2",
+              voicevoxSpeakerId: 1,
+              offsetSec: 4.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "deepDive",
+          lines: [
+            {
+              speaker: "A",
+              text: "深掘り2",
+              voicevoxSpeakerId: 0,
+              offsetSec: 4.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
       ],
     },
     {
       type: "discussion",
       newsId: "news-3",
       blocks: [
-        { phase: "summary", lines: [{ speaker: "A", text: "概要3", voicevoxSpeakerId: 0, offsetSec: 5.0, durationSec: 0.5 }] },
-        { phase: "background", lines: [{ speaker: "B", text: "背景3", voicevoxSpeakerId: 1, offsetSec: 5.5, durationSec: 0.5 }] },
-        { phase: "deepDive", lines: [{ speaker: "A", text: "深掘り3", voicevoxSpeakerId: 0, offsetSec: 6.0, durationSec: 0.5 }] },
+        {
+          phase: "summary",
+          lines: [
+            {
+              speaker: "A",
+              text: "概要3",
+              voicevoxSpeakerId: 0,
+              offsetSec: 5.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "background",
+          lines: [
+            {
+              speaker: "B",
+              text: "背景3",
+              voicevoxSpeakerId: 1,
+              offsetSec: 5.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "deepDive",
+          lines: [
+            {
+              speaker: "A",
+              text: "深掘り3",
+              voicevoxSpeakerId: 0,
+              offsetSec: 6.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
       ],
     },
     {
       type: "outro",
-      recap: [{ speaker: "A", text: "まとめ", voicevoxSpeakerId: 0, offsetSec: 6.5, durationSec: 1.0 }],
-      closing: [{ speaker: "B", text: "さようなら", voicevoxSpeakerId: 1, offsetSec: 7.5, durationSec: 1.0 }],
+      recap: [
+        {
+          speaker: "A",
+          text: "まとめ",
+          voicevoxSpeakerId: 0,
+          offsetSec: 6.5,
+          durationSec: 1.0,
+        },
+      ],
+      closing: [
+        {
+          speaker: "B",
+          text: "さようなら",
+          voicevoxSpeakerId: 1,
+          offsetSec: 7.5,
+          durationSec: 1.0,
+        },
+      ],
     },
   ],
 });
@@ -150,19 +279,19 @@ describe("createProgram", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env["S3_BUCKET"] = "video-factory";
+    process.env.S3_BUCKET = "video-factory";
     exitSpy = vi.spyOn(process, "exit").mockReturnValue(undefined as never);
     mockCreateDockerStorage.mockReturnValue(buildMockStorage());
     mockRunPipeline.mockReturnValue(okAsync(buildValidEnrichedScript()));
   });
 
   afterEach(() => {
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
     vi.restoreAllMocks();
   });
 
   it("exits with code 1 when S3_BUCKET is not set", async () => {
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
 
     await runProgram();
 
@@ -240,6 +369,9 @@ describe("createProgram", () => {
 
     await runProgram();
 
-    expect(mockRunPipeline).toHaveBeenCalledWith(mockStorage, DEFAULT_INPUT_KEY);
+    expect(mockRunPipeline).toHaveBeenCalledWith(
+      mockStorage,
+      DEFAULT_INPUT_KEY,
+    );
   });
 });

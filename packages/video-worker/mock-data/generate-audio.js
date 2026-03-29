@@ -3,9 +3,9 @@
  * This creates a 120-second silent WAV file at 44.1kHz, 16-bit, mono
  */
 
-import { writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,12 +23,12 @@ const fileSize = 44 + dataSize;
 const header = Buffer.alloc(44);
 
 // "RIFF" chunk descriptor
-header.write('RIFF', 0);
+header.write("RIFF", 0);
 header.writeUInt32LE(fileSize - 8, 4); // File size - 8
-header.write('WAVE', 8);
+header.write("WAVE", 8);
 
 // "fmt " sub-chunk
-header.write('fmt ', 12);
+header.write("fmt ", 12);
 header.writeUInt32LE(16, 16); // Subchunk1Size (16 for PCM)
 header.writeUInt16LE(1, 20); // AudioFormat (1 for PCM)
 header.writeUInt16LE(NUM_CHANNELS, 22); // NumChannels
@@ -38,7 +38,7 @@ header.writeUInt16LE(NUM_CHANNELS * (BITS_PER_SAMPLE / 8), 32); // BlockAlign
 header.writeUInt16LE(BITS_PER_SAMPLE, 34); // BitsPerSample
 
 // "data" sub-chunk
-header.write('data', 36);
+header.write("data", 36);
 header.writeUInt32LE(dataSize, 40); // Subchunk2Size
 
 // Create silent audio data (all zeros)
@@ -48,9 +48,11 @@ const audioData = Buffer.alloc(dataSize);
 const wavFile = Buffer.concat([header, audioData]);
 
 // Write to file
-const outputPath = join(__dirname, 'audio.wav');
+const outputPath = join(__dirname, "audio.wav");
 writeFileSync(outputPath, wavFile);
 
 console.log(`Generated WAV file: ${outputPath}`);
-console.log(`Duration: ${DURATION_SECONDS}s, Sample Rate: ${SAMPLE_RATE}Hz, Channels: ${NUM_CHANNELS}`);
+console.log(
+  `Duration: ${DURATION_SECONDS}s, Sample Rate: ${SAMPLE_RATE}Hz, Channels: ${NUM_CHANNELS}`,
+);
 console.log(`File size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);

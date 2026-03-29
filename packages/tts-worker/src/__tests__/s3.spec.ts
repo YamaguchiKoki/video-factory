@@ -7,7 +7,12 @@
 //   S3Error = { type: "GET_OBJECT_ERROR" | "PUT_OBJECT_ERROR" | "VALIDATION_ERROR"; message: string }
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getScriptFromS3, uploadWavToS3, extractDateFromKey, createDockerStorage } from "../s3";
+import {
+  createDockerStorage,
+  extractDateFromKey,
+  getScriptFromS3,
+  uploadWavToS3,
+} from "../s3";
 import type { EnrichedScript } from "../schema";
 import type { StorageDeps } from "../storage";
 
@@ -21,13 +26,15 @@ const { mockS3Send } = vi.hoisted(() => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
-  // Regular functions required: arrow functions cannot be used as constructors with `new`
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   S3Client: vi.fn(function () {
     return { send: mockS3Send };
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   GetObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   PutObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
@@ -121,12 +128,17 @@ describe("getScriptFromS3", () => {
     const validScript = buildValidScript();
     mockS3Send.mockResolvedValueOnce({
       Body: {
-        transformToString: vi.fn().mockResolvedValue(JSON.stringify(validScript)),
+        transformToString: vi
+          .fn()
+          .mockResolvedValue(JSON.stringify(validScript)),
       },
     });
 
     // Act
-    const result = await getScriptFromS3("my-bucket", "scripts/2026-03-21.json");
+    const result = await getScriptFromS3(
+      "my-bucket",
+      "scripts/2026-03-21.json",
+    );
 
     // Assert
     expect(result.isOk()).toBe(true);
@@ -140,7 +152,10 @@ describe("getScriptFromS3", () => {
     mockS3Send.mockRejectedValueOnce(new Error("AccessDenied"));
 
     // Act
-    const result = await getScriptFromS3("my-bucket", "scripts/2026-03-21.json");
+    const result = await getScriptFromS3(
+      "my-bucket",
+      "scripts/2026-03-21.json",
+    );
 
     // Assert
     expect(result.isErr()).toBe(true);
@@ -155,7 +170,10 @@ describe("getScriptFromS3", () => {
     mockS3Send.mockResolvedValueOnce({ Body: undefined });
 
     // Act
-    const result = await getScriptFromS3("my-bucket", "scripts/2026-03-21.json");
+    const result = await getScriptFromS3(
+      "my-bucket",
+      "scripts/2026-03-21.json",
+    );
 
     // Assert
     expect(result.isErr()).toBe(true);
@@ -173,7 +191,10 @@ describe("getScriptFromS3", () => {
     });
 
     // Act
-    const result = await getScriptFromS3("my-bucket", "scripts/2026-03-21.json");
+    const result = await getScriptFromS3(
+      "my-bucket",
+      "scripts/2026-03-21.json",
+    );
 
     // Assert
     expect(result.isErr()).toBe(true);
@@ -194,7 +215,10 @@ describe("getScriptFromS3", () => {
     });
 
     // Act
-    const result = await getScriptFromS3("my-bucket", "scripts/2026-03-21.json");
+    const result = await getScriptFromS3(
+      "my-bucket",
+      "scripts/2026-03-21.json",
+    );
 
     // Assert
     expect(result.isErr()).toBe(true);
@@ -303,43 +327,170 @@ const buildMinimalEnrichedScript = (): EnrichedScript => ({
     {
       type: "intro",
       greeting: [
-        { speaker: "A", text: "こんにちは", voicevoxSpeakerId: 0, offsetSec: 0, durationSec: 1.0 },
+        {
+          speaker: "A",
+          text: "こんにちは",
+          voicevoxSpeakerId: 0,
+          offsetSec: 0,
+          durationSec: 1.0,
+        },
       ],
       newsOverview: [
-        { speaker: "B", text: "今日のニュース", voicevoxSpeakerId: 1, offsetSec: 1.0, durationSec: 1.0 },
+        {
+          speaker: "B",
+          text: "今日のニュース",
+          voicevoxSpeakerId: 1,
+          offsetSec: 1.0,
+          durationSec: 1.0,
+        },
       ],
     },
     {
       type: "discussion",
       newsId: "news-1",
       blocks: [
-        { phase: "summary", lines: [{ speaker: "A", text: "概要1", voicevoxSpeakerId: 0, offsetSec: 2.0, durationSec: 0.5 }] },
-        { phase: "background", lines: [{ speaker: "B", text: "背景1", voicevoxSpeakerId: 1, offsetSec: 2.5, durationSec: 0.5 }] },
-        { phase: "deepDive", lines: [{ speaker: "A", text: "深掘り1", voicevoxSpeakerId: 0, offsetSec: 3.0, durationSec: 0.5 }] },
+        {
+          phase: "summary",
+          lines: [
+            {
+              speaker: "A",
+              text: "概要1",
+              voicevoxSpeakerId: 0,
+              offsetSec: 2.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "background",
+          lines: [
+            {
+              speaker: "B",
+              text: "背景1",
+              voicevoxSpeakerId: 1,
+              offsetSec: 2.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "deepDive",
+          lines: [
+            {
+              speaker: "A",
+              text: "深掘り1",
+              voicevoxSpeakerId: 0,
+              offsetSec: 3.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
       ],
     },
     {
       type: "discussion",
       newsId: "news-2",
       blocks: [
-        { phase: "summary", lines: [{ speaker: "A", text: "概要2", voicevoxSpeakerId: 0, offsetSec: 3.5, durationSec: 0.5 }] },
-        { phase: "background", lines: [{ speaker: "B", text: "背景2", voicevoxSpeakerId: 1, offsetSec: 4.0, durationSec: 0.5 }] },
-        { phase: "deepDive", lines: [{ speaker: "A", text: "深掘り2", voicevoxSpeakerId: 0, offsetSec: 4.5, durationSec: 0.5 }] },
+        {
+          phase: "summary",
+          lines: [
+            {
+              speaker: "A",
+              text: "概要2",
+              voicevoxSpeakerId: 0,
+              offsetSec: 3.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "background",
+          lines: [
+            {
+              speaker: "B",
+              text: "背景2",
+              voicevoxSpeakerId: 1,
+              offsetSec: 4.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "deepDive",
+          lines: [
+            {
+              speaker: "A",
+              text: "深掘り2",
+              voicevoxSpeakerId: 0,
+              offsetSec: 4.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
       ],
     },
     {
       type: "discussion",
       newsId: "news-3",
       blocks: [
-        { phase: "summary", lines: [{ speaker: "A", text: "概要3", voicevoxSpeakerId: 0, offsetSec: 5.0, durationSec: 0.5 }] },
-        { phase: "background", lines: [{ speaker: "B", text: "背景3", voicevoxSpeakerId: 1, offsetSec: 5.5, durationSec: 0.5 }] },
-        { phase: "deepDive", lines: [{ speaker: "A", text: "深掘り3", voicevoxSpeakerId: 0, offsetSec: 6.0, durationSec: 0.5 }] },
+        {
+          phase: "summary",
+          lines: [
+            {
+              speaker: "A",
+              text: "概要3",
+              voicevoxSpeakerId: 0,
+              offsetSec: 5.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "background",
+          lines: [
+            {
+              speaker: "B",
+              text: "背景3",
+              voicevoxSpeakerId: 1,
+              offsetSec: 5.5,
+              durationSec: 0.5,
+            },
+          ],
+        },
+        {
+          phase: "deepDive",
+          lines: [
+            {
+              speaker: "A",
+              text: "深掘り3",
+              voicevoxSpeakerId: 0,
+              offsetSec: 6.0,
+              durationSec: 0.5,
+            },
+          ],
+        },
       ],
     },
     {
       type: "outro",
-      recap: [{ speaker: "A", text: "まとめ", voicevoxSpeakerId: 0, offsetSec: 6.5, durationSec: 1.0 }],
-      closing: [{ speaker: "B", text: "さようなら", voicevoxSpeakerId: 1, offsetSec: 7.5, durationSec: 1.0 }],
+      recap: [
+        {
+          speaker: "A",
+          text: "まとめ",
+          voicevoxSpeakerId: 0,
+          offsetSec: 6.5,
+          durationSec: 1.0,
+        },
+      ],
+      closing: [
+        {
+          speaker: "B",
+          text: "さようなら",
+          voicevoxSpeakerId: 1,
+          offsetSec: 7.5,
+          durationSec: 1.0,
+        },
+      ],
     },
   ],
 });
@@ -350,7 +501,11 @@ describe("createDockerStorage", () => {
   });
 
   it("returns an object satisfying StorageDeps with all required fields", () => {
-    const storage = createDockerStorage("video-factory", "tts-worker/audio.wav", "tts-worker/script.json");
+    const storage = createDockerStorage(
+      "video-factory",
+      "tts-worker/audio.wav",
+      "tts-worker/script.json",
+    );
 
     expect(typeof storage.getScript).toBe("function");
     expect(typeof storage.uploadWav).toBe("function");
@@ -359,16 +514,28 @@ describe("createDockerStorage", () => {
   });
 
   it("buildOutputKey always returns the fixed outputWavKey regardless of date/title", () => {
-    const storage = createDockerStorage("video-factory", "custom/audio.wav", "tts-worker/script.json");
+    const storage = createDockerStorage(
+      "video-factory",
+      "custom/audio.wav",
+      "tts-worker/script.json",
+    );
 
-    expect(storage.buildOutputKey("2026-03-24", "タイトル")).toBe("custom/audio.wav");
+    expect(storage.buildOutputKey("2026-03-24", "タイトル")).toBe(
+      "custom/audio.wav",
+    );
     expect(storage.buildOutputKey("", "")).toBe("custom/audio.wav");
-    expect(storage.buildOutputKey("any-date", "any-title")).toBe("custom/audio.wav");
+    expect(storage.buildOutputKey("any-date", "any-title")).toBe(
+      "custom/audio.wav",
+    );
   });
 
   it("uploadEnrichedScript uploads to the outputScriptKey specified at construction", async () => {
     mockS3Send.mockResolvedValueOnce({});
-    const storage = createDockerStorage("video-factory", "tts-worker/audio.wav", "tts-worker/enriched.json");
+    const storage = createDockerStorage(
+      "video-factory",
+      "tts-worker/audio.wav",
+      "tts-worker/enriched.json",
+    );
 
     await storage.uploadEnrichedScript(buildMinimalEnrichedScript());
 
@@ -382,24 +549,40 @@ describe("createDockerStorage", () => {
 
   it("uploadEnrichedScript returns Ok void on success", async () => {
     mockS3Send.mockResolvedValueOnce({});
-    const storage = createDockerStorage("video-factory", "tts-worker/audio.wav", "tts-worker/script.json");
+    const storage = createDockerStorage(
+      "video-factory",
+      "tts-worker/audio.wav",
+      "tts-worker/script.json",
+    );
 
-    const result = await storage.uploadEnrichedScript(buildMinimalEnrichedScript());
+    const result = await storage.uploadEnrichedScript(
+      buildMinimalEnrichedScript(),
+    );
 
     expect(result.isOk()).toBe(true);
   });
 
   it("uploadEnrichedScript returns Err on S3 failure", async () => {
     mockS3Send.mockRejectedValueOnce(new Error("AccessDenied"));
-    const storage = createDockerStorage("video-factory", "tts-worker/audio.wav", "tts-worker/script.json");
+    const storage = createDockerStorage(
+      "video-factory",
+      "tts-worker/audio.wav",
+      "tts-worker/script.json",
+    );
 
-    const result = await storage.uploadEnrichedScript(buildMinimalEnrichedScript());
+    const result = await storage.uploadEnrichedScript(
+      buildMinimalEnrichedScript(),
+    );
 
     expect(result.isErr()).toBe(true);
   });
 
   it("satisfies TypeScript StorageDeps interface", () => {
-    const storage: StorageDeps = createDockerStorage("video-factory", "tts-worker/audio.wav", "tts-worker/script.json");
+    const storage: StorageDeps = createDockerStorage(
+      "video-factory",
+      "tts-worker/audio.wav",
+      "tts-worker/script.json",
+    );
 
     expect(storage).toBeDefined();
   });

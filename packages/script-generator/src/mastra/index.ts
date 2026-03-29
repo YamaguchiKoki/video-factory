@@ -1,33 +1,11 @@
-import { Mastra } from "@mastra/core/mastra";
-import { PinoLogger } from "@mastra/loggers";
+import { createTavilyMcpClient } from "../mcp/tavily";
+import { createMastraInstance } from "./instance-factory";
 
-import {
-  topicSelectionAgent,
-  TOPIC_SELECTION_AGENT_ID,
-} from "../steps/topic-selection";
-import {
-  topicDeepDiveAgent,
-  TOPIC_DEEP_DIVE_AGENT_ID,
-} from "../steps/topic-deep-dive";
-import { factCheckAgent, FACT_CHECK_AGENT_ID } from "../steps/fact-check";
-import {
-  dialogueScriptGeneratorAgent,
-  DIALOGUE_SCRIPT_GENERATOR_AGENT_ID,
-} from "../steps/dialogue-script-generator";
-import { generateScriptWorkflow } from "../workflow";
+// Singleton for the Mastra dev server (`mastra dev`).
+// TAVILY_API_KEY is required and must be set via the .env file when using dev mode.
+const devApiKey = process.env.TAVILY_API_KEY;
+if (!devApiKey) {
+  throw new Error("TAVILY_API_KEY environment variable is required");
+}
 
-export const mastra = new Mastra({
-  agents: {
-    [TOPIC_SELECTION_AGENT_ID]: topicSelectionAgent,
-    [TOPIC_DEEP_DIVE_AGENT_ID]: topicDeepDiveAgent,
-    [FACT_CHECK_AGENT_ID]: factCheckAgent,
-    [DIALOGUE_SCRIPT_GENERATOR_AGENT_ID]: dialogueScriptGeneratorAgent,
-  },
-  workflows: {
-    generateScriptWorkflow,
-  },
-  logger: new PinoLogger({
-    name: "Mastra",
-    level: "info",
-  }),
-});
+export const mastra = createMastraInstance(createTavilyMcpClient(devApiKey));

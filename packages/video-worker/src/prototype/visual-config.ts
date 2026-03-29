@@ -1,4 +1,4 @@
-import { SectionMarker } from "../schema/schema";
+import type { SectionMarker } from "../schema/schema";
 
 export interface SectionVisualConfig {
   backgroundColor: string;

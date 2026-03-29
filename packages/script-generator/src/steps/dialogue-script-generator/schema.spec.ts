@@ -1,5 +1,5 @@
-import { describe, expect } from "vitest";
 import { it } from "@fast-check/vitest";
+import { describe, expect } from "vitest";
 import { ScriptSchema } from "./schema";
 
 // ScriptSchema is the final output of the entire pipeline.
@@ -138,12 +138,11 @@ const buildNewsItem = (id: string) => ({
   title: `${id}のニュース見出し`,
 });
 
-const buildDiscussionBlock = (phase: "summary" | "background" | "deepDive") => ({
+const buildDiscussionBlock = (
+  phase: "summary" | "background" | "deepDive",
+) => ({
   phase,
-  lines: [
-    buildLine("A", "解説します"),
-    buildLine("B", "質問があります"),
-  ],
+  lines: [buildLine("A", "解説します"), buildLine("B", "質問があります")],
 });
 
 const buildDiscussionSection = (newsId: string) => ({

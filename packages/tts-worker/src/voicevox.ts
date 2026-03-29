@@ -2,7 +2,8 @@ import { fromPromise, type ResultAsync } from "neverthrow";
 import { toError, type VoicevoxError } from "./errors.js";
 import { fetchArrayBuffer, fetchJson } from "./http.js";
 
-export const VOICEVOX_URL = process.env["VOICEVOX_URL"] ?? "http://localhost:50021";
+export const VOICEVOX_URL =
+  process.env.VOICEVOX_URL ?? "http://localhost:50021";
 
 export const audioQuery = (
   text: string,

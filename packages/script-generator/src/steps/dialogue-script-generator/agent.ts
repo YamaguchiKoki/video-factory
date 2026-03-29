@@ -1,7 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import { bedrock } from "../../shared/bedrock";
 
-export const DIALOGUE_SCRIPT_GENERATOR_AGENT_ID = "dialogue-script-generator-agent";
+export const DIALOGUE_SCRIPT_GENERATOR_AGENT_ID =
+  "dialogue-script-generator-agent";
 
 export const dialogueScriptGeneratorAgent = new Agent({
   id: DIALOGUE_SCRIPT_GENERATOR_AGENT_ID,

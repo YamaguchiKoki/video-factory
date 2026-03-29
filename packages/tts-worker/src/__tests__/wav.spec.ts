@@ -7,9 +7,9 @@
 //   concatenateWavs(buffers): Result<ArrayBuffer, WavError>
 //   WavError = { type: "INVALID_HEADER" | "FORMAT_MISMATCH" | "EMPTY_INPUT"; message: string }
 
-import { describe, expect, it } from "vitest";
 import { it as itProp } from "@fast-check/vitest";
 import * as fc from "fast-check";
+import { describe, expect, it } from "vitest";
 import { concatenateWavs, getWavDurationSec, parseWavHeader } from "../wav";
 
 // ============================================
@@ -240,7 +240,12 @@ describe("getWavDurationSec property", () => {
     fc.float({ min: Math.fround(0.1), max: Math.fround(5.0), noNaN: true }), // durationSec
   ])(
     "duration = dataSize / byteRate for any valid WAV parameters",
-    (sampleRate: number, numChannels: number, bitsPerSample: number, durationSec: number) => {
+    (
+      sampleRate: number,
+      numChannels: number,
+      bitsPerSample: number,
+      durationSec: number,
+    ) => {
       // Arrange
       const buffer = buildWavBuffer(
         sampleRate,
@@ -312,7 +317,10 @@ describe("concatenateWavs", () => {
       if (durationResult.isOk()) {
         // Combined duration should equal sum of individual data sizes / byteRate
         const byteRate = 44100 * 1 * 2;
-        expect(durationResult.value).toBeCloseTo(expectedDataSize / byteRate, 5);
+        expect(durationResult.value).toBeCloseTo(
+          expectedDataSize / byteRate,
+          5,
+        );
       }
     }
   });

@@ -4,5 +4,5 @@
  */
 
 export { AvatarComponent } from "./AvatarComponent";
-export { NewsListComponent } from "./NewsListComponent";
 export { ConceptExplanationComponent } from "./ConceptExplanationComponent";
+export { NewsListComponent } from "./NewsListComponent";

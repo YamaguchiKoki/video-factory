@@ -409,14 +409,20 @@ const buildDiscussionSection = (newsId: string) => ({
 
 const buildIntroSection = () => ({
   type: "intro" as const,
-  greeting: [buildLine("A", "こんにちは"), buildLine("B", "よろしくお願いします")],
+  greeting: [
+    buildLine("A", "こんにちは"),
+    buildLine("B", "よろしくお願いします"),
+  ],
   newsOverview: [buildLine("A", "今日は3つのニュースをお届けします")],
 });
 
 const buildOutroSection = () => ({
   type: "outro" as const,
   recap: [buildLine("A", "本日のまとめです")],
-  closing: [buildLine("A", "ありがとうございました"), buildLine("B", "またお会いしましょう")],
+  closing: [
+    buildLine("A", "ありがとうございました"),
+    buildLine("B", "またお会いしましょう"),
+  ],
 });
 
 const buildValidScript = () => ({

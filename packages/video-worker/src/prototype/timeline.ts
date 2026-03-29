@@ -1,4 +1,4 @@
-import { SectionMarker, TimedLine } from "../schema/schema";
+import type { SectionMarker, TimedLine } from "../schema/schema";
 
 /** 指定時刻(秒)に該当するセクションマーカーを返す */
 export function getActiveMarker(

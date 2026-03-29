@@ -12,11 +12,11 @@
  * or in a separate integration test pipeline.
  */
 
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { renderMedia, selectComposition } from "@remotion/renderer";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { bundle } from "@remotion/bundler";
-import path from "path";
-import fs from "fs/promises";
+import { renderMedia, selectComposition } from "@remotion/renderer";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ParsedScript } from "../core/script-types";
 
 // Skip these tests in CI environment (can be enabled with --run-integration flag)
@@ -39,7 +39,7 @@ describe("VideoComposition Integration Tests", () => {
     // Bundle the Remotion project
     const webpackBundle = await bundle({
       entryPoint: path.join(process.cwd(), "src", "index.ts"),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // biome-ignore lint/suspicious/noExplicitAny: Remotion webpack config type is complex and not exported
       webpackOverride: (config: any) => config,
     });
 
@@ -562,8 +562,14 @@ describe("VideoComposition Integration Tests", () => {
                 summaryText:
                   "We discussed three major news topics covering politics, technology, and environment",
                 keyPoints: [
-                  { text: "Economic policy focuses on reform", importance: "high" },
-                  { text: "AI technology shows promising advances", importance: "medium" },
+                  {
+                    text: "Economic policy focuses on reform",
+                    importance: "high",
+                  },
+                  {
+                    text: "AI technology shows promising advances",
+                    importance: "medium",
+                  },
                   {
                     text: "Environmental initiatives gain traction",
                     importance: "medium",

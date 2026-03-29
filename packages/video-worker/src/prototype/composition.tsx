@@ -1,6 +1,12 @@
-import React from "react";
-import { Audio, AbsoluteFill, Sequence, staticFile, useVideoConfig } from "remotion";
-import { VideoProps } from "../schema/schema";
+import type React from "react";
+import {
+  AbsoluteFill,
+  Audio,
+  Sequence,
+  staticFile,
+  useVideoConfig,
+} from "remotion";
+import type { VideoProps } from "../schema/schema";
 import { SectionBackground } from "./section-background";
 import { SectionContent } from "./section-content";
 import { SectionLabel } from "./section-label";
@@ -95,11 +101,15 @@ export const VideoComposition2: React.FC<VideoProps> = ({
 
         return (
           <Sequence
+            // biome-ignore lint/suspicious/noArrayIndexKey: stable sequential lines
             key={`line-${index}`}
             from={fromFrame}
             durationInFrames={durationFrames}
           >
-            <Audio src={staticFile(line.audioPath)} startFrom={Math.round(line.startSec * fps)} />
+            <Audio
+              src={staticFile(line.audioPath)}
+              startFrom={Math.round(line.startSec * fps)}
+            />
             <Subtitle line={line} config={config} />
           </Sequence>
         );

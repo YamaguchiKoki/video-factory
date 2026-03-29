@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./infrastructure/s3", () => ({
   createS3Client: vi.fn(() => ({ send: vi.fn() })),
@@ -28,9 +28,9 @@ vi.mock("./core/enriched-parser", () => ({
 }));
 
 import { createDockerDeps, createLocalDeps } from "./deps";
-import { createS3Client } from "./infrastructure/s3";
-import { createLogger } from "./infrastructure/logger";
 import { createRenderVideo } from "./infrastructure";
+import { createLogger } from "./infrastructure/logger";
+import { createS3Client } from "./infrastructure/s3";
 import type { RenderVideoWorkflowDeps } from "./service/video-service";
 
 const assertDepsShape = (deps: RenderVideoWorkflowDeps) => {
@@ -52,7 +52,10 @@ describe("createDockerDeps", () => {
   });
 
   it("returns a valid RenderVideoWorkflowDeps object", () => {
-    const deps = createDockerDeps({ bucket: "my-bucket", requestId: "req-123" });
+    const deps = createDockerDeps({
+      bucket: "my-bucket",
+      requestId: "req-123",
+    });
     assertDepsShape(deps);
   });
 
@@ -67,13 +70,19 @@ describe("createDockerDeps", () => {
   });
 
   it("creates renderVideo using the logger", () => {
-    const deps = createDockerDeps({ bucket: "my-bucket", requestId: "req-789" });
+    const deps = createDockerDeps({
+      bucket: "my-bucket",
+      requestId: "req-789",
+    });
     expect(createRenderVideo).toHaveBeenCalled();
     expect(deps.renderVideo).toBeDefined();
   });
 
   it("resolves entryPoint to a remotion/index.ts path", () => {
-    const deps = createDockerDeps({ bucket: "my-bucket", requestId: "req-123" });
+    const deps = createDockerDeps({
+      bucket: "my-bucket",
+      requestId: "req-123",
+    });
     expect(deps.entryPoint).toMatch(/remotion\/index\.ts$/);
   });
 });

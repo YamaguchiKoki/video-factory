@@ -8,11 +8,11 @@
  * - Invariant testing with random data
  */
 
-import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
-import { parseScript } from "./core/script-parser";
+import { describe, expect, it } from "vitest";
 import { buildRenderConfig } from "./core/render-config";
-import type { ParsedScript, Speaker, Segment } from "./core/script-types";
+import { parseScript } from "./core/script-parser";
+import type { ParsedScript, Segment, Speaker } from "./core/script-types";
 
 // Skip fuzzing tests unless explicitly enabled
 const shouldRunFuzzing = process.env.RUN_FUZZING_TESTS === "true";
@@ -43,14 +43,17 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
               startTime: fc.integer({ min: 0, max: 600 }),
               endTime: fc.integer({ min: 1, max: 600 }),
             }),
-            { minLength: 1, maxLength: 20 }
+            { minLength: 1, maxLength: 20 },
           ),
           (duration: number, speakers: Speaker[], segments: Segment[]) => {
             const speakerIds = speakers.map((s: Speaker) => s.id);
 
             // Filter segments to have valid timestamps and speaker IDs
             const validSegments = segments
-              .filter((seg: Segment) => seg.startTime < seg.endTime && seg.endTime <= duration)
+              .filter(
+                (seg: Segment) =>
+                  seg.startTime < seg.endTime && seg.endTime <= duration,
+              )
               .map((seg: Segment) => ({
                 ...seg,
                 speakerId: speakerIds[0] || "speaker1",
@@ -78,13 +81,13 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
               // Invariant: segments must be sorted by startTime
               for (let i = 0; i < parsed.segments.length - 1; i++) {
                 expect(parsed.segments[i].startTime).toBeLessThanOrEqual(
-                  parsed.segments[i + 1].startTime
+                  parsed.segments[i + 1].startTime,
                 );
               }
             }
-          }
+          },
         ),
-        { numRuns: 50 } // Run 50 random test cases
+        { numRuns: 50 }, // Run 50 random test cases
       );
     });
 
@@ -127,9 +130,9 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
 
             // Invariant: overlapping timestamps must be rejected
             expect(result.isErr()).toBe(true);
-          }
+          },
         ),
-        { numRuns: 20 }
+        { numRuns: 20 },
       );
     });
 
@@ -169,9 +172,9 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
 
             // Invariant: invalid speaker references must be rejected
             expect(result.isErr()).toBe(true);
-          }
+          },
         ),
-        { numRuns: 30 }
+        { numRuns: 30 },
       );
     });
   });
@@ -216,55 +219,52 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
               const expectedFrames = Math.ceil(durationSeconds * 30);
               expect(config.composition.durationInFrames).toBe(expectedFrames);
             }
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
     it("should always use correct video dimensions", () => {
       fc.assert(
-        fc.property(
-          fc.integer({ min: 10, max: 600 }),
-          (durationSeconds) => {
-            const script: ParsedScript = {
-              metadata: {
-                title: "Test",
-                createdAt: new Date().toISOString(),
-                durationSeconds,
+        fc.property(fc.integer({ min: 10, max: 600 }), (durationSeconds) => {
+          const script: ParsedScript = {
+            metadata: {
+              title: "Test",
+              createdAt: new Date().toISOString(),
+              durationSeconds,
+            },
+            speakers: [
+              {
+                id: "speaker1",
+                name: "Speaker",
+                role: "agent",
+                avatarPath: "avatar.png",
               },
-              speakers: [
-                {
-                  id: "speaker1",
-                  name: "Speaker",
-                  role: "agent",
-                  avatarPath: "avatar.png",
-                },
-              ],
-              segments: [
-                {
-                  id: "seg1",
-                  speakerId: "speaker1",
-                  text: "Test",
-                  startTime: 0,
-                  endTime: durationSeconds,
-                },
-              ],
-            };
+            ],
+            segments: [
+              {
+                id: "seg1",
+                speakerId: "speaker1",
+                text: "Test",
+                startTime: 0,
+                endTime: durationSeconds,
+              },
+            ],
+          };
 
-            const result = buildRenderConfig(script, "/tmp/audio.wav");
+          const result = buildRenderConfig(script, "/tmp/audio.wav");
 
-            if (result.isOk()) {
-              const config = result.value;
+          if (result.isOk()) {
+            const config = result.value;
 
-              // Invariant: Always 1920x1080 @ 30fps
-              expect(config.composition.width).toBe(1920);
-              expect(config.composition.height).toBe(1080);
-              expect(config.composition.fps).toBe(30);
-            }
+            // Invariant: Always 1920x1080 @ 30fps
+            expect(config.composition.width).toBe(1920);
+            expect(config.composition.height).toBe(1080);
+            expect(config.composition.fps).toBe(30);
           }
-        ),
-        { numRuns: 50 }
+        }),
+        { numRuns: 50 },
       );
     });
   });
@@ -309,9 +309,9 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
             } else {
               expect(result.error.type).toBeDefined();
             }
-          }
+          },
         ),
-        { numRuns: 10 }
+        { numRuns: 10 },
       );
     });
 
@@ -349,11 +349,13 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
 
             // Should handle short videos gracefully
             if (result.isOk()) {
-              expect(result.value.composition.durationInFrames).toBeGreaterThan(0);
+              expect(result.value.composition.durationInFrames).toBeGreaterThan(
+                0,
+              );
             }
-          }
+          },
         ),
-        { numRuns: 20 }
+        { numRuns: 20 },
       );
     });
 
@@ -400,33 +402,30 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
 
     it("should reject zero or negative durations", () => {
       fc.assert(
-        fc.property(
-          fc.integer({ min: -100, max: 0 }),
-          (invalidDuration) => {
-            const script: ParsedScript = {
-              metadata: {
-                title: "Invalid Duration",
-                createdAt: new Date().toISOString(),
-                durationSeconds: invalidDuration,
+        fc.property(fc.integer({ min: -100, max: 0 }), (invalidDuration) => {
+          const script: ParsedScript = {
+            metadata: {
+              title: "Invalid Duration",
+              createdAt: new Date().toISOString(),
+              durationSeconds: invalidDuration,
+            },
+            speakers: [
+              {
+                id: "speaker1",
+                name: "Speaker",
+                role: "agent",
+                avatarPath: "avatar.png",
               },
-              speakers: [
-                {
-                  id: "speaker1",
-                  name: "Speaker",
-                  role: "agent",
-                  avatarPath: "avatar.png",
-                },
-              ],
-              segments: [],
-            };
+            ],
+            segments: [],
+          };
 
-            const result = buildRenderConfig(script, "/tmp/audio.wav");
+          const result = buildRenderConfig(script, "/tmp/audio.wav");
 
-            // Invariant: zero or negative duration must be rejected
-            expect(result.isErr()).toBe(true);
-          }
-        ),
-        { numRuns: 20 }
+          // Invariant: zero or negative duration must be rejected
+          expect(result.isErr()).toBe(true);
+        }),
+        { numRuns: 20 },
       );
     });
   });
@@ -471,9 +470,9 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
               // If it fails, should be a validation error, not a crash
               expect(result.error.type).toBeDefined();
             }
-          }
+          },
         ),
-        { numRuns: 30 }
+        { numRuns: 30 },
       );
     });
 

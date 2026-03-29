@@ -12,6 +12,7 @@ export const Atom: React.FC<{
   const [gradientId] = useState(() => String(random(null)));
 
   return (
+    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative SVG
     <svg
       viewBox={`0 0 ${config.width} ${config.height}`}
       style={{

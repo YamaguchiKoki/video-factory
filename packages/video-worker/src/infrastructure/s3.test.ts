@@ -23,23 +23,16 @@
  *     — Err when S3 rejects
  */
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
+  writeFile as fsWriteFile,
   mkdir,
   readFile,
   rm,
-  writeFile as fsWriteFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
 // Mock @aws-sdk/client-s3
@@ -50,22 +43,21 @@ const { mockSend } = vi.hoisted(() => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   S3Client: vi.fn(function () {
     return { send: mockSend };
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   GetObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   PutObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
 }));
 
-import {
-  createS3ClientConfig,
-  downloadToFile,
-  uploadFromFile,
-} from "./s3";
+import { createS3ClientConfig, downloadToFile, uploadFromFile } from "./s3";
 
 // ============================================
 // createS3ClientConfig
@@ -83,7 +75,9 @@ describe("createS3ClientConfig", () => {
   });
 
   it("returns endpoint and forcePathStyle:true when S3_ENDPOINT_URL is set", () => {
-    const config = createS3ClientConfig({ S3_ENDPOINT_URL: "http://rustfs:9000" });
+    const config = createS3ClientConfig({
+      S3_ENDPOINT_URL: "http://rustfs:9000",
+    });
     expect(config).toEqual({
       endpoint: "http://rustfs:9000",
       region: "ap-northeast-1",

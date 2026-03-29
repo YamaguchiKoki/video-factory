@@ -25,11 +25,26 @@
       "Bash(pnpm --filter video-worker add -D fast-check@3.x)",
       "Bash(pnpm install)",
       "Bash(node generate-audio.js:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(pnpm --filter tts-worker test)",
+      "Bash(pnpm --filter script-generator test)",
+      "Bash(pnpm --filter script-generator test -- src/env.spec.ts)",
+      "Bash(npm install:*)",
+      "Bash(aws ecr:*)",
+      "Bash(python3 -c \"import sys,json; print\\(json.loads\\(sys.stdin.read\\(\\)\\)[''''mediaType'''']\\)\")",
+      "Bash(docker push:*)",
+      "Bash(gh run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm lint:fix)",
+      "Bash(npx @biomejs/biome check --write infra/)",
+      "Bash(pnpm exec:*)",
+      "Bash(pnpm --filter script-generator exec tsc --noEmit)",
+      "Bash(pnpm --filter script-generator test -- --run src/infrastructure/s3.spec.ts)",
+      "Bash(pnpm lint:*)"
     ]
   },
-  "enabledMcpjsonServers": [
-    "figma"
-  ],
-  "enableAllProjectMcpServers": true
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["figma"]
 }

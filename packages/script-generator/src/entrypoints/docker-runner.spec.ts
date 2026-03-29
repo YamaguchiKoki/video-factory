@@ -5,6 +5,7 @@
 //
 //   run(): Promise<void>
 //     — exits 1 when S3_BUCKET env var is missing
+//     — exits 1 when TAVILY_API_KEY env var is missing
 //     — calls runWorkflow({ genre: "technology" }) and uploads the result
 //     — uploads via uploadScriptToS3 to OUTPUT_SCRIPT_KEY in the configured bucket
 //     — exits 1 when runWorkflow() throws
@@ -26,6 +27,20 @@ vi.mock("../workflow-runner", () => ({
 }));
 
 // ============================================
+// Mock ../mcp/tavily
+// ============================================
+
+const { mockCreateTavilyMcpClient, mockTavilyClient } = vi.hoisted(() => {
+  const mockTavilyClient = { listTools: vi.fn(), disconnect: vi.fn() };
+  const mockCreateTavilyMcpClient = vi.fn().mockReturnValue(mockTavilyClient);
+  return { mockCreateTavilyMcpClient, mockTavilyClient };
+});
+
+vi.mock("../mcp/tavily", () => ({
+  createTavilyMcpClient: mockCreateTavilyMcpClient,
+}));
+
+// ============================================
 // Mock ./infrastructure/s3
 // ============================================
 
@@ -38,8 +53,8 @@ vi.mock("../infrastructure/s3", () => ({
   createS3ClientConfig: vi.fn(() => ({})),
 }));
 
+import { errAsync, okAsync } from "neverthrow";
 import { OUTPUT_SCRIPT_KEY, run } from "./docker-runner";
-import { okAsync, errAsync } from "neverthrow";
 
 // ============================================
 // Test data
@@ -112,22 +127,21 @@ describe("run", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env["S3_BUCKET"] = "video-factory";
-    ctx.exitSpy = vi
-      .spyOn(process, "exit")
-      .mockReturnValue(undefined as never);
+    process.env.S3_BUCKET = "video-factory";
+    ctx.exitSpy = vi.spyOn(process, "exit").mockReturnValue(undefined as never);
     mockRunWorkflow.mockReturnValue(okAsync(buildValidScript()));
     mockUploadScriptToS3.mockReturnValue(okAsync(undefined));
+    mockCreateTavilyMcpClient.mockReturnValue(mockTavilyClient);
   });
 
   afterEach(() => {
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
     vi.restoreAllMocks();
   });
 
   it("exits with code 1 when S3_BUCKET is not set", async () => {
     // Given
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
 
     // When
     await run();
@@ -136,12 +150,31 @@ describe("run", () => {
     expect(ctx.exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it("calls runWorkflow with genre: technology", async () => {
-    // Given / When
+  it("exits with code 1 when TAVILY_API_KEY is not set", async () => {
+    // Given — test-setup.ts stubs TAVILY_API_KEY globally; delete it here and
+    // restore inline so other tests are not affected
+    const saved = process.env.TAVILY_API_KEY;
+    delete process.env.TAVILY_API_KEY;
+
+    // When
     await run();
 
     // Then
-    expect(mockRunWorkflow).toHaveBeenCalledWith({ genre: "technology" });
+    expect(ctx.exitSpy).toHaveBeenCalledWith(1);
+
+    // Restore the stub value so subsequent tests see it
+    if (saved !== undefined) process.env.TAVILY_API_KEY = saved;
+  });
+
+  it("calls runWorkflow with genre: technology and tavilyClient", async () => {
+    // Given / When
+    await run();
+
+    // Then — runWorkflow receives both the workflow input and the DI tavilyClient
+    expect(mockRunWorkflow).toHaveBeenCalledWith(
+      { genre: "technology" },
+      mockTavilyClient,
+    );
   });
 
   it("uploads script result to OUTPUT_SCRIPT_KEY", async () => {
@@ -162,7 +195,7 @@ describe("run", () => {
 
   it("uploads to the bucket configured in S3_BUCKET", async () => {
     // Given
-    process.env["S3_BUCKET"] = "my-custom-bucket";
+    process.env.S3_BUCKET = "my-custom-bucket";
     mockRunWorkflow.mockReturnValue(okAsync(buildValidScript()));
 
     // When
@@ -178,7 +211,7 @@ describe("run", () => {
 
   it("does not call uploadScriptToS3 when S3_BUCKET is not set", async () => {
     // Given
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
 
     // When
     await run();
@@ -190,7 +223,10 @@ describe("run", () => {
   it("exits with code 1 when runWorkflow returns an error", async () => {
     // Given
     mockRunWorkflow.mockReturnValue(
-      errAsync({ type: "WORKFLOW_ERROR" as const, message: "LLM workflow failed" }),
+      errAsync({
+        type: "WORKFLOW_ERROR" as const,
+        message: "LLM workflow failed",
+      }),
     );
 
     // When

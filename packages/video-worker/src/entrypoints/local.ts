@@ -1,8 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { fromPromise } from "neverthrow";
-import { fileURLToPath } from "url";
-import { createRenderVideoWorkflow } from "../service/video-service";
 import { createLocalDeps } from "../deps";
+import { createRenderVideoWorkflow } from "../service/video-service";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -13,7 +13,11 @@ export const main = async (): Promise<void> => {
     .option("--output <path>", "Path for the output video");
 
   program.parse(process.argv);
-  const opts = program.opts<{ script?: string; audio?: string; output?: string }>();
+  const opts = program.opts<{
+    script?: string;
+    audio?: string;
+    output?: string;
+  }>();
 
   if (!opts.script || !opts.audio || !opts.output) {
     console.error("Error: --script, --audio, and --output are all required");
@@ -26,7 +30,9 @@ export const main = async (): Promise<void> => {
 
   result.match(
     (outputFilePath) => {
-      deps.logger.info("Video rendering successful", { outputPath: outputFilePath });
+      deps.logger.info("Video rendering successful", {
+        outputPath: outputFilePath,
+      });
     },
     (error) => {
       console.error("Error:", error.message);

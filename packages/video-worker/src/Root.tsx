@@ -109,8 +109,7 @@ export const RemotionRoot: React.FC = () => {
       {/* VideoComposition for radio video generation */}
       <Composition
         id="VideoComposition"
-        // Cast to any to bypass type checking for dynamic props
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // biome-ignore lint/suspicious/noExplicitAny: Remotion Composition requires cast for dynamic schema-validated props
         component={VideoComposition as any}
         durationInFrames={300}
         fps={30}

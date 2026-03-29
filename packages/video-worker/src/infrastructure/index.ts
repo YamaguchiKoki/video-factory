@@ -1,7 +1,5 @@
 export { readFile, writeFile } from "./file-system";
-
-export { createTempDir, cleanupTempDir } from "./temp-file";
+export { bundleComposition } from "./remotion-bundler";
 
 export { createRenderVideo } from "./remotion-renderer";
-
-export { bundleComposition } from "./remotion-bundler";
+export { cleanupTempDir, createTempDir } from "./temp-file";

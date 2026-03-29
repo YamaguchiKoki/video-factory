@@ -1,11 +1,17 @@
-import { ok, okAsync, safeTry, type ResultAsync } from "neverthrow";
-import type { DiscussionSection, EnrichedLine, EnrichedScript, Line, Script } from "./schema.js";
+import { ok, okAsync, type ResultAsync, safeTry } from "neverthrow";
 import type { S3Error, VoicevoxError, WavError } from "./errors.js";
-import type { StorageDeps } from "./storage.js";
+import { extractDateFromKey } from "./s3.js";
+import type {
+  DiscussionSection,
+  EnrichedLine,
+  EnrichedScript,
+  Line,
+  Script,
+} from "./schema.js";
 import { getSpeakerId } from "./speaker.js";
+import type { StorageDeps } from "./storage.js";
 import { audioQuery, synthesis } from "./voicevox.js";
 import { concatenateWavs, getWavDurationSec } from "./wav.js";
-import { extractDateFromKey } from "./s3.js";
 
 export type PipelineError = VoicevoxError | S3Error | WavError;
 
@@ -14,28 +20,38 @@ export const runPipeline = (
   scriptKey: string,
 ): ResultAsync<EnrichedScript, PipelineError> =>
   safeTry(async function* () {
-    const script = yield* storage.getScript(scriptKey).mapErr(
-      (e): PipelineError => e,
-    );
+    const script = yield* storage
+      .getScript(scriptKey)
+      .mapErr((e): PipelineError => e);
 
     const allLines = flattenScriptLines(script);
-    const { enrichedLines, wavBuffers, offsetSec: totalDurationSec } =
-      yield* processLines(allLines, 0);
+    const {
+      enrichedLines,
+      wavBuffers,
+      offsetSec: totalDurationSec,
+    } = yield* processLines(allLines, 0);
 
-    const combinedWav = yield* concatenateWavs(wavBuffers).mapErr((e): PipelineError => e);
+    const combinedWav = yield* concatenateWavs(wavBuffers).mapErr(
+      (e): PipelineError => e,
+    );
 
     const date = extractDateFromKey(scriptKey);
     const outputWavKey = storage.buildOutputKey(date, script.title);
 
-    yield* storage.uploadWav(outputWavKey, combinedWav).mapErr(
-      (e): PipelineError => e,
+    yield* storage
+      .uploadWav(outputWavKey, combinedWav)
+      .mapErr((e): PipelineError => e);
+
+    const enrichedScript = rebuildEnrichedScript(
+      script,
+      enrichedLines,
+      outputWavKey,
+      totalDurationSec,
     );
 
-    const enrichedScript = rebuildEnrichedScript(script, enrichedLines, outputWavKey, totalDurationSec);
-
-    yield* storage.uploadEnrichedScript(enrichedScript).mapErr(
-      (e): PipelineError => e,
-    );
+    yield* storage
+      .uploadEnrichedScript(enrichedScript)
+      .mapErr((e): PipelineError => e);
 
     return ok(enrichedScript);
   });
@@ -58,7 +74,9 @@ const processLine = (
     const wavBuffer = yield* synthesis(speakerId, query).mapErr(
       (e): PipelineError => e,
     );
-    const durationSec = yield* getWavDurationSec(wavBuffer).mapErr((e): PipelineError => e);
+    const durationSec = yield* getWavDurationSec(wavBuffer).mapErr(
+      (e): PipelineError => e,
+    );
     return ok({
       enrichedLine: {
         speaker: line.speaker,
@@ -141,9 +159,18 @@ const takeDiscussionBlocks = (
   state: CursorState,
   disc: DiscussionSection,
 ): DiscussionBlocksTaken => {
-  const { taken: b0Lines, next: s1 } = takeLines(state, disc.blocks[0].lines.length);
-  const { taken: b1Lines, next: s2 } = takeLines(s1, disc.blocks[1].lines.length);
-  const { taken: b2Lines, next: s3 } = takeLines(s2, disc.blocks[2].lines.length);
+  const { taken: b0Lines, next: s1 } = takeLines(
+    state,
+    disc.blocks[0].lines.length,
+  );
+  const { taken: b1Lines, next: s2 } = takeLines(
+    s1,
+    disc.blocks[1].lines.length,
+  );
+  const { taken: b2Lines, next: s3 } = takeLines(
+    s2,
+    disc.blocks[2].lines.length,
+  );
   return { b0Lines, b1Lines, b2Lines, next: s3 };
 };
 
@@ -158,14 +185,29 @@ const rebuildEnrichedScript = (
   const s0: CursorState = { cursor: 0, lines: enrichedLines };
 
   const { taken: greeting, next: s1 } = takeLines(s0, intro.greeting.length);
-  const { taken: newsOverview, next: s2 } = takeLines(s1, intro.newsOverview.length);
+  const { taken: newsOverview, next: s2 } = takeLines(
+    s1,
+    intro.newsOverview.length,
+  );
 
-  const { b0Lines: d1b0Lines, b1Lines: d1b1Lines, b2Lines: d1b2Lines, next: s3 } =
-    takeDiscussionBlocks(s2, disc1);
-  const { b0Lines: d2b0Lines, b1Lines: d2b1Lines, b2Lines: d2b2Lines, next: s4 } =
-    takeDiscussionBlocks(s3, disc2);
-  const { b0Lines: d3b0Lines, b1Lines: d3b1Lines, b2Lines: d3b2Lines, next: s5 } =
-    takeDiscussionBlocks(s4, disc3);
+  const {
+    b0Lines: d1b0Lines,
+    b1Lines: d1b1Lines,
+    b2Lines: d1b2Lines,
+    next: s3,
+  } = takeDiscussionBlocks(s2, disc1);
+  const {
+    b0Lines: d2b0Lines,
+    b1Lines: d2b1Lines,
+    b2Lines: d2b2Lines,
+    next: s4,
+  } = takeDiscussionBlocks(s3, disc2);
+  const {
+    b0Lines: d3b0Lines,
+    b1Lines: d3b1Lines,
+    b2Lines: d3b2Lines,
+    next: s5,
+  } = takeDiscussionBlocks(s4, disc3);
 
   const { taken: recap, next: s6 } = takeLines(s5, outro.recap.length);
   const { taken: closing } = takeLines(s6, outro.closing.length);

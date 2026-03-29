@@ -3,7 +3,7 @@
  * Type-safe tests for news list display component
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { NewsListData } from "../core/script-types";
 import { NewsListComponent } from "./NewsListComponent";
 

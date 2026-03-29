@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseDockerEnv } from "./env.js";
 
 describe("parseDockerEnv", () => {
@@ -25,7 +25,9 @@ describe("parseDockerEnv", () => {
       S3_ENDPOINT_URL: "http://localhost:4566",
     });
     expect(result.isOk()).toBe(true);
-    expect(result._unsafeUnwrap().S3_ENDPOINT_URL).toBe("http://localhost:4566");
+    expect(result._unsafeUnwrap().S3_ENDPOINT_URL).toBe(
+      "http://localhost:4566",
+    );
   });
 
   it("parses optional S3 credentials", () => {

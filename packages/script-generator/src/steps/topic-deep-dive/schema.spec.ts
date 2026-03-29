@@ -1,5 +1,5 @@
+import { fc, it } from "@fast-check/vitest";
 import { describe, expect } from "vitest";
-import { it, fc } from "@fast-check/vitest";
 import { EnrichedTopicSchema, EnrichedTopicsOutputSchema } from "./schema";
 
 describe("EnrichedTopicSchema", () => {
@@ -16,7 +16,8 @@ describe("EnrichedTopicSchema", () => {
 
   it("should fail when xOpinions is missing", () => {
     // Arrange
-    const { xOpinions: _omitted, ...withoutOpinions } = buildEnrichedTopic("news-1");
+    const { xOpinions: _omitted, ...withoutOpinions } =
+      buildEnrichedTopic("news-1");
 
     // Act
     const result = EnrichedTopicSchema.safeParse(withoutOpinions);
@@ -27,7 +28,8 @@ describe("EnrichedTopicSchema", () => {
 
   it("should fail when detailedContext is missing", () => {
     // Arrange
-    const { detailedContext: _omitted, ...withoutContext } = buildEnrichedTopic("news-1");
+    const { detailedContext: _omitted, ...withoutContext } =
+      buildEnrichedTopic("news-1");
 
     // Act
     const result = EnrichedTopicSchema.safeParse(withoutContext);
@@ -38,7 +40,10 @@ describe("EnrichedTopicSchema", () => {
 
   it("should fail when sourceUrls contain an invalid URL", () => {
     // Arrange
-    const topic = { ...buildEnrichedTopic("news-1"), sourceUrls: ["not-a-url"] };
+    const topic = {
+      ...buildEnrichedTopic("news-1"),
+      sourceUrls: ["not-a-url"],
+    };
 
     // Act
     const result = EnrichedTopicSchema.safeParse(topic);
@@ -112,7 +117,13 @@ describe("EnrichedTopicsOutputSchema", () => {
     // Arrange — second topic is missing xOpinions
     const topics = [
       buildEnrichedTopic("news-1"),
-      { id: "news-2", title: "タイトル", summary: "要約", detailedContext: "詳細", sourceUrls: [] },
+      {
+        id: "news-2",
+        title: "タイトル",
+        summary: "要約",
+        detailedContext: "詳細",
+        sourceUrls: [],
+      },
       buildEnrichedTopic("news-3"),
     ];
 
@@ -132,5 +143,8 @@ const buildEnrichedTopic = (id: string) => ({
   summary: `${id}の概要`,
   xOpinions: ["投資家の反応は概ね肯定的", "一部から懸念の声も"],
   detailedContext: "日銀は2025年以降、段階的な金融政策の正常化を進めている",
-  sourceUrls: ["https://www.boj.or.jp/en/", "https://www.nikkei.com/article/123"],
+  sourceUrls: [
+    "https://www.boj.or.jp/en/",
+    "https://www.nikkei.com/article/123",
+  ],
 });

@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import {
   Img,
   interpolate,
@@ -7,8 +7,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { TimedLine } from "../schema/schema";
-import { SectionVisualConfig } from "./visual-config";
+import type { TimedLine } from "../schema/schema";
+import type { SectionVisualConfig } from "./visual-config";
 
 interface Props {
   line: TimedLine;

@@ -148,7 +148,9 @@ describe("VideoComposition", () => {
           visualComponent: {
             type: "news-list",
             data: {
-              items: [{ title: "News 1", category: "政治", date: "2026-02-09" }],
+              items: [
+                { title: "News 1", category: "政治", date: "2026-02-09" },
+              ],
             },
           },
         },

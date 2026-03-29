@@ -32,7 +32,11 @@ export const NewsListComponent: React.FC<NewsListComponentProps> = ({
         今日のニュース
       </h2>
       {data.items.map((item, index) => (
-        <NewsItem key={`${item.category}-${item.date}-${item.title}`} item={item} index={index} />
+        <NewsItem
+          key={`${item.category}-${item.date}-${item.title}`}
+          item={item}
+          index={index}
+        />
       ))}
     </div>
   );
@@ -80,9 +84,7 @@ const NewsItem: React.FC<NewsItemProps> = ({ item, index }) => {
         >
           {item.category}
         </span>
-        <span className="text-sm text-slate-400">
-          {item.date}
-        </span>
+        <span className="text-sm text-slate-400">{item.date}</span>
       </div>
       <h3 className="text-xl font-semibold text-slate-800 leading-normal">
         {item.title}

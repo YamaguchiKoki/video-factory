@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Mastra } from "@mastra/core/mastra";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { topicDeepDiveStep } from "./executor";
 
 describe("topicDeepDiveStep", () => {
@@ -75,13 +75,17 @@ describe("topicDeepDiveStep", () => {
   it("should call getAgent with the correct agent id", async () => {
     // Arrange
     const mockAgent = {
-      generate: vi.fn().mockResolvedValue({ object: buildEnrichedTopic("news-1") }),
+      generate: vi
+        .fn()
+        .mockResolvedValue({ object: buildEnrichedTopic("news-1") }),
     };
     const mockGetAgent = vi.fn().mockReturnValue(mockAgent);
     const mockMastra = { getAgent: mockGetAgent } as unknown as Mastra;
 
     // Act
-    await topicDeepDiveStep.execute(buildParams(buildInputTopic("news-1"), mockMastra));
+    await topicDeepDiveStep.execute(
+      buildParams(buildInputTopic("news-1"), mockMastra),
+    );
 
     // Assert
     expect(mockGetAgent).toHaveBeenCalledWith("topic-deep-dive-agent");
@@ -90,16 +94,21 @@ describe("topicDeepDiveStep", () => {
   it("should include the topic title in the agent prompt", async () => {
     // Arrange
     const mockAgent = {
-      generate: vi.fn().mockResolvedValue({ object: buildEnrichedTopic("news-1") }),
+      generate: vi
+        .fn()
+        .mockResolvedValue({ object: buildEnrichedTopic("news-1") }),
     };
-    const mockMastra = { getAgent: vi.fn().mockReturnValue(mockAgent) } as unknown as Mastra;
+    const mockMastra = {
+      getAgent: vi.fn().mockReturnValue(mockAgent),
+    } as unknown as Mastra;
     const topic = buildInputTopic("news-1");
 
     // Act
     await topicDeepDiveStep.execute(buildParams(topic, mockMastra));
 
     // Assert — topic title must appear in the prompt to scope the search
-    const [[promptArg]] = (mockAgent.generate as ReturnType<typeof vi.fn>).mock.calls as [[string, unknown]];
+    const [[promptArg]] = (mockAgent.generate as ReturnType<typeof vi.fn>).mock
+      .calls as [[string, unknown]];
     expect(promptArg).toContain(topic.title);
   });
 });
@@ -118,7 +127,10 @@ const buildEnrichedTopic = (id: string) => ({
   summary: `${id}の要約`,
   xOpinions: ["市場は概ね織り込み済み", "円高が進む可能性"],
   detailedContext: "日銀は2025年3月の政策会合で0.25%の追加利上げを決定した",
-  sourceUrls: ["https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2025/", "https://x.com/search?q=日銀利上げ"],
+  sourceUrls: [
+    "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2025/",
+    "https://x.com/search?q=日銀利上げ",
+  ],
 });
 
 const buildParams = (
