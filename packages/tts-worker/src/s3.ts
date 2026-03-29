@@ -1,7 +1,18 @@
-import { GetObjectCommand, PutObjectCommand, S3Client, type S3ClientConfig } from "@aws-sdk/client-s3";
-import { err, fromPromise, fromThrowable, ok, type ResultAsync } from "neverthrow";
-import { ScriptSchema, type Script, type EnrichedScript } from "./schema.js";
-import { toError, type S3Error } from "./errors.js";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  type S3ClientConfig,
+} from "@aws-sdk/client-s3";
+import {
+  err,
+  fromPromise,
+  fromThrowable,
+  ok,
+  type ResultAsync,
+} from "neverthrow";
+import { type S3Error, toError } from "./errors.js";
+import { type EnrichedScript, type Script, ScriptSchema } from "./schema.js";
 import type { StorageDeps } from "./storage.js";
 
 export type S3EnvConfig = {
@@ -46,13 +57,19 @@ export const getScriptFromS3 = (
       }
       return fromPromise(
         response.Body.transformToString(),
-        (e): S3Error => ({ type: "GET_OBJECT_ERROR", message: toError(e).message }),
+        (e): S3Error => ({
+          type: "GET_OBJECT_ERROR",
+          message: toError(e).message,
+        }),
       );
     })
     .andThen((jsonStr) =>
       fromThrowable(
         JSON.parse,
-        (e): S3Error => ({ type: "VALIDATION_ERROR", message: toError(e).message }),
+        (e): S3Error => ({
+          type: "VALIDATION_ERROR",
+          message: toError(e).message,
+        }),
       )(jsonStr),
     )
     .andThen((raw) => {
@@ -116,6 +133,7 @@ export const createDockerStorage = (
 ): StorageDeps => ({
   getScript: (key) => getScriptFromS3(bucket, key),
   uploadWav: (key, data) => uploadWavToS3(bucket, key, data),
-  uploadEnrichedScript: (data) => uploadEnrichedScriptToS3(bucket, outputScriptKey, data),
+  uploadEnrichedScript: (data) =>
+    uploadEnrichedScriptToS3(bucket, outputScriptKey, data),
   buildOutputKey: (_date, _title) => outputWavKey,
 });

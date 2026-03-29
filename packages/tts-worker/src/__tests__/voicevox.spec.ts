@@ -20,7 +20,11 @@ describe("audioQuery", () => {
 
   it("returns Ok with the query JSON on success", async () => {
     // Arrange
-    const queryJson = { speedScale: 1.0, pitchScale: 0.0, intonationScale: 1.0 };
+    const queryJson = {
+      speedScale: 1.0,
+      pitchScale: 0.0,
+      intonationScale: 1.0,
+    };
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify(queryJson), { status: 200 }),
     );
@@ -72,9 +76,7 @@ describe("audioQuery", () => {
     // Arrange
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({}), { status: 200 }),
-      );
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
     const text = "こんにちは";
 
     // Act
@@ -90,9 +92,7 @@ describe("audioQuery", () => {
     // Arrange
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({}), { status: 200 }),
-      );
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
 
     // Act
     await audioQuery("テスト", 1);
@@ -106,9 +106,7 @@ describe("audioQuery", () => {
     // Arrange
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({}), { status: 200 }),
-      );
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
 
     // Act
     await audioQuery("テスト", 0);
@@ -222,8 +220,8 @@ describe("synthesis", () => {
     // Assert
     const calledOptions = (fetchSpy.mock.calls[0] as [string, RequestInit])[1];
     expect(calledOptions?.method).toBe("POST");
-    expect((calledOptions?.headers as Record<string, string>)?.["Content-Type"]).toBe(
-      "application/json",
-    );
+    expect(
+      (calledOptions?.headers as Record<string, string>)?.["Content-Type"],
+    ).toBe("application/json");
   });
 });

@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { err, fromPromise, fromThrowable, ok } from "neverthrow";
-import { ScriptSchema, type Script, type EnrichedScript } from "./schema.js";
-import { toError, type S3Error } from "./errors.js";
+import { type S3Error, toError } from "./errors.js";
+import { type EnrichedScript, type Script, ScriptSchema } from "./schema.js";
 import type { StorageDeps } from "./storage.js";
 
 const readScriptFromFile = (filePath: string) =>
@@ -13,7 +13,10 @@ const readScriptFromFile = (filePath: string) =>
     .andThen((jsonStr) =>
       fromThrowable(
         JSON.parse,
-        (e): S3Error => ({ type: "VALIDATION_ERROR", message: toError(e).message }),
+        (e): S3Error => ({
+          type: "VALIDATION_ERROR",
+          message: toError(e).message,
+        }),
       )(jsonStr),
     )
     .andThen((raw) => {
@@ -29,9 +32,9 @@ const readScriptFromFile = (filePath: string) =>
 
 const writeToFile = (filePath: string, data: Buffer | string) =>
   fromPromise(
-    fs.mkdir(path.dirname(filePath), { recursive: true }).then(() =>
-      fs.writeFile(filePath, data),
-    ),
+    fs
+      .mkdir(path.dirname(filePath), { recursive: true })
+      .then(() => fs.writeFile(filePath, data)),
     (e): S3Error => ({ type: "PUT_OBJECT_ERROR", message: toError(e).message }),
   );
 
@@ -40,7 +43,8 @@ const buildLocalOutputKey = (date: string, title: string): string =>
 
 export const createLocalStorage = (baseDir: string): StorageDeps => ({
   getScript: (key) => readScriptFromFile(path.resolve(baseDir, key)),
-  uploadWav: (key, data) => writeToFile(path.resolve(baseDir, key), Buffer.from(data)),
+  uploadWav: (key, data) =>
+    writeToFile(path.resolve(baseDir, key), Buffer.from(data)),
   uploadEnrichedScript: (data: EnrichedScript) =>
     writeToFile(
       path.resolve(baseDir, "output/enriched-script.json"),

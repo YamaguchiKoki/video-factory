@@ -9,9 +9,14 @@ type WavHeader = {
   readonly dataOffset: number;
 };
 
-export const parseWavHeader = (buffer: ArrayBuffer): Result<WavHeader, WavError> => {
+export const parseWavHeader = (
+  buffer: ArrayBuffer,
+): Result<WavHeader, WavError> => {
   if (buffer.byteLength < 44) {
-    return err({ type: "INVALID_HEADER", message: "Buffer too small for WAV header" });
+    return err({
+      type: "INVALID_HEADER",
+      message: "Buffer too small for WAV header",
+    });
   }
 
   const view = new DataView(buffer);
@@ -30,26 +35,35 @@ export const parseWavHeader = (buffer: ArrayBuffer): Result<WavHeader, WavError>
   const sampleRate = view.getUint32(24, true);
   const bitsPerSample = view.getUint16(34, true);
 
-  return findDataChunk(view, buffer.byteLength).map(({ dataOffset, dataSize }) => ({
-    numChannels,
-    sampleRate,
-    bitsPerSample,
-    dataSize,
-    dataOffset,
-  }));
+  return findDataChunk(view, buffer.byteLength).map(
+    ({ dataOffset, dataSize }) => ({
+      numChannels,
+      sampleRate,
+      bitsPerSample,
+      dataSize,
+      dataOffset,
+    }),
+  );
 };
 
-export const getWavDurationSec = (buffer: ArrayBuffer): Result<number, WavError> =>
-  parseWavHeader(buffer).map(({ sampleRate, numChannels, bitsPerSample, dataSize }) => {
-    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-    return dataSize / byteRate;
-  });
+export const getWavDurationSec = (
+  buffer: ArrayBuffer,
+): Result<number, WavError> =>
+  parseWavHeader(buffer).map(
+    ({ sampleRate, numChannels, bitsPerSample, dataSize }) => {
+      const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+      return dataSize / byteRate;
+    },
+  );
 
 export const concatenateWavs = (
   buffers: readonly ArrayBuffer[],
 ): Result<ArrayBuffer, WavError> => {
   if (buffers.length === 0) {
-    return err({ type: "EMPTY_INPUT", message: "No WAV buffers to concatenate" });
+    return err({
+      type: "EMPTY_INPUT",
+      message: "No WAV buffers to concatenate",
+    });
   }
 
   return buffers
@@ -90,7 +104,10 @@ export const concatenateWavs = (
       const outputBytes = new Uint8Array(output);
       headers.reduce((writeOffset, h, i) => {
         const srcBytes = new Uint8Array(buffers[i]!);
-        outputBytes.set(srcBytes.subarray(h.dataOffset, h.dataOffset + h.dataSize), writeOffset);
+        outputBytes.set(
+          srcBytes.subarray(h.dataOffset, h.dataOffset + h.dataSize),
+          writeOffset,
+        );
         return writeOffset + h.dataSize;
       }, 44);
 
@@ -128,7 +145,10 @@ const findDataChunk = (
   bufferSize: number,
 ): Result<{ dataOffset: number; dataSize: number }, WavError> => {
   if (bufferSize < 20) {
-    return err({ type: "INVALID_HEADER", message: "Buffer too small to read fmt chunk" });
+    return err({
+      type: "INVALID_HEADER",
+      message: "Buffer too small to read fmt chunk",
+    });
   }
   const subchunk1Size = view.getUint32(16, true);
   const searchStart = 12 + 4 + 4 + subchunk1Size;

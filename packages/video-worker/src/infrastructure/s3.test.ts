@@ -42,14 +42,16 @@ const { mockSend } = vi.hoisted(() => ({
   mockSend: vi.fn(),
 }));
 
-// biome-ignore lint/complexity/useArrowFunction: vi.fn mocks used as constructors require `function` for `new` compatibility
 vi.mock("@aws-sdk/client-s3", () => ({
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   S3Client: vi.fn(function () {
     return { send: mockSend };
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   GetObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
   PutObjectCommand: vi.fn(function (args: unknown) {
     return args;
   }),

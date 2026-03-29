@@ -4,8 +4,8 @@
 //   runPipeline(storage: StorageDeps, scriptKey: string): ResultAsync<EnrichedScript, PipelineError>
 //   PipelineError = VoicevoxError | S3Error | WavError
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { err, errAsync, ok, okAsync } from "neverthrow";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // All external side-effects are mocked so no network or AWS calls occur.
 vi.mock("../voicevox", () => ({
@@ -24,11 +24,11 @@ vi.mock("../speaker", () => ({
 }));
 
 import { runPipeline } from "../pipeline";
+import type { Script } from "../schema";
+import { getSpeakerId } from "../speaker";
+import type { StorageDeps } from "../storage";
 import { audioQuery, synthesis } from "../voicevox";
 import { concatenateWavs, getWavDurationSec } from "../wav";
-import { getSpeakerId } from "../speaker";
-import type { Script } from "../schema";
-import type { StorageDeps } from "../storage";
 
 // ============================================
 // Minimal valid script fixture
@@ -56,8 +56,14 @@ const MINIMAL_SCRIPT = {
       newsId: "news-1",
       blocks: [
         { phase: "summary" as const, lines: [{ speaker: "A", text: "概要1" }] },
-        { phase: "background" as const, lines: [{ speaker: "B", text: "背景1" }] },
-        { phase: "deepDive" as const, lines: [{ speaker: "A", text: "深掘り1" }] },
+        {
+          phase: "background" as const,
+          lines: [{ speaker: "B", text: "背景1" }],
+        },
+        {
+          phase: "deepDive" as const,
+          lines: [{ speaker: "A", text: "深掘り1" }],
+        },
       ],
     },
     {
@@ -65,8 +71,14 @@ const MINIMAL_SCRIPT = {
       newsId: "news-2",
       blocks: [
         { phase: "summary" as const, lines: [{ speaker: "A", text: "概要2" }] },
-        { phase: "background" as const, lines: [{ speaker: "B", text: "背景2" }] },
-        { phase: "deepDive" as const, lines: [{ speaker: "A", text: "深掘り2" }] },
+        {
+          phase: "background" as const,
+          lines: [{ speaker: "B", text: "背景2" }],
+        },
+        {
+          phase: "deepDive" as const,
+          lines: [{ speaker: "A", text: "深掘り2" }],
+        },
       ],
     },
     {
@@ -74,8 +86,14 @@ const MINIMAL_SCRIPT = {
       newsId: "news-3",
       blocks: [
         { phase: "summary" as const, lines: [{ speaker: "A", text: "概要3" }] },
-        { phase: "background" as const, lines: [{ speaker: "B", text: "背景3" }] },
-        { phase: "deepDive" as const, lines: [{ speaker: "A", text: "深掘り3" }] },
+        {
+          phase: "background" as const,
+          lines: [{ speaker: "B", text: "背景3" }],
+        },
+        {
+          phase: "deepDive" as const,
+          lines: [{ speaker: "A", text: "深掘り3" }],
+        },
       ],
     },
     {
@@ -92,7 +110,9 @@ const MOCK_COMBINED_WAV = new ArrayBuffer(1000);
 const MOCK_OUTPUT_KEY = "audio/2026-03-21/テストラジオ 2026年3月21日号.wav";
 
 const createMockStorage = (): StorageDeps => ({
-  getScript: vi.fn().mockReturnValue(okAsync(MINIMAL_SCRIPT as unknown as Script)),
+  getScript: vi
+    .fn()
+    .mockReturnValue(okAsync(MINIMAL_SCRIPT as unknown as Script)),
   uploadWav: vi.fn().mockReturnValue(okAsync(undefined)),
   uploadEnrichedScript: vi.fn().mockReturnValue(okAsync(undefined)),
   buildOutputKey: vi.fn().mockReturnValue(MOCK_OUTPUT_KEY),
@@ -179,7 +199,9 @@ describe("runPipeline — success", () => {
 
   it("calls storage.getScript with the provided key", async () => {
     await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(mockStorage.getScript).toHaveBeenCalledWith("scripts/2026-03-21.json");
+    expect(mockStorage.getScript).toHaveBeenCalledWith(
+      "scripts/2026-03-21.json",
+    );
   });
 
   it("calls storage.uploadWav with the output key and combined WAV buffer", async () => {
@@ -229,9 +251,11 @@ describe("runPipeline — errors", () => {
   it("returns Err when storage.getScript fails", async () => {
     const storage = {
       ...mockStorage,
-      getScript: vi.fn().mockReturnValue(
-        errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
-      ),
+      getScript: vi
+        .fn()
+        .mockReturnValue(
+          errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
+        ),
     };
 
     const result = await runPipeline(storage, "scripts/2026-03-21.json");
@@ -243,7 +267,10 @@ describe("runPipeline — errors", () => {
 
   it("returns Err when audioQuery fails", async () => {
     vi.mocked(audioQuery).mockReturnValueOnce(
-      errAsync({ type: "AUDIO_QUERY_ERROR" as const, message: "VOICEVOX unreachable" }),
+      errAsync({
+        type: "AUDIO_QUERY_ERROR" as const,
+        message: "VOICEVOX unreachable",
+      }),
     );
 
     const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
@@ -255,7 +282,10 @@ describe("runPipeline — errors", () => {
 
   it("returns Err when synthesis fails", async () => {
     vi.mocked(synthesis).mockReturnValueOnce(
-      errAsync({ type: "SYNTHESIS_ERROR" as const, message: "Synthesis failed" }),
+      errAsync({
+        type: "SYNTHESIS_ERROR" as const,
+        message: "Synthesis failed",
+      }),
     );
 
     const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
@@ -292,9 +322,14 @@ describe("runPipeline — errors", () => {
   it("returns Err when storage.uploadWav fails", async () => {
     const storage = {
       ...mockStorage,
-      uploadWav: vi.fn().mockReturnValue(
-        errAsync({ type: "PUT_OBJECT_ERROR" as const, message: "Upload failed" }),
-      ),
+      uploadWav: vi
+        .fn()
+        .mockReturnValue(
+          errAsync({
+            type: "PUT_OBJECT_ERROR" as const,
+            message: "Upload failed",
+          }),
+        ),
     };
 
     const result = await runPipeline(storage, "scripts/2026-03-21.json");
@@ -307,9 +342,14 @@ describe("runPipeline — errors", () => {
   it("short-circuits and skips TTS calls when script fetch fails", async () => {
     const storage = {
       ...mockStorage,
-      getScript: vi.fn().mockReturnValue(
-        errAsync({ type: "GET_OBJECT_ERROR" as const, message: "Bucket not found" }),
-      ),
+      getScript: vi
+        .fn()
+        .mockReturnValue(
+          errAsync({
+            type: "GET_OBJECT_ERROR" as const,
+            message: "Bucket not found",
+          }),
+        ),
     };
 
     await runPipeline(storage, "scripts/2026-03-21.json");
@@ -320,7 +360,10 @@ describe("runPipeline — errors", () => {
 
   it("does not upload when WAV concatenation fails", async () => {
     vi.mocked(concatenateWavs).mockReturnValue(
-      err({ type: "FORMAT_MISMATCH" as const, message: "Incompatible formats" }),
+      err({
+        type: "FORMAT_MISMATCH" as const,
+        message: "Incompatible formats",
+      }),
     );
 
     await runPipeline(mockStorage, "scripts/2026-03-21.json");
@@ -371,9 +414,14 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
   it("returns Err when uploadEnrichedScript fails", async () => {
     const storage = {
       ...mockStorage,
-      uploadEnrichedScript: vi.fn().mockReturnValue(
-        errAsync({ type: "PUT_OBJECT_ERROR" as const, message: "Enriched script upload failed" }),
-      ),
+      uploadEnrichedScript: vi
+        .fn()
+        .mockReturnValue(
+          errAsync({
+            type: "PUT_OBJECT_ERROR" as const,
+            message: "Enriched script upload failed",
+          }),
+        ),
     };
 
     const result = await runPipeline(storage, "scripts/2026-03-21.json");
@@ -387,9 +435,14 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
   it("does not call uploadEnrichedScript when uploadWav fails", async () => {
     const storage = {
       ...mockStorage,
-      uploadWav: vi.fn().mockReturnValue(
-        errAsync({ type: "PUT_OBJECT_ERROR" as const, message: "WAV upload failed" }),
-      ),
+      uploadWav: vi
+        .fn()
+        .mockReturnValue(
+          errAsync({
+            type: "PUT_OBJECT_ERROR" as const,
+            message: "WAV upload failed",
+          }),
+        ),
     };
 
     await runPipeline(storage, "scripts/2026-03-21.json");
@@ -399,7 +452,10 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
 
   it("does not call uploadEnrichedScript when WAV concatenation fails", async () => {
     vi.mocked(concatenateWavs).mockReturnValue(
-      err({ type: "FORMAT_MISMATCH" as const, message: "Incompatible formats" }),
+      err({
+        type: "FORMAT_MISMATCH" as const,
+        message: "Incompatible formats",
+      }),
     );
 
     await runPipeline(mockStorage, "scripts/2026-03-21.json");
@@ -410,9 +466,11 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
   it("does not call uploadEnrichedScript when script fetch fails", async () => {
     const storage = {
       ...mockStorage,
-      getScript: vi.fn().mockReturnValue(
-        errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
-      ),
+      getScript: vi
+        .fn()
+        .mockReturnValue(
+          errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
+        ),
     };
 
     await runPipeline(storage, "scripts/2026-03-21.json");

@@ -22,15 +22,9 @@ const { mockS3Send } = vi.hoisted(() => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
-  S3Client: vi.fn(function () {
-    return { send: mockS3Send };
-  }),
-  GetObjectCommand: vi.fn(function (args: unknown) {
-    return args;
-  }),
-  PutObjectCommand: vi.fn(function (args: unknown) {
-    return args;
-  }),
+  S3Client: vi.fn(() => ({ send: mockS3Send })),
+  GetObjectCommand: vi.fn((args: unknown) => args),
+  PutObjectCommand: vi.fn((args: unknown) => args),
 }));
 
 import { createS3ClientConfig, uploadEnrichedScriptToS3 } from "../s3";
@@ -236,7 +230,9 @@ describe("createS3ClientConfig", () => {
   });
 
   it("returns endpoint config with forcePathStyle:true when S3_ENDPOINT_URL is set", () => {
-    const config = createS3ClientConfig({ S3_ENDPOINT_URL: "http://rustfs:9000" });
+    const config = createS3ClientConfig({
+      S3_ENDPOINT_URL: "http://rustfs:9000",
+    });
     expect(config).toEqual({
       endpoint: "http://rustfs:9000",
       region: "ap-northeast-1",

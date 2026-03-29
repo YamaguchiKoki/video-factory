@@ -2,17 +2,17 @@
 // This module does not exist yet; tests are written TDD-first.
 
 import { describe, expect, it } from "vitest";
-import { SPEAKER_IDS, getSpeakerId } from "../speaker";
+import { getSpeakerId, SPEAKER_IDS } from "../speaker";
 
 describe("SPEAKER_IDS", () => {
   it("maps Speaker A to VOICEVOX speaker id 0", () => {
     // VOICEVOX default speaker: 四国めたん(ノーマル) = 2, ずんだもん(ノーマル) = 3
     // Plan decision: A → 0, B → 1 (VOICEVOX defaults)
-    expect(SPEAKER_IDS["A"]).toBe(0);
+    expect(SPEAKER_IDS.A).toBe(0);
   });
 
   it("maps Speaker B to VOICEVOX speaker id 1", () => {
-    expect(SPEAKER_IDS["B"]).toBe(1);
+    expect(SPEAKER_IDS.B).toBe(1);
   });
 });
 
