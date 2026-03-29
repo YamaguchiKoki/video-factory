@@ -26,10 +26,18 @@ const { mockS3Send } = vi.hoisted(() => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
-  // Regular functions required: arrow functions cannot be used as constructors with `new`
-  S3Client: vi.fn(() => ({ send: mockS3Send })),
-  GetObjectCommand: vi.fn((args: unknown) => args),
-  PutObjectCommand: vi.fn((args: unknown) => args),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
+  S3Client: vi.fn(function () {
+    return { send: mockS3Send };
+  }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
+  GetObjectCommand: vi.fn(function (args: unknown) {
+    return args;
+  }),
+  // biome-ignore lint/complexity/useArrowFunction: constructor mock requires `function` for `new`
+  PutObjectCommand: vi.fn(function (args: unknown) {
+    return args;
+  }),
 }));
 
 // ============================================
