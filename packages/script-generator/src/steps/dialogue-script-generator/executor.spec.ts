@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Mastra } from "@mastra/core/mastra";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { dialogueScriptGeneratorStep } from "./executor";
 
 describe("dialogueScriptGeneratorStep", () => {
@@ -61,7 +61,9 @@ describe("dialogueScriptGeneratorStep", () => {
     );
 
     // Assert
-    expect(mockGetAgent).toHaveBeenCalledWith("dialogue-script-generator-agent");
+    expect(mockGetAgent).toHaveBeenCalledWith(
+      "dialogue-script-generator-agent",
+    );
   });
 });
 
@@ -80,7 +82,10 @@ const buildVerifiedTopics = (): VerifiedTopic[] => [
   {
     id: "news-1",
     title: "日銀追加利上げ決定",
-    verifiedFacts: ["2025年3月20日に0.25%利上げを決定", "市場はほぼ織り込み済み"],
+    verifiedFacts: [
+      "2025年3月20日に0.25%利上げを決定",
+      "市場はほぼ織り込み済み",
+    ],
     reliabilityScore: 0.93,
     contradictions: [],
     sourceUrls: ["https://www.boj.or.jp/en/"],
@@ -109,9 +114,18 @@ const buildDiscussionSection = (newsId: string) => ({
   type: "discussion" as const,
   newsId,
   blocks: [
-    { phase: "summary" as const, lines: [buildLine("A", "解説"), buildLine("B", "質問")] },
-    { phase: "background" as const, lines: [buildLine("A", "背景"), buildLine("B", "確認")] },
-    { phase: "deepDive" as const, lines: [buildLine("A", "深掘り"), buildLine("B", "感想")] },
+    {
+      phase: "summary" as const,
+      lines: [buildLine("A", "解説"), buildLine("B", "質問")],
+    },
+    {
+      phase: "background" as const,
+      lines: [buildLine("A", "背景"), buildLine("B", "確認")],
+    },
+    {
+      phase: "deepDive" as const,
+      lines: [buildLine("A", "深掘り"), buildLine("B", "感想")],
+    },
   ],
 });
 
@@ -139,10 +153,7 @@ const buildValidScript = () => ({
   ],
 });
 
-const buildParams = (
-  inputData: VerifiedTopic[],
-  mastra: Mastra,
-) =>
+const buildParams = (inputData: VerifiedTopic[], mastra: Mastra) =>
   ({ inputData, mastra }) as unknown as Parameters<
     typeof dialogueScriptGeneratorStep.execute
   >[0];

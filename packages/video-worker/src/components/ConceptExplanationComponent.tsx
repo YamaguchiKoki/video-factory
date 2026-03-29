@@ -56,8 +56,10 @@ export const ConceptExplanationComponent: React.FC<
 // 強調スタイルクラスの定義
 const getEmphasisClassName = (emphasis?: "high" | "medium" | "low"): string => {
   const baseClass = "leading-relaxed";
-  if (emphasis === "high") return `${baseClass} text-red-600 text-2xl font-bold`;
-  if (emphasis === "low") return `${baseClass} text-slate-600 text-xl font-medium`;
+  if (emphasis === "high")
+    return `${baseClass} text-red-600 text-2xl font-bold`;
+  if (emphasis === "low")
+    return `${baseClass} text-slate-600 text-xl font-medium`;
   return `${baseClass} text-slate-800 text-[22px] font-semibold`;
 };
 
@@ -116,9 +118,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({ point, index }) => {
         className="w-3 h-3 rounded-full mt-2 flex-shrink-0"
         style={{ backgroundColor: bulletColor }}
       />
-      <p className={emphasisClassName}>
-        {point.text}
-      </p>
+      <p className={emphasisClassName}>{point.text}</p>
     </div>
   );
 };
@@ -172,9 +172,7 @@ const FlowchartNode: React.FC<FlowchartNodeProps> = ({ node, index }) => {
       >
         {node.label}
       </div>
-      {hasConnections && (
-        <div className="w-0.5 h-8 bg-slate-400 mx-auto" />
-      )}
+      {hasConnections && <div className="w-0.5 h-8 bg-slate-400 mx-auto" />}
     </div>
   );
 };
@@ -189,7 +187,11 @@ const TimelineTemplate: React.FC<{ data: ConceptExplanationData }> = ({
       <div className="absolute left-10 top-0 bottom-0 w-[3px] bg-slate-300" />
 
       {data.timelineEvents?.map((event, index) => (
-        <TimelineEvent key={`${event.date}-${event.label}`} event={event} index={index} />
+        <TimelineEvent
+          key={`${event.date}-${event.label}`}
+          event={event}
+          index={index}
+        />
       ))}
     </div>
   );

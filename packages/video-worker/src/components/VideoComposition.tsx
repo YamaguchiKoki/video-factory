@@ -4,13 +4,20 @@
  * 音声の同期、セグメントのタイミング、アバターの状態制御を処理
  */
 
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, staticFile, interpolate } from "remotion";
 import { Audio } from "@remotion/media";
+import {
+  AbsoluteFill,
+  interpolate,
+  Sequence,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import type { ParsedScript, Speaker } from "../core/script-types";
 import { AvatarComponent } from "./AvatarComponent";
-import { NewsListComponent } from "./NewsListComponent";
 import { ConceptExplanationComponent } from "./ConceptExplanationComponent";
 import { ConversationSummaryComponent } from "./ConversationSummaryComponent";
+import { NewsListComponent } from "./NewsListComponent";
 
 interface VideoCompositionProps {
   script: ParsedScript;
@@ -95,7 +102,10 @@ interface SegmentContentProps {
   speakers: Speaker[];
 }
 
-const SegmentContent: React.FC<SegmentContentProps> = ({ segment, speakers }) => {
+const SegmentContent: React.FC<SegmentContentProps> = ({
+  segment,
+  speakers,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -123,7 +133,11 @@ const SegmentContent: React.FC<SegmentContentProps> = ({ segment, speakers }) =>
       {hasVisualComponent ? (
         <VisualComponentRenderer visualComponent={segment.visualComponent!} />
       ) : (
-        <TextDisplay text={segment.text} speakerId={segment.speakerId} speakers={speakers} />
+        <TextDisplay
+          text={segment.text}
+          speakerId={segment.speakerId}
+          speakers={speakers}
+        />
       )}
     </div>
   );
@@ -165,11 +179,18 @@ interface TextDisplayProps {
   speakers: Speaker[];
 }
 
-const findSpeaker = (speakers: Speaker[], speakerId: string): Speaker | undefined => {
+const findSpeaker = (
+  speakers: Speaker[],
+  speakerId: string,
+): Speaker | undefined => {
   return speakers.find((s) => s.id === speakerId);
 };
 
-const TextDisplay: React.FC<TextDisplayProps> = ({ text, speakerId, speakers }) => {
+const TextDisplay: React.FC<TextDisplayProps> = ({
+  text,
+  speakerId,
+  speakers,
+}) => {
   const speaker = findSpeaker(speakers, speakerId);
   const hasSpeaker = !!speaker;
 
@@ -199,10 +220,11 @@ interface AvatarsLayerProps {
 
 const findActiveSegment = (
   segments: ParsedScript["segments"],
-  currentTime: number
+  currentTime: number,
 ): ParsedScript["segments"][0] | undefined => {
   return segments.find(
-    (segment) => currentTime >= segment.startTime && currentTime < segment.endTime
+    (segment) =>
+      currentTime >= segment.startTime && currentTime < segment.endTime,
   );
 };
 

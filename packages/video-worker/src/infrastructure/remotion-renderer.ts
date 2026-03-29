@@ -1,32 +1,54 @@
 import { renderMedia } from "@remotion/renderer";
-import type { VideoConfig } from "remotion/no-react";
 import { ResultAsync } from "neverthrow";
-import type { RenderConfig } from "../core/render-config";
+import type { VideoConfig } from "remotion/no-react";
 import { createRenderError, type RenderError } from "../core/errors";
+import type { RenderConfig } from "../core/render-config";
 import type { Logger } from "./logger";
 
 const MEMORY_WARNING_THRESHOLD = 3.8 * 1024 * 1024 * 1024; // 3.8 GB
 
 const PROGRESS_LOG_INTERVAL = 0.1;
 
-const categorizeRenderError = (errorMessage: string, cause: Error | null): RenderError => {
+const categorizeRenderError = (
+  errorMessage: string,
+  cause: Error | null,
+): RenderError => {
   const lowerMessage = errorMessage.toLowerCase();
   const isTimeout = lowerMessage.includes("timeout");
-  const isBrowser = lowerMessage.includes("chrome") || lowerMessage.includes("browser");
+  const isBrowser =
+    lowerMessage.includes("chrome") || lowerMessage.includes("browser");
 
   if (isTimeout) {
-    return createRenderError("RENDER_TIMEOUT", `Render timeout: ${errorMessage}`, cause, {});
+    return createRenderError(
+      "RENDER_TIMEOUT",
+      `Render timeout: ${errorMessage}`,
+      cause,
+      {},
+    );
   }
   if (isBrowser) {
-    return createRenderError("BROWSER_ERROR", `Browser error: ${errorMessage}`, cause, {});
+    return createRenderError(
+      "BROWSER_ERROR",
+      `Browser error: ${errorMessage}`,
+      cause,
+      {},
+    );
   }
-  return createRenderError("RENDER_FAILED", `Render failed: ${errorMessage}`, cause, {});
+  return createRenderError(
+    "RENDER_FAILED",
+    `Render failed: ${errorMessage}`,
+    cause,
+    {},
+  );
 };
 
-const bytesToGB = (bytes: number): string => (bytes / (1024 * 1024 * 1024)).toFixed(2);
+const bytesToGB = (bytes: number): string =>
+  (bytes / (1024 * 1024 * 1024)).toFixed(2);
 
 export const createRenderVideo = (logger: Logger) => {
-  const renderVideo = (config: RenderConfig): ResultAsync<string, RenderError> => {
+  const renderVideo = (
+    config: RenderConfig,
+  ): ResultAsync<string, RenderError> => {
     const startTime = Date.now();
     const outputLocation = `/tmp/remotion-render-${Date.now()}/output.mp4`;
     const progressTracker = { lastLogged: 0 };
@@ -64,7 +86,8 @@ export const createRenderVideo = (logger: Logger) => {
         concurrency: config.concurrency,
         onProgress: ({ progress, renderedFrames, encodedFrames }) => {
           const progressPercent = Math.floor(progress * 100);
-          const shouldLog = progress - progressTracker.lastLogged >= PROGRESS_LOG_INTERVAL;
+          const shouldLog =
+            progress - progressTracker.lastLogged >= PROGRESS_LOG_INTERVAL;
 
           if (shouldLog) {
             logger.info("Rendering progress", {
@@ -86,7 +109,8 @@ export const createRenderVideo = (logger: Logger) => {
         },
       }),
       (error: unknown) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         const cause = error instanceof Error ? error : null;
 
         const renderError = categorizeRenderError(errorMessage, cause);

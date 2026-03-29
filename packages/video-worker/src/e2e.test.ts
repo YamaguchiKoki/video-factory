@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { readFile as fsReadFile, unlink, stat, mkdir } from "node:fs/promises";
-import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { tmpdir } from "node:os";
 import { existsSync } from "node:fs";
+import { readFile as fsReadFile, mkdir, stat, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { fromPromise, okAsync } from "neverthrow";
-import { createRenderVideoWorkflow } from "./service/video-service";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { parseEnrichedScript } from "./core/enriched-parser";
 import {
-  readFile,
-  writeFile,
-  createTempDir,
+  bundleComposition,
   cleanupTempDir,
   createRenderVideo,
-  bundleComposition,
+  createTempDir,
+  readFile,
+  writeFile,
 } from "./infrastructure";
-import { parseEnrichedScript } from "./core/enriched-parser";
 import { createLogger } from "./infrastructure/logger";
+import { createRenderVideoWorkflow } from "./service/video-service";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -49,7 +49,7 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
 
   afterAll(async () => {
     await fromPromise(unlink(outputPath), (e) => e).orElse(() =>
-      okAsync(undefined)
+      okAsync(undefined),
     );
   });
 
@@ -142,7 +142,7 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
     const scriptData = JSON.parse(scriptContent);
 
     const sectionTypes = new Set(
-      (scriptData.sections as Array<{ type: string }>).map((s) => s.type)
+      (scriptData.sections as Array<{ type: string }>).map((s) => s.type),
     );
 
     expect(sectionTypes.has("intro")).toBe(true);

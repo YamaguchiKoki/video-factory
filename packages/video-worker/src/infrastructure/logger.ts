@@ -25,7 +25,12 @@ type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
  */
 const getLogLevel = (): LogLevel => {
   const level = process.env.LOG_LEVEL?.toUpperCase();
-  if (level === "DEBUG" || level === "INFO" || level === "WARN" || level === "ERROR") {
+  if (
+    level === "DEBUG" ||
+    level === "INFO" ||
+    level === "WARN" ||
+    level === "ERROR"
+  ) {
     return level;
   }
   return "INFO";
@@ -53,7 +58,7 @@ export const createLogger = (requestId: string): Logger => {
     level: LogLevel,
     message: string,
     error: Error | null = null,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ): void => {
     if (!shouldLog(level, logLevel)) {
       return;

@@ -1,5 +1,5 @@
+import { fc, it } from "@fast-check/vitest";
 import { describe, expect } from "vitest";
-import { it, fc } from "@fast-check/vitest";
 import { VerifiedTopicSchema, VerifiedTopicsOutputSchema } from "./schema";
 
 describe("VerifiedTopicSchema", () => {
@@ -49,8 +49,18 @@ describe("VerifiedTopicSchema", () => {
 
   it("should parse reliabilityScore at boundary values 0 and 1", () => {
     // Arrange + Act + Assert — boundary values must be valid
-    expect(VerifiedTopicSchema.safeParse({ ...buildVerifiedTopic("news-1"), reliabilityScore: 0 }).success).toBe(true);
-    expect(VerifiedTopicSchema.safeParse({ ...buildVerifiedTopic("news-1"), reliabilityScore: 1 }).success).toBe(true);
+    expect(
+      VerifiedTopicSchema.safeParse({
+        ...buildVerifiedTopic("news-1"),
+        reliabilityScore: 0,
+      }).success,
+    ).toBe(true);
+    expect(
+      VerifiedTopicSchema.safeParse({
+        ...buildVerifiedTopic("news-1"),
+        reliabilityScore: 1,
+      }).success,
+    ).toBe(true);
   });
 
   it("should fail when sourceUrls contain an invalid URL", () => {
@@ -90,10 +100,12 @@ describe("VerifiedTopicSchema", () => {
   );
 
   it.prop([
-    fc.oneof(
-      fc.float({ max: -Number.EPSILON }),
-      fc.float({ min: Math.fround(1 + 2 ** -23) }),
-    ).filter((n) => !isNaN(n) && isFinite(n)),
+    fc
+      .oneof(
+        fc.float({ max: -Number.EPSILON }),
+        fc.float({ min: Math.fround(1 + 2 ** -23) }),
+      )
+      .filter((n) => !Number.isNaN(n) && Number.isFinite(n)),
   ])(
     "should reject any reliabilityScore outside [0, 1]",
     (reliabilityScore) => {
@@ -160,5 +172,8 @@ const buildVerifiedTopic = (id: string) => ({
   ],
   reliabilityScore: 0.87,
   contradictions: [],
-  sourceUrls: ["https://www.boj.or.jp/en/", "https://www.reuters.com/article/japan-boj"],
+  sourceUrls: [
+    "https://www.boj.or.jp/en/",
+    "https://www.reuters.com/article/japan-boj",
+  ],
 });

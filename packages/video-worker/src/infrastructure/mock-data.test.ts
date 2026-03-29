@@ -3,11 +3,11 @@
  * Tests for loading mock script and audio files
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { okAsync, errAsync } from "neverthrow";
-import { loadMockScript, loadMockAudio } from "./mock-data";
-import * as fs from "./file-system";
+import { errAsync, okAsync } from "neverthrow";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFileSystemError } from "../core/errors";
+import * as fs from "./file-system";
+import { loadMockAudio, loadMockScript } from "./mock-data";
 
 vi.mock("./file-system");
 
@@ -18,11 +18,32 @@ describe("loadMockScript()", () => {
 
   it("should load mock script from mock-data/script.json", async () => {
     // Mock readFile to return sample script content
-    const mockContent = Buffer.from(JSON.stringify({
-      metadata: { title: "Test", createdAt: "2026-02-09T00:00:00Z", durationSeconds: 10 },
-      speakers: [{ id: "s1", name: "Speaker 1", role: "agent", avatarPath: "avatar1.png" }],
-      segments: [{ id: "seg1", speakerId: "s1", text: "Hello", startTime: 0, endTime: 2 }],
-    }));
+    const mockContent = Buffer.from(
+      JSON.stringify({
+        metadata: {
+          title: "Test",
+          createdAt: "2026-02-09T00:00:00Z",
+          durationSeconds: 10,
+        },
+        speakers: [
+          {
+            id: "s1",
+            name: "Speaker 1",
+            role: "agent",
+            avatarPath: "avatar1.png",
+          },
+        ],
+        segments: [
+          {
+            id: "seg1",
+            speakerId: "s1",
+            text: "Hello",
+            startTime: 0,
+            endTime: 2,
+          },
+        ],
+      }),
+    );
 
     vi.mocked(fs.readFile).mockReturnValue(okAsync(mockContent));
 
@@ -36,12 +57,9 @@ describe("loadMockScript()", () => {
   });
 
   it("should return FileSystemError when mock file is not found", async () => {
-    const error = createFileSystemError(
-      "IO_ERROR",
-      "File not found",
-      null,
-      { path: "mock-data/script.json" }
-    );
+    const error = createFileSystemError("IO_ERROR", "File not found", null, {
+      path: "mock-data/script.json",
+    });
 
     vi.mocked(fs.readFile).mockReturnValue(errAsync(error));
 
@@ -74,12 +92,9 @@ describe("loadMockAudio()", () => {
   });
 
   it("should return FileSystemError when mock audio file is not found", async () => {
-    const error = createFileSystemError(
-      "IO_ERROR",
-      "File not found",
-      null,
-      { path: "mock-data/audio.wav" }
-    );
+    const error = createFileSystemError("IO_ERROR", "File not found", null, {
+      path: "mock-data/audio.wav",
+    });
 
     vi.mocked(fs.readFile).mockReturnValue(errAsync(error));
 

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Mastra } from "@mastra/core/mastra";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { topicSelectionStep } from "./executor";
 
 describe("topicSelectionStep", () => {
@@ -31,7 +31,9 @@ describe("topicSelectionStep", () => {
 
     // Act + Assert
     await expect(
-      topicSelectionStep.execute(buildParams({ genre: "政治経済" }, mockMastra)),
+      topicSelectionStep.execute(
+        buildParams({ genre: "政治経済" }, mockMastra),
+      ),
     ).rejects.toThrow("topic-selection-agent not found");
   });
 
@@ -43,7 +45,9 @@ describe("topicSelectionStep", () => {
 
     // Act + Assert
     await expect(
-      topicSelectionStep.execute(buildParams({ genre: "政治経済" }, mockMastra)),
+      topicSelectionStep.execute(
+        buildParams({ genre: "政治経済" }, mockMastra),
+      ),
     ).rejects.toThrow("Bedrock timeout");
   });
 
@@ -54,12 +58,16 @@ describe("topicSelectionStep", () => {
       buildTopic("news-2"),
       buildTopic("news-3"),
     ];
-    const mockAgent = { generate: vi.fn().mockResolvedValue({ object: validTopics }) };
+    const mockAgent = {
+      generate: vi.fn().mockResolvedValue({ object: validTopics }),
+    };
     const mockGetAgent = vi.fn().mockReturnValue(mockAgent);
     const mockMastra = { getAgent: mockGetAgent } as unknown as Mastra;
 
     // Act
-    await topicSelectionStep.execute(buildParams({ genre: "政治経済" }, mockMastra));
+    await topicSelectionStep.execute(
+      buildParams({ genre: "政治経済" }, mockMastra),
+    );
 
     // Assert — the correct agent id must be requested
     expect(mockGetAgent).toHaveBeenCalledWith("topic-selection-agent");
@@ -72,14 +80,21 @@ describe("topicSelectionStep", () => {
       buildTopic("news-2"),
       buildTopic("news-3"),
     ];
-    const mockAgent = { generate: vi.fn().mockResolvedValue({ object: validTopics }) };
-    const mockMastra = { getAgent: vi.fn().mockReturnValue(mockAgent) } as unknown as Mastra;
+    const mockAgent = {
+      generate: vi.fn().mockResolvedValue({ object: validTopics }),
+    };
+    const mockMastra = {
+      getAgent: vi.fn().mockReturnValue(mockAgent),
+    } as unknown as Mastra;
 
     // Act
-    await topicSelectionStep.execute(buildParams({ genre: "テクノロジー" }, mockMastra));
+    await topicSelectionStep.execute(
+      buildParams({ genre: "テクノロジー" }, mockMastra),
+    );
 
     // Assert — the genre must appear in the prompt
-    const [[promptArg]] = (mockAgent.generate as ReturnType<typeof vi.fn>).mock.calls as [[string, unknown]];
+    const [[promptArg]] = (mockAgent.generate as ReturnType<typeof vi.fn>).mock
+      .calls as [[string, unknown]];
     expect(promptArg).toContain("テクノロジー");
   });
 });
@@ -92,10 +107,7 @@ const buildTopic = (id: string) => ({
   summary: `${id}の詳細要約`,
 });
 
-const buildParams = (
-  inputData: { genre: string },
-  mastra: Mastra,
-) =>
+const buildParams = (inputData: { genre: string }, mastra: Mastra) =>
   ({ inputData, mastra }) as unknown as Parameters<
     typeof topicSelectionStep.execute
   >[0];

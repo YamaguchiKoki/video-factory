@@ -45,7 +45,7 @@ const VPC_CONTEXT_VALUE = {
 // CDK_DEFAULT_ACCOUNT must be a concrete value (not a CDK token) so that
 // env.account resolves to the same account used in the VPC context key above.
 const { template, ecrTemplate } = (() => {
-  process.env["CDK_DEFAULT_ACCOUNT"] = TEST_ACCOUNT;
+  process.env.CDK_DEFAULT_ACCOUNT = TEST_ACCOUNT;
   const app = new cdk.App({
     context: { [VPC_CONTEXT_KEY]: VPC_CONTEXT_VALUE },
   });

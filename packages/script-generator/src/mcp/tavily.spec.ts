@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MCPClient } from "@mastra/mcp";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTavilyMcpClient } from "./tavily";
 
 // Local mock: only this file needs to intercept real MCPClient network calls.

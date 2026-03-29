@@ -1,5 +1,5 @@
-import { runWorkflow } from "../workflow-runner";
 import { createTavilyMcpClient } from "../mcp/tavily";
+import { runWorkflow } from "../workflow-runner";
 
 const genre = process.argv[2] ?? "テクノロジー";
 const tavilyApiKey = process.env.TAVILY_API_KEY;

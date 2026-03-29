@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createTopicSelectionAgent, TOPIC_SELECTION_AGENT_ID } from "./agent";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TavilyMcpClient } from "../../mcp/tavily";
+import { createTopicSelectionAgent, TOPIC_SELECTION_AGENT_ID } from "./agent";
 
 describe("createTopicSelectionAgent", () => {
   const mockTavilyClient: TavilyMcpClient = {

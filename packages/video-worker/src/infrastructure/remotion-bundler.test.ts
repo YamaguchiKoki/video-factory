@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { bundleComposition } from "./remotion-bundler";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RenderError } from "../core/errors";
+import { bundleComposition } from "./remotion-bundler";
 
 // ---------------------------------------------------------------------------
 // Mock @remotion/bundler

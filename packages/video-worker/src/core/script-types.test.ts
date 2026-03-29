@@ -557,7 +557,7 @@ describe("Script Type Validation", () => {
     it("should maintain property: ISO 8601 date format is correctly validated", () => {
       const validIso8601Arb = fc
         .date({ min: new Date("2020-01-01"), max: new Date("2030-12-31") })
-        .filter((d) => !isNaN(d.getTime()))
+        .filter((d) => !Number.isNaN(d.getTime()))
         .map((d) => d.toISOString());
 
       fc.assert(
@@ -573,7 +573,7 @@ describe("Script Type Validation", () => {
     it("should maintain property: YYYY-MM-DD date format is correctly validated", () => {
       const validYyyyMmDdArb = fc
         .date({ min: new Date("2020-01-01"), max: new Date("2030-12-31") })
-        .filter((d) => !isNaN(d.getTime()))
+        .filter((d) => !Number.isNaN(d.getTime()))
         .map((d) => d.toISOString().split("T")[0]);
 
       fc.assert(

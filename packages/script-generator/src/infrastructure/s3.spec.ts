@@ -24,12 +24,8 @@ const { mockS3Send } = vi.hoisted(() => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
-  S3Client: vi.fn(function () {
-    return { send: mockS3Send };
-  }),
-  PutObjectCommand: vi.fn(function (args: unknown) {
-    return args;
-  }),
+  S3Client: vi.fn(() => ({ send: mockS3Send })),
+  PutObjectCommand: vi.fn((args: unknown) => args),
 }));
 
 import { createS3ClientConfig, uploadScriptToS3 } from "./s3";
@@ -102,7 +98,9 @@ describe("createS3ClientConfig", () => {
   });
 
   it("returns endpoint config with forcePathStyle:true when S3_ENDPOINT_URL is set", () => {
-    const config = createS3ClientConfig({ S3_ENDPOINT_URL: "http://rustfs:9000" });
+    const config = createS3ClientConfig({
+      S3_ENDPOINT_URL: "http://rustfs:9000",
+    });
     expect(config).toMatchObject({
       endpoint: "http://rustfs:9000",
       region: "ap-northeast-1",
@@ -154,7 +152,11 @@ describe("uploadScriptToS3", () => {
     const script = buildValidScript();
 
     // When
-    const result = await uploadScriptToS3("video-factory", "script-generator/script.json", script);
+    const result = await uploadScriptToS3(
+      "video-factory",
+      "script-generator/script.json",
+      script,
+    );
 
     // Then
     expect(result.isOk()).toBe(true);
@@ -166,7 +168,11 @@ describe("uploadScriptToS3", () => {
     const script = buildValidScript();
 
     // When
-    const result = await uploadScriptToS3("video-factory", "script-generator/script.json", script);
+    const result = await uploadScriptToS3(
+      "video-factory",
+      "script-generator/script.json",
+      script,
+    );
 
     // Then
     expect(result.isErr()).toBe(true);
@@ -182,7 +188,11 @@ describe("uploadScriptToS3", () => {
     const script = buildValidScript();
 
     // When
-    await uploadScriptToS3("video-factory", "script-generator/script.json", script);
+    await uploadScriptToS3(
+      "video-factory",
+      "script-generator/script.json",
+      script,
+    );
 
     // Then
     expect(mockS3Send).toHaveBeenCalledWith(
@@ -196,7 +206,11 @@ describe("uploadScriptToS3", () => {
     const script = buildValidScript();
 
     // When
-    await uploadScriptToS3("video-factory", "script-generator/script.json", script);
+    await uploadScriptToS3(
+      "video-factory",
+      "script-generator/script.json",
+      script,
+    );
 
     // Then
     expect(mockS3Send).toHaveBeenCalledWith(
@@ -213,7 +227,11 @@ describe("uploadScriptToS3", () => {
     const script = buildValidScript();
 
     // When
-    await uploadScriptToS3("video-factory", "script-generator/script.json", script);
+    await uploadScriptToS3(
+      "video-factory",
+      "script-generator/script.json",
+      script,
+    );
 
     // Then
     const callArgs = mockS3Send.mock.calls[0]?.[0] as {

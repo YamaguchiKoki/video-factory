@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Mastra } from "@mastra/core/mastra";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { factCheckStep } from "./executor";
 
 describe("factCheckStep", () => {
@@ -112,10 +112,7 @@ const buildVerifiedTopic = (id: string) => ({
   sourceUrls: ["https://example.com/verified"],
 });
 
-const buildParams = (
-  inputData: EnrichedTopic[],
-  mastra: Mastra,
-) =>
+const buildParams = (inputData: EnrichedTopic[], mastra: Mastra) =>
   ({ inputData, mastra }) as unknown as Parameters<
     typeof factCheckStep.execute
   >[0];

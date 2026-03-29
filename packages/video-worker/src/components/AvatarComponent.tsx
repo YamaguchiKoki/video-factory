@@ -59,9 +59,7 @@ export const AvatarComponent: React.FC<AvatarComponentProps> = ({
     fps,
     config: { damping: 10, stiffness: 50 },
   });
-  const translateY = isActive
-    ? interpolate(bobAnimation, [0, 1], [0, -3])
-    : 0;
+  const translateY = isActive ? interpolate(bobAnimation, [0, 1], [0, -3]) : 0;
 
   // 不透明度: 非アクティブ時80%、アクティブ時100%
   const opacity = isActive ? 1.0 : 0.8;

@@ -1,25 +1,46 @@
-import path from "path";
-import { join } from "node:path";
-import { Result, ResultAsync, errAsync, okAsync, ok, safeTry } from "neverthrow";
-import type { VideoProps } from "../schema/schema";
+import path, { join } from "node:path";
+import {
+  errAsync,
+  ok,
+  okAsync,
+  type Result,
+  type ResultAsync,
+  safeTry,
+} from "neverthrow";
 import type {
   FileSystemError,
-  ValidationError,
   RenderError,
+  ValidationError,
   VideoServiceError,
 } from "../core/errors";
 import { createVideoServiceError } from "../core/errors";
 import type { RenderConfig } from "../core/render-config";
 import type { Logger } from "../infrastructure/logger";
 import type { S3Error } from "../infrastructure/s3";
+import type { VideoProps } from "../schema/schema";
 
 export type RenderVideoWorkflowDeps = {
   readonly readFile: (path: string) => ResultAsync<Buffer, FileSystemError>;
-  readonly parseEnrichedScript: (jsonContent: string, wavPath: string) => Result<VideoProps, ValidationError>;
-  readonly bundleComposition: (entryPoint: string, publicDir: string) => ResultAsync<string, RenderError>;
-  readonly renderVideo: (config: RenderConfig) => ResultAsync<string, RenderError>;
-  readonly downloadFromS3: (key: string, destPath: string) => ResultAsync<void, S3Error>;
-  readonly uploadToS3: (key: string, srcPath: string, contentType: string) => ResultAsync<void, S3Error>;
+  readonly parseEnrichedScript: (
+    jsonContent: string,
+    wavPath: string,
+  ) => Result<VideoProps, ValidationError>;
+  readonly bundleComposition: (
+    entryPoint: string,
+    publicDir: string,
+  ) => ResultAsync<string, RenderError>;
+  readonly renderVideo: (
+    config: RenderConfig,
+  ) => ResultAsync<string, RenderError>;
+  readonly downloadFromS3: (
+    key: string,
+    destPath: string,
+  ) => ResultAsync<void, S3Error>;
+  readonly uploadToS3: (
+    key: string,
+    srcPath: string,
+    contentType: string,
+  ) => ResultAsync<void, S3Error>;
   readonly createTempDir: () => ResultAsync<string, FileSystemError>;
   readonly cleanupTempDir: (path: string) => ResultAsync<void, FileSystemError>;
   readonly logger: Logger;
@@ -31,61 +52,48 @@ const mapFileSystemError = (
   error: FileSystemError,
   context: Record<string, unknown>,
 ): VideoServiceError =>
-  createVideoServiceError(
-    "FILE_READ_ERROR",
-    error.message,
-    error.cause,
-    { ...error.context, ...context },
-  );
+  createVideoServiceError("FILE_READ_ERROR", error.message, error.cause, {
+    ...error.context,
+    ...context,
+  });
 
 const mapValidationError = (
   error: ValidationError,
   context: Record<string, unknown>,
 ): VideoServiceError =>
-  createVideoServiceError(
-    "VALIDATION_ERROR",
-    error.message,
-    error.cause,
-    { ...error.context, ...context },
-  );
+  createVideoServiceError("VALIDATION_ERROR", error.message, error.cause, {
+    ...error.context,
+    ...context,
+  });
 
 const mapRenderError = (
   error: RenderError,
   context: Record<string, unknown>,
 ): VideoServiceError =>
-  createVideoServiceError(
-    "RENDER_ERROR",
-    error.message,
-    error.cause,
-    { ...error.context, ...context },
-  );
+  createVideoServiceError("RENDER_ERROR", error.message, error.cause, {
+    ...error.context,
+    ...context,
+  });
 
 const mapS3ToReadError = (
   error: S3Error,
   context: Record<string, unknown>,
 ): VideoServiceError =>
-  createVideoServiceError(
-    "FILE_READ_ERROR",
-    error.message,
-    null,
-    context,
-  );
+  createVideoServiceError("FILE_READ_ERROR", error.message, null, context);
 
 const mapS3ToWriteError = (
   error: S3Error,
   context: Record<string, unknown>,
 ): VideoServiceError =>
-  createVideoServiceError(
-    "FILE_WRITE_ERROR",
-    error.message,
-    null,
-    context,
-  );
+  createVideoServiceError("FILE_WRITE_ERROR", error.message, null, context);
 
 const FPS = 30;
 const COMPOSITION_ID = "TechNews";
 
-const buildVideoRenderConfig = (videoProps: VideoProps, serveUrl: string): RenderConfig => ({
+const buildVideoRenderConfig = (
+  videoProps: VideoProps,
+  serveUrl: string,
+): RenderConfig => ({
   composition: {
     id: COMPOSITION_ID,
     width: 1920,
@@ -150,22 +158,28 @@ export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
           );
 
           const scriptBuffer = yield* readFile(scriptLocalPath).mapErr((err) =>
-            mapFileSystemError(err, { step: "readScriptFile", scriptLocalPath }),
+            mapFileSystemError(err, {
+              step: "readScriptFile",
+              scriptLocalPath,
+            }),
           );
 
           const videoProps = yield* parseEnrichedScript(
             scriptBuffer.toString("utf-8"),
             path.basename(audioLocalPath),
-          ).mapErr((err) => mapValidationError(err, { step: "parseEnrichedScript" }));
+          ).mapErr((err) =>
+            mapValidationError(err, { step: "parseEnrichedScript" }),
+          );
 
           logger.debug("Script parsed successfully", {
             linesCount: videoProps.lines.length,
             sectionMarkersCount: videoProps.sectionMarkers.length,
           });
 
-          const serveUrl = yield* bundleComposition(entryPoint, publicDir).mapErr((err) =>
-            mapRenderError(err, { step: "bundleComposition" }),
-          );
+          const serveUrl = yield* bundleComposition(
+            entryPoint,
+            publicDir,
+          ).mapErr((err) => mapRenderError(err, { step: "bundleComposition" }));
 
           logger.debug("Composition bundled", { serveUrl });
 
@@ -176,8 +190,8 @@ export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
 
           logger.debug("Video rendered", { renderedPath });
 
-          yield* uploadToS3(outputKey, renderedPath, "video/mp4").mapErr((err) =>
-            mapS3ToWriteError(err, { step: "uploadVideo", outputKey }),
+          yield* uploadToS3(outputKey, renderedPath, "video/mp4").mapErr(
+            (err) => mapS3ToWriteError(err, { step: "uploadVideo", outputKey }),
           );
 
           const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -195,10 +209,13 @@ export const createRenderVideoWorkflow = (deps: RenderVideoWorkflowDeps) => {
             cleanupTempDir(tempDir)
               .map(() => result)
               .orElse((cleanupErr) => {
-                logger.warn("Temp directory cleanup failed after successful render", {
-                  tempDir,
-                  error: cleanupErr.message,
-                });
+                logger.warn(
+                  "Temp directory cleanup failed after successful render",
+                  {
+                    tempDir,
+                    error: cleanupErr.message,
+                  },
+                );
                 return okAsync(result);
               }),
           )

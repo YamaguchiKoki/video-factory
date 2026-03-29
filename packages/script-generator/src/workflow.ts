@@ -1,9 +1,12 @@
 import { createWorkflow } from "@mastra/core/workflows";
-import { WorkflowInputSchema, topicSelectionStep } from "./steps/topic-selection";
 import { ScriptSchema } from "./schema";
-import { topicDeepDiveStep } from "./steps/topic-deep-dive";
-import { factCheckStep } from "./steps/fact-check";
 import { dialogueScriptGeneratorStep } from "./steps/dialogue-script-generator";
+import { factCheckStep } from "./steps/fact-check";
+import { topicDeepDiveStep } from "./steps/topic-deep-dive";
+import {
+  topicSelectionStep,
+  WorkflowInputSchema,
+} from "./steps/topic-selection";
 
 export const generateScriptWorkflow = createWorkflow({
   id: "generate-script",

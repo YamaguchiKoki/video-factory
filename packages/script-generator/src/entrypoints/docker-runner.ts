@@ -1,8 +1,8 @@
-import { runWorkflow } from "../workflow-runner";
-import { uploadScriptToS3 } from "../infrastructure/s3";
 import { parseDockerEnv } from "../env";
-import { handleResult } from "../run-entrypoint";
+import { uploadScriptToS3 } from "../infrastructure/s3";
 import { createTavilyMcpClient } from "../mcp/tavily";
+import { handleResult } from "../run-entrypoint";
+import { runWorkflow } from "../workflow-runner";
 
 export const OUTPUT_SCRIPT_KEY = "script-generator/script.json";
 

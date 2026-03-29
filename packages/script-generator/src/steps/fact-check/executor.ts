@@ -1,10 +1,10 @@
 import { createStep } from "@mastra/core/workflows";
 import { err, fromPromise, ok, safeTry } from "neverthrow";
-import { EnrichedTopicsOutputSchema } from "../topic-deep-dive/schema";
-import { VerifiedTopicsOutputSchema } from "./schema";
-import { FACT_CHECK_AGENT_ID } from "./agent";
 import { toError } from "../../shared/errors";
 import type { EnrichedTopicsOutput } from "../topic-deep-dive/schema";
+import { EnrichedTopicsOutputSchema } from "../topic-deep-dive/schema";
+import { FACT_CHECK_AGENT_ID } from "./agent";
+import { VerifiedTopicsOutputSchema } from "./schema";
 
 export const factCheckStep = createStep({
   id: "fact-check",

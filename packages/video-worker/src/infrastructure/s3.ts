@@ -1,3 +1,4 @@
+import { readFile, writeFile } from "node:fs/promises";
 import {
   GetObjectCommand,
   PutObjectCommand,
@@ -5,7 +6,6 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import { err, fromPromise, type ResultAsync } from "neverthrow";
-import { readFile, writeFile } from "node:fs/promises";
 
 export type S3Error = {
   readonly type: "GET_OBJECT_ERROR" | "PUT_OBJECT_ERROR";
@@ -58,7 +58,9 @@ export const downloadToFile = (
       });
     }
     return fromPromise(
-      response.Body.transformToByteArray().then((bytes) => writeFile(localPath, bytes)),
+      response.Body.transformToByteArray().then((bytes) =>
+        writeFile(localPath, bytes),
+      ),
       (e): S3Error => ({ type: "GET_OBJECT_ERROR", message: toMessage(e) }),
     );
   });

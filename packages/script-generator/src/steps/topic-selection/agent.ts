@@ -1,10 +1,12 @@
 import { Agent } from "@mastra/core/agent";
-import { bedrock } from "../../shared/bedrock";
 import type { TavilyMcpClient } from "../../mcp/tavily";
+import { bedrock } from "../../shared/bedrock";
 
 export const TOPIC_SELECTION_AGENT_ID = "topic-selection-agent";
 
-export const createTopicSelectionAgent = (tavilyClient: TavilyMcpClient): Agent =>
+export const createTopicSelectionAgent = (
+  tavilyClient: TavilyMcpClient,
+): Agent =>
   new Agent({
     id: TOPIC_SELECTION_AGENT_ID,
     name: "Topic Selection Agent",

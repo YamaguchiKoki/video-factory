@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
-import { bedrock } from "../../shared/bedrock";
 import type { TavilyMcpClient } from "../../mcp/tavily";
+import { bedrock } from "../../shared/bedrock";
 
 export const FACT_CHECK_AGENT_ID = "fact-check-agent";
 

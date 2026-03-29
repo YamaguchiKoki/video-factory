@@ -6,8 +6,8 @@
 //   - Missing --script or --audio or --output → exits 1 with an error message
 //   - All required args present → runs renderWorkflow and exits based on result
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { okAsync, errAsync } from "neverthrow";
+import { errAsync, okAsync } from "neverthrow";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
 // Mock heavy dependencies
@@ -111,19 +111,34 @@ const runMain = async (args: string[]) => {
 
 describe("local.ts main() — argument validation (commander)", () => {
   it("exits with code 1 when --script is missing", async () => {
-    await runMain(["--audio", "/path/audio.wav", "--output", "/path/output.mp4"]);
+    await runMain([
+      "--audio",
+      "/path/audio.wav",
+      "--output",
+      "/path/output.mp4",
+    ]);
 
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
   it("exits with code 1 when --audio is missing", async () => {
-    await runMain(["--script", "/path/script.json", "--output", "/path/output.mp4"]);
+    await runMain([
+      "--script",
+      "/path/script.json",
+      "--output",
+      "/path/output.mp4",
+    ]);
 
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
   it("exits with code 1 when --output is missing", async () => {
-    await runMain(["--script", "/path/script.json", "--audio", "/path/audio.wav"]);
+    await runMain([
+      "--script",
+      "/path/script.json",
+      "--audio",
+      "/path/audio.wav",
+    ]);
 
     expect(process.exit).toHaveBeenCalledWith(1);
   });
@@ -142,9 +157,12 @@ describe("local.ts main() — argument validation (commander)", () => {
 describe("local.ts main() — successful execution", () => {
   it("does not exit when all arguments are provided and workflow succeeds", async () => {
     await runMain([
-      "--script", "/path/script.json",
-      "--audio", "/path/audio.wav",
-      "--output", "/path/output.mp4",
+      "--script",
+      "/path/script.json",
+      "--audio",
+      "/path/audio.wav",
+      "--output",
+      "/path/output.mp4",
     ]);
 
     expect(process.exit).not.toHaveBeenCalledWith(1);
@@ -152,9 +170,12 @@ describe("local.ts main() — successful execution", () => {
 
   it("calls createRenderVideoWorkflow with the correct paths", async () => {
     await runMain([
-      "--script", "/path/script.json",
-      "--audio", "/path/audio.wav",
-      "--output", "/path/output.mp4",
+      "--script",
+      "/path/script.json",
+      "--audio",
+      "/path/audio.wav",
+      "--output",
+      "/path/output.mp4",
     ]);
 
     expect(mockRenderWorkflow).toHaveBeenCalledWith(
@@ -174,9 +195,12 @@ describe("local.ts main() — error handling", () => {
     mockRenderWorkflow.mockReturnValue(errAsync(videoServiceError));
 
     await runMain([
-      "--script", "/path/script.json",
-      "--audio", "/path/audio.wav",
-      "--output", "/path/output.mp4",
+      "--script",
+      "/path/script.json",
+      "--audio",
+      "/path/audio.wav",
+      "--output",
+      "/path/output.mp4",
     ]);
 
     expect(process.exit).toHaveBeenCalledWith(1);

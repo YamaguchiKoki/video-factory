@@ -1,10 +1,10 @@
-import { err, fromPromise, ok, safeTry, type ResultAsync } from "neverthrow";
-import { z } from "zod";
+import { err, fromPromise, ok, type ResultAsync, safeTry } from "neverthrow";
+import type { z } from "zod";
 import { createMastraInstance } from "./mastra/instance-factory";
-import { WorkflowInputSchema } from "./steps/topic-selection";
-import { ScriptSchema, type Script } from "./schema";
-import { toError } from "./shared/errors";
 import type { TavilyMcpClient } from "./mcp/tavily";
+import { type Script, ScriptSchema } from "./schema";
+import { toError } from "./shared/errors";
+import { WorkflowInputSchema } from "./steps/topic-selection";
 
 export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
 

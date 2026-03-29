@@ -3,7 +3,7 @@
  * Tests for structured logging functionality
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLogger } from "./logger";
 
 describe("createLogger()", () => {
@@ -34,7 +34,8 @@ describe("createLogger()", () => {
     logger.info("Test message", { key: "value" });
 
     expect(console.log).toHaveBeenCalledTimes(1);
-    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     const parsed = JSON.parse(logOutput);
 
     expect(parsed).toMatchObject({
@@ -52,7 +53,8 @@ describe("createLogger()", () => {
     logger.error("Error occurred", testError, { step: "test" });
 
     expect(console.log).toHaveBeenCalledTimes(1);
-    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     const parsed = JSON.parse(logOutput);
 
     expect(parsed).toMatchObject({
@@ -75,7 +77,8 @@ describe("createLogger()", () => {
 
     // Only WARN should be logged (DEBUG and INFO filtered out)
     expect(console.log).toHaveBeenCalledTimes(1);
-    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     const parsed = JSON.parse(logOutput);
 
     expect(parsed.level).toBe("WARN");
@@ -90,7 +93,8 @@ describe("createLogger()", () => {
 
     // Only INFO should be logged (DEBUG filtered out)
     expect(console.log).toHaveBeenCalledTimes(1);
-    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const logOutput = (console.log as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     const parsed = JSON.parse(logOutput);
 
     expect(parsed.level).toBe("INFO");
@@ -106,8 +110,8 @@ describe("createLogger()", () => {
     // Both DEBUG and INFO should be logged
     expect(console.log).toHaveBeenCalledTimes(2);
 
-    const logs = (console.log as ReturnType<typeof vi.fn>).mock.calls.map((call) =>
-      JSON.parse(call[0])
+    const logs = (console.log as ReturnType<typeof vi.fn>).mock.calls.map(
+      (call) => JSON.parse(call[0]),
     );
 
     expect(logs[0].level).toBe("DEBUG");

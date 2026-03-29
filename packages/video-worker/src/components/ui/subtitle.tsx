@@ -20,7 +20,6 @@ export const SubtitleBackground: React.FC<SubtitleBackgroundProps> = ({
   rightImage,
   imageHeight = 180,
 }) => {
-
   return (
     <div
       className="absolute left-0 right-0 flex justify-center z-10"

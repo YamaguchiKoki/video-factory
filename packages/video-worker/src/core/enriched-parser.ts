@@ -1,12 +1,16 @@
-import { fromThrowable, ok, err, Result } from "neverthrow";
-import { EnrichedScript, EnrichedLine, EnrichedScriptSchema } from "../schema/enriched-schema";
+import { err, fromThrowable, ok, type Result } from "neverthrow";
 import {
-  VideoProps,
-  TimedLine,
-  SectionMarker,
+  type EnrichedLine,
+  type EnrichedScript,
+  EnrichedScriptSchema,
+} from "../schema/enriched-schema";
+import type {
   IntroSectionMarker,
+  SectionMarker,
+  TimedLine,
+  VideoProps,
 } from "../schema/schema";
-import { ValidationError, createValidationError } from "./errors";
+import { createValidationError, type ValidationError } from "./errors";
 
 // ---------------------------------------------------------------------------
 // JSON parsing
@@ -31,7 +35,8 @@ const toTimedLine = (line: EnrichedLine, audioPath: string): TimedLine => ({
 
 const lastOf = <T>(arr: T[]): T => arr[arr.length - 1];
 
-const endSecOf = (line: EnrichedLine): number => line.offsetSec + line.durationSec;
+const endSecOf = (line: EnrichedLine): number =>
+  line.offsetSec + line.durationSec;
 
 const flattenLines = (script: EnrichedScript, audioPath: string): TimedLine[] =>
   script.sections.flatMap((section) => {
@@ -144,14 +149,20 @@ export const parseEnrichedScript = (
   wavPath: string,
 ): Result<VideoProps, ValidationError> =>
   safeJsonParse(jsonContent)
-    .mapErr((e): ValidationError =>
-      createValidationError("JSON_PARSE_ERROR", e.message, e, {}),
+    .mapErr(
+      (e): ValidationError =>
+        createValidationError("JSON_PARSE_ERROR", e.message, e, {}),
     )
     .andThen((raw): Result<VideoProps, ValidationError> => {
       const parsed = EnrichedScriptSchema.safeParse(raw);
       if (!parsed.success) {
         return err(
-          createValidationError("SCHEMA_VALIDATION_ERROR", parsed.error.message, null, {}),
+          createValidationError(
+            "SCHEMA_VALIDATION_ERROR",
+            parsed.error.message,
+            null,
+            {},
+          ),
         );
       }
       return toVideoProps(parsed.data, wavPath);

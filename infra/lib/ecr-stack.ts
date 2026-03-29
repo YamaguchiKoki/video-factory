@@ -15,7 +15,7 @@ export type EcrStackOutput = {
 export const createEcrStack = (scope: cdk.App): EcrStackOutput => {
   const stack = new cdk.Stack(scope, "EcrStack", {
     env: {
-      account: process.env["CDK_DEFAULT_ACCOUNT"],
+      account: process.env.CDK_DEFAULT_ACCOUNT,
       region: "ap-northeast-1",
     },
   });

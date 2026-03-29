@@ -19,7 +19,7 @@ export const createVideoFactoryStack = (
 
   const stack = new cdk.Stack(scope, "VideoFactoryStack", {
     env: {
-      account: process.env["CDK_DEFAULT_ACCOUNT"],
+      account: process.env.CDK_DEFAULT_ACCOUNT,
       region: "ap-northeast-1",
     },
   });

@@ -7,8 +7,8 @@
 //
 //   createProgram(): Command
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { errAsync, okAsync } from "neverthrow";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
 // Mock ./infrastructure
@@ -68,11 +68,12 @@ vi.mock("./service/video-service", () => ({
 // Mock ./infrastructure/s3
 // ============================================
 
-const { mockCreateS3Client, mockDownloadToFile, mockUploadFromFile } = vi.hoisted(() => ({
-  mockCreateS3Client: vi.fn(),
-  mockDownloadToFile: vi.fn(),
-  mockUploadFromFile: vi.fn(),
-}));
+const { mockCreateS3Client, mockDownloadToFile, mockUploadFromFile } =
+  vi.hoisted(() => ({
+    mockCreateS3Client: vi.fn(),
+    mockDownloadToFile: vi.fn(),
+    mockUploadFromFile: vi.fn(),
+  }));
 
 vi.mock("./infrastructure/s3", () => ({
   createS3Client: mockCreateS3Client,
@@ -88,7 +89,12 @@ vi.mock("./core/enriched-parser", () => ({
   parseEnrichedScript: vi.fn(),
 }));
 
-import { DEFAULT_AUDIO_KEY, DEFAULT_OUTPUT_KEY, DEFAULT_SCRIPT_KEY, createProgram } from "./cli";
+import {
+  createProgram,
+  DEFAULT_AUDIO_KEY,
+  DEFAULT_OUTPUT_KEY,
+  DEFAULT_SCRIPT_KEY,
+} from "./cli";
 
 // ============================================
 // Test data
@@ -144,7 +150,7 @@ describe("createProgram", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env["S3_BUCKET"] = "video-factory";
+    process.env.S3_BUCKET = "video-factory";
     vi.spyOn(process, "exit").mockReturnValue(undefined as never);
     mockCreateLogger.mockReturnValue(mockLogger);
     mockCreateS3Client.mockReturnValue({});
@@ -153,12 +159,12 @@ describe("createProgram", () => {
   });
 
   afterEach(() => {
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
     vi.restoreAllMocks();
   });
 
   it("exits with code 1 when S3_BUCKET is not set", async () => {
-    delete process.env["S3_BUCKET"];
+    delete process.env.S3_BUCKET;
 
     await runProgram();
 

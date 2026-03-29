@@ -1,10 +1,6 @@
+import { fc, it } from "@fast-check/vitest";
 import { describe, expect } from "vitest";
-import { it, fc } from "@fast-check/vitest";
-import {
-  WorkflowInputSchema,
-  TopicSchema,
-  TopicsOutputSchema,
-} from "./schema";
+import { TopicSchema, TopicsOutputSchema, WorkflowInputSchema } from "./schema";
 
 describe("WorkflowInputSchema", () => {
   it("should parse valid genre input", () => {
@@ -55,7 +51,11 @@ describe("WorkflowInputSchema", () => {
 describe("TopicSchema", () => {
   it("should parse a valid topic without optional sourceUrls", () => {
     // Arrange
-    const topic = { id: "news-1", title: "日銀、追加利上げを決定", summary: "日本銀行は政策会合で追加利上げを決定した" };
+    const topic = {
+      id: "news-1",
+      title: "日銀、追加利上げを決定",
+      summary: "日本銀行は政策会合で追加利上げを決定した",
+    };
 
     // Act
     const result = TopicSchema.safeParse(topic);
@@ -70,7 +70,10 @@ describe("TopicSchema", () => {
       id: "news-1",
       title: "日銀、追加利上げを決定",
       summary: "日本銀行は政策会合で追加利上げを決定した",
-      sourceUrls: ["https://www.nhk.or.jp/news/article1", "https://www.boj.or.jp/en/"],
+      sourceUrls: [
+        "https://www.nhk.or.jp/news/article1",
+        "https://www.boj.or.jp/en/",
+      ],
     };
 
     // Act

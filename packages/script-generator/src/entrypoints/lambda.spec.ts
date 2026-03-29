@@ -79,12 +79,12 @@ describe("handler", () => {
   });
 
   afterEach(() => {
-    delete process.env["TAVILY_SECRET_ARN"];
+    delete process.env.TAVILY_SECRET_ARN;
   });
 
   it("throws when TAVILY_SECRET_ARN is not set", async () => {
     // Given
-    delete process.env["TAVILY_SECRET_ARN"];
+    delete process.env.TAVILY_SECRET_ARN;
 
     // When / Then
     await expect(handler({})).rejects.toThrow(
@@ -94,7 +94,7 @@ describe("handler", () => {
 
   it("throws when Secrets Manager API call fails", async () => {
     // Given
-    process.env["TAVILY_SECRET_ARN"] = VALID_SECRET_ARN;
+    process.env.TAVILY_SECRET_ARN = VALID_SECRET_ARN;
     mockSend.mockRejectedValue(new Error("AccessDeniedException"));
 
     // When / Then
@@ -103,7 +103,7 @@ describe("handler", () => {
 
   it("throws when SecretString is undefined in the response", async () => {
     // Given
-    process.env["TAVILY_SECRET_ARN"] = VALID_SECRET_ARN;
+    process.env.TAVILY_SECRET_ARN = VALID_SECRET_ARN;
     mockSend.mockResolvedValue({ SecretString: undefined });
 
     // When / Then
@@ -114,7 +114,7 @@ describe("handler", () => {
 
   it("creates tavilyClient with resolved key and delegates to runWorkflow", async () => {
     // Given
-    process.env["TAVILY_SECRET_ARN"] = VALID_SECRET_ARN;
+    process.env.TAVILY_SECRET_ARN = VALID_SECRET_ARN;
     mockSend.mockResolvedValue({ SecretString: "resolved-api-key" });
     mockRunWorkflow.mockResolvedValue({ title: "test-result" });
 

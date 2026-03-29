@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { err, ok, type Result } from "neverthrow";
+import { z } from "zod";
 
 const DockerEnvSchema = z.object({
   S3_BUCKET: z.string().min(1),
@@ -15,7 +15,9 @@ export type EnvError = {
   readonly message: string;
 };
 
-export const parseDockerEnv = (env: Record<string, string | undefined>): Result<DockerEnv, EnvError> => {
+export const parseDockerEnv = (
+  env: Record<string, string | undefined>,
+): Result<DockerEnv, EnvError> => {
   const parsed = DockerEnvSchema.safeParse(env);
   if (!parsed.success) {
     return err({ type: "ENV_VALIDATION_ERROR", message: parsed.error.message });

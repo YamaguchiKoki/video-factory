@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createFactCheckAgent, FACT_CHECK_AGENT_ID } from "./agent";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TavilyMcpClient } from "../../mcp/tavily";
+import { createFactCheckAgent, FACT_CHECK_AGENT_ID } from "./agent";
 
 describe("createFactCheckAgent", () => {
   const mockTavilyClient: TavilyMcpClient = {
