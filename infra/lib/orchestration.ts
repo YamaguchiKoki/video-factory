@@ -1,11 +1,11 @@
-import * as cdk from "aws-cdk-lib/core";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as events from "aws-cdk-lib/aws-events";
 import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
-import * as lambda from "aws-cdk-lib/aws-lambda";
+import type * as lambda from "aws-cdk-lib/aws-lambda";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as sfnTasks from "aws-cdk-lib/aws-stepfunctions-tasks";
+import type * as cdk from "aws-cdk-lib/core";
 import { SCHEDULE_UTC_HOUR } from "./constants";
 
 type StateMachineInput = {

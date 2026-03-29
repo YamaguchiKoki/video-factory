@@ -1,6 +1,6 @@
-import * as cdk from "aws-cdk-lib/core";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import * as cdk from "aws-cdk-lib/core";
 
 export type StorageResources = {
   readonly bucket: s3.Bucket;

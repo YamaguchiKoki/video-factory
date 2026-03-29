@@ -1,10 +1,10 @@
-import * as cdk from "aws-cdk-lib/core";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import { EcrRepositories } from "./ecr-stack";
-import { createStorageResources } from "./storage";
+import * as cdk from "aws-cdk-lib/core";
 import { createEcsResources } from "./container-compute";
+import type { EcrRepositories } from "./ecr-stack";
 import { createLambdaFunctions } from "./lambda-compute";
-import { createStateMachine, createScheduledTrigger } from "./orchestration";
+import { createScheduledTrigger, createStateMachine } from "./orchestration";
+import { createStorageResources } from "./storage";
 
 type VideoFactoryStackInput = {
   readonly repositories: EcrRepositories;
@@ -39,16 +39,13 @@ export const createVideoFactoryStack = (
     imageTag,
   });
 
-  const { scriptGeneratorLambda, uploadLambda } = createLambdaFunctions(
-    stack,
-    {
-      bucket,
-      tavilySecret,
-      googleDriveSecret,
-      scriptGeneratorEcrRepo,
-      imageTag,
-    },
-  );
+  const { scriptGeneratorLambda, uploadLambda } = createLambdaFunctions(stack, {
+    bucket,
+    tavilySecret,
+    googleDriveSecret,
+    scriptGeneratorEcrRepo,
+    imageTag,
+  });
 
   const stateMachine = createStateMachine(stack, {
     cluster,

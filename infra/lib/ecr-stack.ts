@@ -1,5 +1,5 @@
-import * as cdk from "aws-cdk-lib/core";
 import * as ecr from "aws-cdk-lib/aws-ecr";
+import * as cdk from "aws-cdk-lib/core";
 
 export type EcrRepositories = {
   readonly ttsEcrRepo: ecr.Repository;

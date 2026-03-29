@@ -1,9 +1,9 @@
-import * as cdk from "aws-cdk-lib/core";
-import * as ecr from "aws-cdk-lib/aws-ecr";
+import type * as ecr from "aws-cdk-lib/aws-ecr";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import type * as s3 from "aws-cdk-lib/aws-s3";
+import type * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import * as cdk from "aws-cdk-lib/core";
 
 export type LambdaFunctions = {
   readonly scriptGeneratorLambda: lambda.IFunction;
@@ -22,8 +22,13 @@ export const createLambdaFunctions = (
   stack: cdk.Stack,
   input: LambdaFunctionsInput,
 ): LambdaFunctions => {
-  const { bucket, tavilySecret, googleDriveSecret, scriptGeneratorEcrRepo, imageTag } =
-    input;
+  const {
+    bucket,
+    tavilySecret,
+    googleDriveSecret,
+    scriptGeneratorEcrRepo,
+    imageTag,
+  } = input;
 
   const scriptGeneratorLambda = createScriptGeneratorLambda(stack, {
     bucket,
@@ -54,7 +59,9 @@ const createScriptGeneratorLambda = (
   const { bucket, tavilySecret, scriptGeneratorEcrRepo, imageTag } = input;
 
   const fn = new lambda.DockerImageFunction(stack, "ScriptGeneratorLambda", {
-    code: lambda.DockerImageCode.fromEcr(scriptGeneratorEcrRepo, { tagOrDigest: imageTag }),
+    code: lambda.DockerImageCode.fromEcr(scriptGeneratorEcrRepo, {
+      tagOrDigest: imageTag,
+    }),
     timeout: cdk.Duration.minutes(15),
     environment: {
       S3_BUCKET: bucket.bucketName,
@@ -69,10 +76,7 @@ const createScriptGeneratorLambda = (
   fn.addToRolePolicy(
     new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: [
-        "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream",
-      ],
+      actions: ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
       resources: [
         "arn:aws:bedrock:us-east-1::foundation-model/*",
         "arn:aws:bedrock:us-east-1:*:inference-profile/*",

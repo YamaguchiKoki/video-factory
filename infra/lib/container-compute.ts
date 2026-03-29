@@ -1,8 +1,8 @@
-import * as cdk from "aws-cdk-lib/core";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as ecr from "aws-cdk-lib/aws-ecr";
+import type * as ec2 from "aws-cdk-lib/aws-ec2";
+import type * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
-import * as s3 from "aws-cdk-lib/aws-s3";
+import type * as s3 from "aws-cdk-lib/aws-s3";
+import * as cdk from "aws-cdk-lib/core";
 
 export type EcsResources = {
   readonly cluster: ecs.Cluster;
@@ -108,9 +108,14 @@ const createTtsTaskDef = (
     image: ecs.ContainerImage.fromRegistry("voicevox/voicevox_engine:latest"),
     essential: true,
     portMappings: [{ containerPort: VOICEVOX_PORT }],
-    logging: ecs.LogDrivers.awsLogs({ streamPrefix: `${streamPrefix}-voicevox` }),
+    logging: ecs.LogDrivers.awsLogs({
+      streamPrefix: `${streamPrefix}-voicevox`,
+    }),
     healthCheck: {
-      command: ["CMD-SHELL", `curl -f http://localhost:${VOICEVOX_PORT}/version || exit 1`],
+      command: [
+        "CMD-SHELL",
+        `curl -f http://localhost:${VOICEVOX_PORT}/version || exit 1`,
+      ],
       interval: cdk.Duration.seconds(10),
       timeout: cdk.Duration.seconds(5),
       retries: 5,
