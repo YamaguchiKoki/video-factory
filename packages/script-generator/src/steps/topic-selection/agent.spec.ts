@@ -1,46 +1,45 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { topicSelectionAgent, TOPIC_SELECTION_AGENT_ID } from "./agent";
-import * as tavilyModule from "../../mcp/tavily";
+import { createTopicSelectionAgent, TOPIC_SELECTION_AGENT_ID } from "./agent";
+import type { TavilyMcpClient } from "../../mcp/tavily";
 
-// Local mock: mock the shared tavilyMcp singleton to prevent real network
-// connections. The agent's `tools` function calls tavilyMcp.listTools().
-vi.mock("../../mcp/tavily", () => ({
-  tavilyMcp: {
-    listTools: vi.fn(),
-    disconnect: vi.fn(),
-  },
-  createTavilyMcpClient: vi.fn(),
-}));
+describe("createTopicSelectionAgent", () => {
+  const mockTavilyClient: TavilyMcpClient = {
+    listTools: vi.fn().mockResolvedValue({
+      tavily_search: { description: "mock", execute: vi.fn(), parameters: {} },
+    }),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+  } as unknown as TavilyMcpClient;
 
-describe("topicSelectionAgent", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    // Re-apply resolved values after resetAllMocks clears mock implementations.
-    // Cast to unknown to avoid importing Mastra's internal Tool type in tests.
-    vi.mocked(tavilyModule.tavilyMcp.listTools).mockResolvedValue(
-      { tavily_search: { description: "mock", execute: vi.fn(), parameters: {} } } as unknown as Awaited<ReturnType<typeof tavilyModule.tavilyMcp.listTools>>,
-    );
-    vi.mocked(tavilyModule.tavilyMcp.disconnect).mockResolvedValue(undefined);
+    vi.clearAllMocks();
   });
 
   it("should have the correct agent id", () => {
-    // Assert — agent id must remain stable so mastra registry lookup works
-    expect(topicSelectionAgent.id).toBe(TOPIC_SELECTION_AGENT_ID);
-    expect(topicSelectionAgent.id).toBe("topic-selection-agent");
+    // Given / When
+    const agent = createTopicSelectionAgent(mockTavilyClient);
+
+    // Then — agent id must remain stable so mastra registry lookup works
+    expect(agent.id).toBe(TOPIC_SELECTION_AGENT_ID);
+    expect(agent.id).toBe("topic-selection-agent");
   });
 
   it("should have a model configured", () => {
-    // Assert — agent must have a model to be able to generate responses
-    expect(topicSelectionAgent.model).toBeDefined();
+    // Given / When
+    const agent = createTopicSelectionAgent(mockTavilyClient);
+
+    // Then — agent must have a model to be able to generate responses
+    expect(agent.model).toBeDefined();
   });
 
   it("should have Tavily MCP tools configured", async () => {
-    // Assert — the agent must expose tools from the shared Tavily MCP singleton.
-    // listTools() resolves the dynamic tools property of the agent.
-    const tools = await topicSelectionAgent.listTools();
+    // Given
+    const agent = createTopicSelectionAgent(mockTavilyClient);
+
+    // When — listTools() resolves the dynamic tools property of the agent
+    const tools = await agent.listTools();
     const toolNames = Object.keys(tools);
 
-    // The agent must have at least one tool (from Tavily MCP)
+    // Then — the agent must have at least one tool (from Tavily MCP)
     expect(toolNames.length).toBeGreaterThan(0);
   });
 });
