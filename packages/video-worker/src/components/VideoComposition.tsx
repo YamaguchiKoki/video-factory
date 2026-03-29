@@ -130,8 +130,8 @@ const SegmentContent: React.FC<SegmentContentProps> = ({
         transform: `scale(${scale})`,
       }}
     >
-      {hasVisualComponent ? (
-        <VisualComponentRenderer visualComponent={segment.visualComponent!} />
+      {hasVisualComponent && segment.visualComponent ? (
+        <VisualComponentRenderer visualComponent={segment.visualComponent} />
       ) : (
         <TextDisplay
           text={segment.text}

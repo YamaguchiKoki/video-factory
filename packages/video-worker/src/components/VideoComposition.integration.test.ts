@@ -39,7 +39,7 @@ describe("VideoComposition Integration Tests", () => {
     // Bundle the Remotion project
     const webpackBundle = await bundle({
       entryPoint: path.join(process.cwd(), "src", "index.ts"),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // biome-ignore lint/suspicious/noExplicitAny: Remotion webpack config type is complex and not exported
       webpackOverride: (config: any) => config,
     });
 

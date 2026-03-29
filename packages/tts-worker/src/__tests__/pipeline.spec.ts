@@ -322,14 +322,12 @@ describe("runPipeline — errors", () => {
   it("returns Err when storage.uploadWav fails", async () => {
     const storage = {
       ...mockStorage,
-      uploadWav: vi
-        .fn()
-        .mockReturnValue(
-          errAsync({
-            type: "PUT_OBJECT_ERROR" as const,
-            message: "Upload failed",
-          }),
-        ),
+      uploadWav: vi.fn().mockReturnValue(
+        errAsync({
+          type: "PUT_OBJECT_ERROR" as const,
+          message: "Upload failed",
+        }),
+      ),
     };
 
     const result = await runPipeline(storage, "scripts/2026-03-21.json");
@@ -342,14 +340,12 @@ describe("runPipeline — errors", () => {
   it("short-circuits and skips TTS calls when script fetch fails", async () => {
     const storage = {
       ...mockStorage,
-      getScript: vi
-        .fn()
-        .mockReturnValue(
-          errAsync({
-            type: "GET_OBJECT_ERROR" as const,
-            message: "Bucket not found",
-          }),
-        ),
+      getScript: vi.fn().mockReturnValue(
+        errAsync({
+          type: "GET_OBJECT_ERROR" as const,
+          message: "Bucket not found",
+        }),
+      ),
     };
 
     await runPipeline(storage, "scripts/2026-03-21.json");
@@ -414,14 +410,12 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
   it("returns Err when uploadEnrichedScript fails", async () => {
     const storage = {
       ...mockStorage,
-      uploadEnrichedScript: vi
-        .fn()
-        .mockReturnValue(
-          errAsync({
-            type: "PUT_OBJECT_ERROR" as const,
-            message: "Enriched script upload failed",
-          }),
-        ),
+      uploadEnrichedScript: vi.fn().mockReturnValue(
+        errAsync({
+          type: "PUT_OBJECT_ERROR" as const,
+          message: "Enriched script upload failed",
+        }),
+      ),
     };
 
     const result = await runPipeline(storage, "scripts/2026-03-21.json");
@@ -435,14 +429,12 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
   it("does not call uploadEnrichedScript when uploadWav fails", async () => {
     const storage = {
       ...mockStorage,
-      uploadWav: vi
-        .fn()
-        .mockReturnValue(
-          errAsync({
-            type: "PUT_OBJECT_ERROR" as const,
-            message: "WAV upload failed",
-          }),
-        ),
+      uploadWav: vi.fn().mockReturnValue(
+        errAsync({
+          type: "PUT_OBJECT_ERROR" as const,
+          message: "WAV upload failed",
+        }),
+      ),
     };
 
     await runPipeline(storage, "scripts/2026-03-21.json");

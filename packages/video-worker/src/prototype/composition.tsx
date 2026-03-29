@@ -101,6 +101,7 @@ export const VideoComposition2: React.FC<VideoProps> = ({
 
         return (
           <Sequence
+            // biome-ignore lint/suspicious/noArrayIndexKey: stable sequential lines
             key={`line-${index}`}
             from={fromFrame}
             durationInFrames={durationFrames}

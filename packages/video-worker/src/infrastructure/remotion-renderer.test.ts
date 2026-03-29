@@ -51,6 +51,7 @@ describe("renderVideo", () => {
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
         slowestFrames: [],
+        // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
       const renderVideo = createRenderVideo(mockLogger);
@@ -72,6 +73,7 @@ describe("renderVideo", () => {
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
         slowestFrames: [],
+        // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
       const renderVideo = createRenderVideo(mockLogger);
@@ -162,6 +164,7 @@ describe("renderVideo", () => {
       const config = createMockRenderConfig();
 
       const { renderMedia } = await import("@remotion/renderer");
+      // biome-ignore lint/suspicious/noExplicitAny: mock implementation with dynamic options
       vi.mocked(renderMedia).mockImplementation(async (options: any) => {
         // Simulate progress callbacks
         if (options.onProgress) {
@@ -220,8 +223,8 @@ describe("renderVideo", () => {
       // Verify logger was called with progress info
       expect(mockLogger.info).toHaveBeenCalled();
       const logCalls = mockLogger.info.mock.calls;
-      const progressLogs = logCalls.filter((call: any) =>
-        call[0].includes("Rendering progress"),
+      const progressLogs = logCalls.filter((call: unknown[]) =>
+        (call[0] as string).includes("Rendering progress"),
       );
       expect(progressLogs.length).toBeGreaterThan(0);
     });
@@ -240,9 +243,11 @@ describe("renderVideo", () => {
         external: 0,
         arrayBuffers: 0,
       });
+      // biome-ignore lint/suspicious/noExplicitAny: overriding process.memoryUsage for test
       process.memoryUsage = mockMemoryUsage as any;
 
       const { renderMedia } = await import("@remotion/renderer");
+      // biome-ignore lint/suspicious/noExplicitAny: mock implementation with dynamic options
       vi.mocked(renderMedia).mockImplementation(async (options: any) => {
         if (options.onProgress) {
           // Call onProgress which will check memory
@@ -268,8 +273,8 @@ describe("renderVideo", () => {
       // Verify warning was logged
       expect(mockLogger.warn).toHaveBeenCalled();
       const warnCalls = mockLogger.warn.mock.calls;
-      const memoryWarnings = warnCalls.filter((call: any) =>
-        call[0].includes("Memory usage"),
+      const memoryWarnings = warnCalls.filter((call: unknown[]) =>
+        (call[0] as string).includes("Memory usage"),
       );
       expect(memoryWarnings.length).toBeGreaterThan(0);
     });
@@ -283,6 +288,7 @@ describe("renderVideo", () => {
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
         slowestFrames: [],
+        // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
       const renderVideo = createRenderVideo(mockLogger);

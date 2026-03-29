@@ -73,6 +73,7 @@ export const concatenateWavs = (
       ok<WavHeader[], WavError>([]),
     )
     .andThen((headers) => {
+      // biome-ignore lint/style/noNonNullAssertion: headers is guaranteed non-empty (EMPTY_INPUT check above)
       const first = headers[0]!;
 
       const mismatchIdx = headers.findIndex(
@@ -82,6 +83,7 @@ export const concatenateWavs = (
           h.bitsPerSample !== first.bitsPerSample,
       );
       if (mismatchIdx !== -1) {
+        // biome-ignore lint/style/noNonNullAssertion: mismatchIdx is a valid index from findIndex (!== -1)
         const h = headers[mismatchIdx]!;
         return err<ArrayBuffer, WavError>({
           type: "FORMAT_MISMATCH",
@@ -103,6 +105,7 @@ export const concatenateWavs = (
 
       const outputBytes = new Uint8Array(output);
       headers.reduce((writeOffset, h, i) => {
+        // biome-ignore lint/style/noNonNullAssertion: i is a valid index from headers.reduce
         const srcBytes = new Uint8Array(buffers[i]!);
         outputBytes.set(
           srcBytes.subarray(h.dataOffset, h.dataOffset + h.dataSize),
