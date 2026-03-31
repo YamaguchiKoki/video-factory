@@ -20,7 +20,7 @@ RUN npx esbuild src/entrypoints/lambda.ts \
   --target=node22 \
   --outfile=dist/lambda.mjs \
   --format=esm \
-  --banner:js="import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
+  --banner:js="import { createRequire as __createRequire } from 'module'; const require = __createRequire(import.meta.url);"
 
 FROM public.ecr.aws/lambda/nodejs:22
 

@@ -34,7 +34,11 @@ export const createDockerDeps = (
   config: DockerDepsConfig,
 ): RenderVideoWorkflowDeps => {
   const logger = createLogger(config.requestId);
-  const s3 = createS3Client();
+  const s3 = createS3Client({
+    S3_ENDPOINT_URL: process.env.S3_ENDPOINT_URL,
+    S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
+    S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
+  });
   const entryPoint = resolve(__dirname, "remotion/index.ts");
   const renderVideo = createRenderVideo(logger);
 

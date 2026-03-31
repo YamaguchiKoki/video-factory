@@ -34,7 +34,13 @@ export const createS3ClientConfig = (env: S3EnvConfig = {}): S3ClientConfig => {
   };
 };
 
-const s3 = new S3Client(createS3ClientConfig());
+const s3 = new S3Client(
+  createS3ClientConfig({
+    S3_ENDPOINT_URL: process.env.S3_ENDPOINT_URL,
+    S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
+    S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
+  }),
+);
 
 const toMessage = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
