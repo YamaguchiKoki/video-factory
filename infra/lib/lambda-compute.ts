@@ -62,6 +62,7 @@ const createScriptGeneratorLambda = (
     code: lambda.DockerImageCode.fromEcr(scriptGeneratorEcrRepo, {
       tagOrDigest: imageTag,
     }),
+    memorySize: 2048,
     timeout: cdk.Duration.minutes(15),
     environment: {
       S3_BUCKET: bucket.bucketName,
