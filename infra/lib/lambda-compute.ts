@@ -73,14 +73,19 @@ const createScriptGeneratorLambda = (
   bucket.grantReadWrite(fn);
   tavilySecret.grantRead(fn);
 
-  // Bedrock calls are made to us-east-1 from this Lambda
+  // Bedrock cross-region inference profiles (us.*) route requests across
+  // us-east-1 / us-east-2 / us-west-2, so we must allow all three regions.
   fn.addToRolePolicy(
     new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
       resources: [
         "arn:aws:bedrock:us-east-1::foundation-model/*",
+        "arn:aws:bedrock:us-east-2::foundation-model/*",
+        "arn:aws:bedrock:us-west-2::foundation-model/*",
         "arn:aws:bedrock:us-east-1:*:inference-profile/*",
+        "arn:aws:bedrock:us-east-2:*:inference-profile/*",
+        "arn:aws:bedrock:us-west-2:*:inference-profile/*",
       ],
     }),
   );
