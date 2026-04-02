@@ -1,13 +1,14 @@
 import fs from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import path, { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fromPromise } from "neverthrow";
+import { type ResultAsync, fromPromise } from "neverthrow";
 import { parseEnrichedScript } from "./core/enriched-parser";
+import { createFileSystemError, type FileSystemError } from "./core/errors";
 import {
   bundleComposition,
   cleanupTempDir,
   createRenderVideo,
-  createTempDir,
+  createTempDir as createTempDirBase,
   readFile,
 } from "./infrastructure";
 import { createLogger } from "./infrastructure/logger";
@@ -22,8 +23,35 @@ import type { RenderVideoWorkflowDeps } from "./service/video-service";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const PUBLIC_DIR = resolve(__dirname, "../public");
+
+const STATIC_ASSETS = ["left.png", "right.png", "bg.jpeg"] as const;
+
 const toMessage = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
+
+const copyStaticAssets = (
+  destDir: string,
+): ResultAsync<void, FileSystemError> =>
+  fromPromise(
+    Promise.all(
+      STATIC_ASSETS.map((file) =>
+        fs.copyFile(path.join(PUBLIC_DIR, file), path.join(destDir, file)),
+      ),
+    ).then(() => undefined),
+    (e): FileSystemError =>
+      createFileSystemError(
+        "IO_ERROR",
+        `Failed to copy static assets: ${toMessage(e)}`,
+        e instanceof Error ? e : null,
+        { destDir },
+      ),
+  );
+
+const createTempDirWithAssets = (): ResultAsync<string, FileSystemError> =>
+  createTempDirBase().andThen((tempDir) =>
+    copyStaticAssets(tempDir).map(() => tempDir),
+  );
 
 type DockerDepsConfig = {
   readonly bucket: string;
@@ -51,7 +79,7 @@ export const createDockerDeps = (
       downloadToFile(s3, config.bucket, key, destPath),
     uploadToS3: (key, srcPath, contentType) =>
       uploadFromFile(s3, config.bucket, key, srcPath, contentType),
-    createTempDir,
+    createTempDir: createTempDirWithAssets,
     cleanupTempDir,
     logger,
     entryPoint,
@@ -84,7 +112,7 @@ export const createLocalDeps = (
         fs.copyFile(srcPath, outputKey),
         (e): S3Error => ({ type: "PUT_OBJECT_ERROR", message: toMessage(e) }),
       ),
-    createTempDir,
+    createTempDir: createTempDirBase,
     cleanupTempDir,
     logger,
     entryPoint,
