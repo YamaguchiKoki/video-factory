@@ -7,10 +7,12 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY config/ ./config/
 
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/script-generator/package.json ./packages/script-generator/
 
 RUN pnpm --filter script-generator install --frozen-lockfile
 
+COPY packages/shared/ ./packages/shared/
 COPY packages/script-generator/ ./packages/script-generator/
 
 WORKDIR /app/packages/script-generator

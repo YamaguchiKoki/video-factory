@@ -29,9 +29,11 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY config/ ./config/
 
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/video-worker/package.json ./packages/video-worker/
 RUN pnpm --filter video-worker install --frozen-lockfile
 
+COPY packages/shared/ ./packages/shared/
 COPY packages/video-worker/ ./packages/video-worker/
 
 WORKDIR /app/packages/video-worker
