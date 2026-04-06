@@ -15,4 +15,4 @@ COPY packages/script-generator/ ./packages/script-generator/
 
 WORKDIR /app/packages/script-generator
 
-ENTRYPOINT ["pnpm", "exec", "tsx", "src/entrypoints/docker.ts"]
+ENTRYPOINT ["pnpm", "exec", "tsx", "src/entrypoints/docker-runner.ts"]
