@@ -140,6 +140,7 @@ describe("run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.S3_BUCKET = "video-factory";
+    process.env.TAVILY_API_KEY = "test-tavily-key";
     ctx.exitSpy = vi.spyOn(process, "exit").mockReturnValue(undefined as never);
     mockRunWorkflow.mockReturnValue(makeOkWorkflowResult(buildValidScript()));
     mockUploadScriptToS3.mockReturnValue(Effect.succeed(undefined));
@@ -148,6 +149,7 @@ describe("run", () => {
 
   afterEach(() => {
     delete process.env.S3_BUCKET;
+    delete process.env.TAVILY_API_KEY;
     vi.restoreAllMocks();
   });
 
@@ -167,6 +169,7 @@ describe("run", () => {
 
   it("calls runWorkflow with genre: technology and tavilyClient", async () => {
     await run();
+    expect(mockCreateTavilyMcpClient).toHaveBeenCalledWith("test-tavily-key");
     expect(mockRunWorkflow).toHaveBeenCalledWith(
       { genre: "technology" },
       mockTavilyClient,
