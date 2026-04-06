@@ -14,3 +14,8 @@ export const TopicSchema = z.object({
 export type Topic = z.infer<typeof TopicSchema>;
 
 export const TopicsOutputSchema = z.array(TopicSchema).length(3);
+
+// LLM structured output requires an object at the root level
+export const TopicsLLMOutputSchema = z.object({
+  topics: TopicsOutputSchema,
+});

@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
 import { DockerEnvSchema, EnvValidationError } from "@video-factory/shared";
+import { Effect, Schema } from "effect";
+
 export type { DockerEnv } from "@video-factory/shared";
 export { EnvValidationError, parseDockerEnv } from "@video-factory/shared";
 

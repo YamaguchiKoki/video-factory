@@ -3,7 +3,11 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { TOPIC_SELECTION_AGENT_ID } from "./agent";
 import type { WorkflowInput } from "./schema";
-import { TopicsOutputSchema, WorkflowInputSchema } from "./schema";
+import {
+  TopicsLLMOutputSchema,
+  TopicsOutputSchema,
+  WorkflowInputSchema,
+} from "./schema";
 
 export const topicSelectionStep = createStep({
   id: "topic-selection",
@@ -16,11 +20,11 @@ export const topicSelectionStep = createStep({
     const response = await agent.generate(
       buildTopicSelectionPrompt(inputData),
       {
-        structuredOutput: { schema: TopicsOutputSchema },
+        structuredOutput: { schema: TopicsLLMOutputSchema },
       },
     );
 
-    return response.object;
+    return response.object.topics;
   },
 });
 

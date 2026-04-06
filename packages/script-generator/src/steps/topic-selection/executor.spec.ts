@@ -14,7 +14,7 @@ describe("topicSelectionStep", () => {
       buildTopic("news-2"),
       buildTopic("news-3"),
     ];
-    const mockMastra = buildMockMastra({ object: validTopics });
+    const mockMastra = buildMockMastra({ object: { topics: validTopics } });
 
     // Act
     const result = await topicSelectionStep.execute(
@@ -59,7 +59,7 @@ describe("topicSelectionStep", () => {
       buildTopic("news-3"),
     ];
     const mockAgent = {
-      generate: vi.fn().mockResolvedValue({ object: validTopics }),
+      generate: vi.fn().mockResolvedValue({ object: { topics: validTopics } }),
     };
     const mockGetAgent = vi.fn().mockReturnValue(mockAgent);
     const mockMastra = { getAgent: mockGetAgent } as unknown as Mastra;
@@ -81,7 +81,7 @@ describe("topicSelectionStep", () => {
       buildTopic("news-3"),
     ];
     const mockAgent = {
-      generate: vi.fn().mockResolvedValue({ object: validTopics }),
+      generate: vi.fn().mockResolvedValue({ object: { topics: validTopics } }),
     };
     const mockMastra = {
       getAgent: vi.fn().mockReturnValue(mockAgent),

@@ -2,7 +2,10 @@ import { createStep } from "@mastra/core/workflows";
 import type { EnrichedTopicsOutput } from "../topic-deep-dive/schema";
 import { EnrichedTopicsOutputSchema } from "../topic-deep-dive/schema";
 import { FACT_CHECK_AGENT_ID } from "./agent";
-import { VerifiedTopicsOutputSchema } from "./schema";
+import {
+  VerifiedTopicsLLMOutputSchema,
+  VerifiedTopicsOutputSchema,
+} from "./schema";
 
 export const factCheckStep = createStep({
   id: "fact-check",
@@ -13,10 +16,10 @@ export const factCheckStep = createStep({
     if (!agent) throw new Error(`${FACT_CHECK_AGENT_ID} not found`);
 
     const response = await agent.generate(buildFactCheckPrompt(inputData), {
-      structuredOutput: { schema: VerifiedTopicsOutputSchema },
+      structuredOutput: { schema: VerifiedTopicsLLMOutputSchema },
     });
 
-    return response.object;
+    return response.object.topics;
   },
 });
 

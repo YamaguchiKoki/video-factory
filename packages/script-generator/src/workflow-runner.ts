@@ -48,7 +48,10 @@ export const runWorkflow = (
       catch: (e) => {
         const err = toError(e);
         console.error("[workflow-runner] error:", err.stack ?? err.message);
-        return { type: "WORKFLOW_ERROR", message: err.message } satisfies WorkflowError;
+        return {
+          type: "WORKFLOW_ERROR",
+          message: err.message,
+        } satisfies WorkflowError;
       },
     });
 
