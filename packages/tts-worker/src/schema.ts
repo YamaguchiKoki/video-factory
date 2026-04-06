@@ -1,131 +1,128 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
 // ============================================
 // Speaker
 // ============================================
-export const SpeakerSchema = z.enum(["A", "B"]);
-export type Speaker = z.infer<typeof SpeakerSchema>;
+
+export const Speaker = Schema.Literals(["A", "B"]);
+export type Speaker = typeof Speaker.Type;
 
 // ============================================
 // Layer 1: LLM出力（スクリプト） — script-generator と同期
 // ============================================
 
-export const LineSchema = z.object({
-  speaker: SpeakerSchema,
-  text: z.string(),
+export const Line = Schema.Struct({
+  speaker: Speaker,
+  text: Schema.String,
 });
-export type Line = z.infer<typeof LineSchema>;
+export type Line = typeof Line.Type;
 
-export const NewsItemSchema = z.object({
-  id: z.string().describe("news-1, news-2, news-3"),
-  title: z.string().describe("ニュースの見出し"),
-  sourceUrl: z.string().url().optional(),
+const urlPattern = /^https?:\/\/.+/;
+
+export const NewsItem = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  sourceUrl: Schema.optional(Schema.String.check(Schema.isPattern(urlPattern))),
 });
-export type NewsItem = z.infer<typeof NewsItemSchema>;
+export type NewsItem = typeof NewsItem.Type;
 
-export const IntroSectionSchema = z.object({
-  type: z.literal("intro"),
-  greeting: z.array(LineSchema),
-  newsOverview: z.array(LineSchema).describe("今日の3つのニュースを軽く紹介"),
-});
-
-export const DiscussionPhaseSchema = z.enum([
-  "summary",
-  "background",
-  "deepDive",
-]);
-
-export const DiscussionBlockSchema = z.object({
-  phase: DiscussionPhaseSchema,
-  lines: z.array(LineSchema),
+const IntroSection = Schema.Struct({
+  type: Schema.Literal("intro"),
+  greeting: Schema.Array(Line),
+  newsOverview: Schema.Array(Line),
 });
 
-export const DiscussionSectionSchema = z.object({
-  type: z.literal("discussion"),
-  newsId: z.string().describe("対象ニュースのID"),
-  blocks: z.tuple([
-    DiscussionBlockSchema,
-    DiscussionBlockSchema,
-    DiscussionBlockSchema,
+const DiscussionPhase = Schema.Literals(["summary", "background", "deepDive"]);
+
+const DiscussionBlock = Schema.Struct({
+  phase: DiscussionPhase,
+  lines: Schema.Array(Line),
+});
+
+export const DiscussionSection = Schema.Struct({
+  type: Schema.Literal("discussion"),
+  newsId: Schema.Literals(["news-1", "news-2", "news-3"]),
+  blocks: Schema.Tuple([DiscussionBlock, DiscussionBlock, DiscussionBlock]),
+});
+
+const OutroSection = Schema.Struct({
+  type: Schema.Literal("outro"),
+  recap: Schema.Array(Line),
+  closing: Schema.Array(Line),
+});
+
+export type DiscussionSection = typeof DiscussionSection.Type;
+
+export const Script = Schema.Struct({
+  title: Schema.String,
+  newsItems: Schema.Array(NewsItem).check(
+    Schema.isMinLength(3),
+    Schema.isMaxLength(3),
+  ),
+  sections: Schema.Tuple([
+    IntroSection,
+    DiscussionSection,
+    DiscussionSection,
+    DiscussionSection,
+    OutroSection,
   ]),
 });
-
-export const OutroSectionSchema = z.object({
-  type: z.literal("outro"),
-  recap: z.array(LineSchema),
-  closing: z.array(LineSchema),
-});
-
-export const SectionSchema = z.discriminatedUnion("type", [
-  IntroSectionSchema,
-  DiscussionSectionSchema,
-  OutroSectionSchema,
-]);
-export type Section = z.infer<typeof SectionSchema>;
-export type DiscussionSection = z.infer<typeof DiscussionSectionSchema>;
-
-export const ScriptSchema = z.object({
-  title: z.string(),
-  newsItems: z.array(NewsItemSchema).length(3),
-  sections: z.tuple([
-    IntroSectionSchema,
-    DiscussionSectionSchema,
-    DiscussionSectionSchema,
-    DiscussionSectionSchema,
-    OutroSectionSchema,
-  ]),
-});
-export type Script = z.infer<typeof ScriptSchema>;
+export type Script = typeof Script.Type;
 
 // ============================================
 // Layer 2: 音声タイミング情報を付与したエンリッチ済みスクリプト
 // ============================================
 
-export const EnrichedLineSchema = LineSchema.extend({
-  voicevoxSpeakerId: z.number().describe("VOICEVOXスピーカーID"),
-  offsetSec: z.number().describe("エピソード先頭からの開始オフセット（秒）"),
-  durationSec: z.number().describe("この行の音声長（秒）"),
+export const EnrichedLine = Schema.Struct({
+  speaker: Speaker,
+  text: Schema.String,
+  voicevoxSpeakerId: Schema.Number,
+  offsetSec: Schema.Number,
+  durationSec: Schema.Number,
 });
-export type EnrichedLine = z.infer<typeof EnrichedLineSchema>;
+export type EnrichedLine = typeof EnrichedLine.Type;
 
-export const EnrichedIntroSectionSchema = z.object({
-  type: z.literal("intro"),
-  greeting: z.array(EnrichedLineSchema),
-  newsOverview: z.array(EnrichedLineSchema),
-});
-
-export const EnrichedDiscussionBlockSchema = z.object({
-  phase: DiscussionPhaseSchema,
-  lines: z.array(EnrichedLineSchema),
+const EnrichedIntroSection = Schema.Struct({
+  type: Schema.Literal("intro"),
+  greeting: Schema.Array(EnrichedLine),
+  newsOverview: Schema.Array(EnrichedLine),
 });
 
-export const EnrichedDiscussionSectionSchema = z.object({
-  type: z.literal("discussion"),
-  newsId: z.string(),
-  blocks: z.tuple([
-    EnrichedDiscussionBlockSchema,
-    EnrichedDiscussionBlockSchema,
-    EnrichedDiscussionBlockSchema,
+const EnrichedDiscussionBlock = Schema.Struct({
+  phase: DiscussionPhase,
+  lines: Schema.Array(EnrichedLine),
+});
+
+const EnrichedDiscussionSection = Schema.Struct({
+  type: Schema.Literal("discussion"),
+  newsId: Schema.Literals(["news-1", "news-2", "news-3"]),
+  blocks: Schema.Tuple([
+    EnrichedDiscussionBlock,
+    EnrichedDiscussionBlock,
+    EnrichedDiscussionBlock,
   ]),
 });
 
-export const EnrichedOutroSectionSchema = z.object({
-  type: z.literal("outro"),
-  recap: z.array(EnrichedLineSchema),
-  closing: z.array(EnrichedLineSchema),
+const EnrichedOutroSection = Schema.Struct({
+  type: Schema.Literal("outro"),
+  recap: Schema.Array(EnrichedLine),
+  closing: Schema.Array(EnrichedLine),
 });
 
-export const EnrichedScriptSchema = z.object({
-  title: z.string(),
-  totalDurationSec: z.number().describe("全音声の合計秒数"),
-  outputWavS3Key: z.string().describe("アップロード先S3キー"),
-  newsItems: z.array(NewsItemSchema).length(3),
-  sections: z.tuple([
-    EnrichedIntroSectionSchema,
-    EnrichedDiscussionSectionSchema,
-    EnrichedDiscussionSectionSchema,
-    EnrichedDiscussionSectionSchema,
-    EnrichedOutroSectionSchema,
+export const EnrichedScript = Schema.Struct({
+  title: Schema.String,
+  totalDurationSec: Schema.Number,
+  outputWavS3Key: Schema.String,
+  newsItems: Schema.Array(NewsItem).check(
+    Schema.isMinLength(3),
+    Schema.isMaxLength(3),
+  ),
+  sections: Schema.Tuple([
+    EnrichedIntroSection,
+    EnrichedDiscussionSection,
+    EnrichedDiscussionSection,
+    EnrichedDiscussionSection,
+    EnrichedOutroSection,
   ]),
 });
-export type EnrichedScript = z.infer<typeof EnrichedScriptSchema>;
+export type EnrichedScript = typeof EnrichedScript.Type;

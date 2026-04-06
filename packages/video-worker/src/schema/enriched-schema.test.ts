@@ -1,7 +1,17 @@
+import { Schema } from "effect";
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { ZodFastCheck } from "zod-fast-check";
 import { EnrichedLineSchema, EnrichedScriptSchema } from "./enriched-schema";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const decodeLine = (input: unknown) =>
+  Schema.decodeUnknownResult(EnrichedLineSchema)(input);
+
+const decodeScript = (input: unknown) =>
+  Schema.decodeUnknownResult(EnrichedScriptSchema)(input);
 
 // ---------------------------------------------------------------------------
 // Minimal valid fixture — mirrors real enriched.json structure
@@ -117,46 +127,46 @@ const validEnrichedScript = {
 describe("EnrichedLineSchema", () => {
   describe("正常系", () => {
     it("speaker A のラインを受け入れる", () => {
-      const result = EnrichedLineSchema.safeParse(validLine);
-      expect(result.success).toBe(true);
+      const result = decodeLine(validLine);
+      expect(result._tag).toBe("Success");
     });
 
     it("speaker B のラインを受け入れる", () => {
       const lineB = { ...validLine, speaker: "B" };
-      const result = EnrichedLineSchema.safeParse(lineB);
-      expect(result.success).toBe(true);
+      const result = decodeLine(lineB);
+      expect(result._tag).toBe("Success");
     });
 
     it("offsetSec が 0 のラインを受け入れる（イントロ先頭）", () => {
       const firstLine = { ...validLine, offsetSec: 0 };
-      const result = EnrichedLineSchema.safeParse(firstLine);
-      expect(result.success).toBe(true);
+      const result = decodeLine(firstLine);
+      expect(result._tag).toBe("Success");
     });
   });
 
   describe("異常系", () => {
     it("speaker が A/B 以外のとき拒否する", () => {
       const invalidLine = { ...validLine, speaker: "C" };
-      const result = EnrichedLineSchema.safeParse(invalidLine);
-      expect(result.success).toBe(false);
+      const result = decodeLine(invalidLine);
+      expect(result._tag).toBe("Failure");
     });
 
     it("offsetSec が欠損しているとき拒否する", () => {
       const { offsetSec: _omitted, ...withoutOffset } = validLine;
-      const result = EnrichedLineSchema.safeParse(withoutOffset);
-      expect(result.success).toBe(false);
+      const result = decodeLine(withoutOffset);
+      expect(result._tag).toBe("Failure");
     });
 
     it("durationSec が欠損しているとき拒否する", () => {
       const { durationSec: _omitted, ...withoutDuration } = validLine;
-      const result = EnrichedLineSchema.safeParse(withoutDuration);
-      expect(result.success).toBe(false);
+      const result = decodeLine(withoutDuration);
+      expect(result._tag).toBe("Failure");
     });
 
     it("text が欠損しているとき拒否する", () => {
       const { text: _omitted, ...withoutText } = validLine;
-      const result = EnrichedLineSchema.safeParse(withoutText);
-      expect(result.success).toBe(false);
+      const result = decodeLine(withoutText);
+      expect(result._tag).toBe("Failure");
     });
   });
 });
@@ -168,8 +178,8 @@ describe("EnrichedLineSchema", () => {
 describe("EnrichedScriptSchema", () => {
   describe("正常系", () => {
     it("有効な enriched JSON を受け入れる", () => {
-      const result = EnrichedScriptSchema.safeParse(validEnrichedScript);
-      expect(result.success).toBe(true);
+      const result = decodeScript(validEnrichedScript);
+      expect(result._tag).toBe("Success");
     });
 
     it("複数の discussion セクションを含む JSON を受け入れる", () => {
@@ -209,34 +219,34 @@ describe("EnrichedScriptSchema", () => {
           },
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(multiDiscussion);
-      expect(result.success).toBe(true);
+      const result = decodeScript(multiDiscussion);
+      expect(result._tag).toBe("Success");
     });
   });
 
   describe("異常系 - トップレベルフィールド", () => {
     it("title が欠損しているとき拒否する", () => {
       const { title: _omitted, ...withoutTitle } = validEnrichedScript;
-      const result = EnrichedScriptSchema.safeParse(withoutTitle);
-      expect(result.success).toBe(false);
+      const result = decodeScript(withoutTitle);
+      expect(result._tag).toBe("Failure");
     });
 
     it("totalDurationSec が欠損しているとき拒否する", () => {
       const { totalDurationSec: _omitted, ...without } = validEnrichedScript;
-      const result = EnrichedScriptSchema.safeParse(without);
-      expect(result.success).toBe(false);
+      const result = decodeScript(without);
+      expect(result._tag).toBe("Failure");
     });
 
     it("newsItems が欠損しているとき拒否する", () => {
       const { newsItems: _omitted, ...without } = validEnrichedScript;
-      const result = EnrichedScriptSchema.safeParse(without);
-      expect(result.success).toBe(false);
+      const result = decodeScript(without);
+      expect(result._tag).toBe("Failure");
     });
 
     it("sections が欠損しているとき拒否する", () => {
       const { sections: _omitted, ...without } = validEnrichedScript;
-      const result = EnrichedScriptSchema.safeParse(without);
-      expect(result.success).toBe(false);
+      const result = decodeScript(without);
+      expect(result._tag).toBe("Failure");
     });
   });
 
@@ -266,8 +276,8 @@ describe("EnrichedScriptSchema", () => {
           },
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(invalidPhase);
-      expect(result.success).toBe(false);
+      const result = decodeScript(invalidPhase);
+      expect(result._tag).toBe("Failure");
     });
 
     it("discussion に newsId が欠損しているとき拒否する", () => {
@@ -293,8 +303,8 @@ describe("EnrichedScriptSchema", () => {
           },
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(missingNewsId);
-      expect(result.success).toBe(false);
+      const result = decodeScript(missingNewsId);
+      expect(result._tag).toBe("Failure");
     });
 
     it("discussion の blocks が空配列のとき拒否する", () => {
@@ -310,8 +320,8 @@ describe("EnrichedScriptSchema", () => {
           validEnrichedScript.sections[2],
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(emptyBlocks);
-      expect(result.success).toBe(false);
+      const result = decodeScript(emptyBlocks);
+      expect(result._tag).toBe("Failure");
     });
 
     it("intro の greeting フィールドが欠損しているとき拒否する", () => {
@@ -324,8 +334,8 @@ describe("EnrichedScriptSchema", () => {
           },
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(missingGreeting);
-      expect(result.success).toBe(false);
+      const result = decodeScript(missingGreeting);
+      expect(result._tag).toBe("Failure");
     });
 
     it("outro の recap フィールドが欠損しているとき拒否する", () => {
@@ -346,8 +356,8 @@ describe("EnrichedScriptSchema", () => {
           },
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(missingRecap);
-      expect(result.success).toBe(false);
+      const result = decodeScript(missingRecap);
+      expect(result._tag).toBe("Failure");
     });
   });
 
@@ -372,18 +382,25 @@ describe("EnrichedScriptSchema", () => {
           ...validEnrichedScript.sections.slice(1),
         ],
       };
-      const result = EnrichedScriptSchema.safeParse(invalidSpeaker);
-      expect(result.success).toBe(false);
+      const result = decodeScript(invalidSpeaker);
+      expect(result._tag).toBe("Failure");
     });
   });
 
   describe("プロパティベーステスト", () => {
+    const validLineArb = fc.record({
+      speaker: fc.constantFrom("A", "B"),
+      text: fc.string({ minLength: 1, maxLength: 50 }),
+      voicevoxSpeakerId: fc.integer({ min: 0, max: 10 }),
+      offsetSec: fc.float({ min: 0, max: 100, noNaN: true }),
+      durationSec: fc.float({ min: Math.fround(0.1), max: 10, noNaN: true }),
+    });
+
     it("スキーマから生成した任意の EnrichedLine は必ず検証を通過する", () => {
-      const zfc = ZodFastCheck();
       fc.assert(
-        fc.property(zfc.inputOf(EnrichedLineSchema), (line) => {
-          const result = EnrichedLineSchema.safeParse(line);
-          expect(result.success).toBe(true);
+        fc.property(validLineArb, (line) => {
+          const result = decodeLine(line);
+          expect(result._tag).toBe("Success");
         }),
         { numRuns: 50 },
       );

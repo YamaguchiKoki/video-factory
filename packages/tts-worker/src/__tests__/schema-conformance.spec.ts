@@ -1,8 +1,9 @@
+import { Result, Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import { ScriptSchema } from "../schema.js";
+import { Script } from "../schema.js";
 
 /**
- * Conformance test: ensures tts-worker's ScriptSchema stays compatible
+ * Conformance test: ensures tts-worker's Script schema stays compatible
  * with the JSON contract produced by script-generator.
  *
  * If this test fails, the schemas have drifted apart.
@@ -57,28 +58,30 @@ const validScriptFixture = {
   ],
 };
 
+const decode = Schema.decodeUnknownResult(Script);
+
 describe("Schema conformance with script-generator", () => {
   it("parses a valid Script JSON produced by script-generator", () => {
-    const result = ScriptSchema.safeParse(validScriptFixture);
-    expect(result.success).toBe(true);
+    const result = decode(validScriptFixture);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("preserves all required top-level fields", () => {
-    const result = ScriptSchema.safeParse(validScriptFixture);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data).toHaveProperty("title");
-      expect(result.data).toHaveProperty("newsItems");
-      expect(result.data).toHaveProperty("sections");
-      expect(result.data.newsItems).toHaveLength(3);
-      expect(result.data.sections).toHaveLength(5);
+    const result = decode(validScriptFixture);
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success).toHaveProperty("title");
+      expect(result.success).toHaveProperty("newsItems");
+      expect(result.success).toHaveProperty("sections");
+      expect(result.success.newsItems).toHaveLength(3);
+      expect(result.success.sections).toHaveLength(5);
     }
   });
 
   it("rejects when a required field is missing", () => {
     const { title: _, ...withoutTitle } = validScriptFixture;
-    const result = ScriptSchema.safeParse(withoutTitle);
-    expect(result.success).toBe(false);
+    const result = decode(withoutTitle);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("validates section discriminated union (intro/discussion/outro)", () => {
@@ -89,7 +92,7 @@ describe("Schema conformance with script-generator", () => {
         ...validScriptFixture.sections.slice(1),
       ],
     };
-    const result = ScriptSchema.safeParse(corrupted);
-    expect(result.success).toBe(false);
+    const result = decode(corrupted);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });
