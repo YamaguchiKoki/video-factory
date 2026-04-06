@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { Effect, Result } from "effect";
 import { parseScriptGeneratorEnv } from "../env";
 import { uploadScriptToS3 } from "../infrastructure/s3";
@@ -43,3 +44,16 @@ export const run = async (): Promise<void> => {
     process.exit(1);
   }
 };
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run().catch((error: unknown) => {
+    console.error(
+      JSON.stringify({
+        level: "ERROR",
+        type: "UnhandledError",
+        message: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    process.exit(1);
+  });
+}
