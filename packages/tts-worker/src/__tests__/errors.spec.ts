@@ -1,72 +1,92 @@
-// Tests for the toError utility (errors.ts).
-// This module does not exist yet; tests are written TDD-first.
+// Tests for the TaggedErrorClass error types (errors.ts).
 
 import { describe, expect, it } from "vitest";
-import { toError } from "../errors";
+import {
+  AudioQueryError,
+  EmptyInputError,
+  EnvValidationError,
+  FormatMismatchError,
+  InvalidHeaderError,
+  S3GetObjectError,
+  S3PutObjectError,
+  S3ValidationError,
+  SynthesisError,
+} from "../errors";
 
-describe("toError", () => {
-  it("returns the same Error instance when given an Error", () => {
-    // Arrange
-    const original = new Error("original message");
-
-    // Act
-    const result = toError(original);
-
-    // Assert
-    expect(result).toBe(original);
+describe("AudioQueryError", () => {
+  it("has the correct _tag", () => {
+    const error = new AudioQueryError({ message: "fetch failed" });
+    expect(error._tag).toBe("AudioQueryError");
   });
 
-  it("wraps a string in a new Error", () => {
-    // Arrange
-    const message = "something went wrong";
-
-    // Act
-    const result = toError(message);
-
-    // Assert
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe(message);
+  it("stores the message", () => {
+    const error = new AudioQueryError({ message: "VOICEVOX unreachable" });
+    expect(error.message).toBe("VOICEVOX unreachable");
   });
 
-  it("wraps a number in a new Error via String()", () => {
-    // Arrange
-    const code = 42;
+  it("is an instance of Error", () => {
+    const error = new AudioQueryError({ message: "test" });
+    expect(error).toBeInstanceOf(Error);
+  });
+});
 
-    // Act
-    const result = toError(code);
-
-    // Assert
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe("42");
+describe("SynthesisError", () => {
+  it("has the correct _tag", () => {
+    const error = new SynthesisError({ message: "synthesis failed" });
+    expect(error._tag).toBe("SynthesisError");
   });
 
-  it("wraps null in a new Error via String()", () => {
-    // Act
-    const result = toError(null);
-
-    // Assert
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe("null");
+  it("stores the message", () => {
+    const error = new SynthesisError({ message: "timeout" });
+    expect(error.message).toBe("timeout");
   });
+});
 
-  it("wraps undefined in a new Error via String()", () => {
-    // Act
-    const result = toError(undefined);
-
-    // Assert
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe("undefined");
+describe("InvalidHeaderError", () => {
+  it("has the correct _tag", () => {
+    const error = new InvalidHeaderError({ message: "missing RIFF" });
+    expect(error._tag).toBe("InvalidHeaderError");
   });
+});
 
-  it("wraps a plain object in a new Error via String()", () => {
-    // Arrange
-    const obj = { code: 500 };
+describe("FormatMismatchError", () => {
+  it("has the correct _tag", () => {
+    const error = new FormatMismatchError({ message: "sample rate differs" });
+    expect(error._tag).toBe("FormatMismatchError");
+  });
+});
 
-    // Act
-    const result = toError(obj);
+describe("EmptyInputError", () => {
+  it("has the correct _tag", () => {
+    const error = new EmptyInputError({ message: "no buffers" });
+    expect(error._tag).toBe("EmptyInputError");
+  });
+});
 
-    // Assert
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe("[object Object]");
+describe("S3GetObjectError", () => {
+  it("has the correct _tag", () => {
+    const error = new S3GetObjectError({ message: "AccessDenied" });
+    expect(error._tag).toBe("S3GetObjectError");
+  });
+});
+
+describe("S3PutObjectError", () => {
+  it("has the correct _tag", () => {
+    const error = new S3PutObjectError({ message: "NoSuchBucket" });
+    expect(error._tag).toBe("S3PutObjectError");
+  });
+});
+
+describe("S3ValidationError", () => {
+  it("has the correct _tag", () => {
+    const error = new S3ValidationError({ message: "invalid JSON" });
+    expect(error._tag).toBe("S3ValidationError");
+  });
+});
+
+describe("EnvValidationError", () => {
+  it("has the correct _tag", () => {
+    const error = new EnvValidationError({ message: "S3_BUCKET is missing" });
+    expect(error._tag).toBe("EnvValidationError");
   });
 });

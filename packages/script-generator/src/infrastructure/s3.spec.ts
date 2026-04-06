@@ -1,4 +1,4 @@
-// Tests for infrastructure/s3.ts — TDD-first; module does not exist yet.
+// Tests for infrastructure/s3.ts
 //
 // Design contract:
 //   createS3ClientConfig(): S3ClientConfig (same logic as former cli.ts)
@@ -6,12 +6,13 @@
 //     if S3_ENDPOINT_URL is unset → {}
 //     if credentials env vars set → includes { credentials: { accessKeyId, secretAccessKey } }
 //
-//   uploadScriptToS3(bucket, key, script): ResultAsync<void, S3Error>
-//     success → Ok(void)
-//     S3 failure → Err({ type: "PUT_OBJECT_ERROR", message: string })
+//   uploadScriptToS3(bucket, key, script): Effect<void, S3PutObjectError>
+//     success → succeeds with void
+//     S3 failure → S3PutObjectError
 //     uploads with ContentType: application/json
 //     body is JSON-serialized Script
 
+import { Effect, Result } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Script } from "../schema";
 
@@ -152,73 +153,65 @@ describe("uploadScriptToS3", () => {
     vi.clearAllMocks();
   });
 
-  it("returns Ok void on successful upload", async () => {
-    // Given
+  it("succeeds on successful upload", async () => {
     mockS3Send.mockResolvedValueOnce({});
     const script = buildValidScript();
 
-    // When
-    const result = await uploadScriptToS3(
-      "video-factory",
-      "script-generator/script.json",
-      script,
+    const result = await Effect.runPromise(
+      Effect.result(
+        uploadScriptToS3(
+          "video-factory",
+          "script-generator/script.json",
+          script,
+        ),
+      ),
     );
 
-    // Then
-    expect(result.isOk()).toBe(true);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("returns Err PUT_OBJECT_ERROR when S3 send rejects", async () => {
-    // Given
+  it("fails with S3PutObjectError when S3 send rejects", async () => {
     mockS3Send.mockRejectedValueOnce(new Error("NoSuchBucket"));
     const script = buildValidScript();
 
-    // When
-    const result = await uploadScriptToS3(
-      "video-factory",
-      "script-generator/script.json",
-      script,
+    const result = await Effect.runPromise(
+      Effect.result(
+        uploadScriptToS3(
+          "video-factory",
+          "script-generator/script.json",
+          script,
+        ),
+      ),
     );
 
-    // Then
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("PUT_OBJECT_ERROR");
-      expect(result.error.message).toContain("NoSuchBucket");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3PutObjectError");
+      expect(result.failure.message).toContain("NoSuchBucket");
     }
   });
 
   it("uploads with ContentType: application/json", async () => {
-    // Given
     mockS3Send.mockResolvedValueOnce({});
     const script = buildValidScript();
 
-    // When
-    await uploadScriptToS3(
-      "video-factory",
-      "script-generator/script.json",
-      script,
+    await Effect.runPromise(
+      uploadScriptToS3("video-factory", "script-generator/script.json", script),
     );
 
-    // Then
     expect(mockS3Send).toHaveBeenCalledWith(
       expect.objectContaining({ ContentType: "application/json" }),
     );
   });
 
   it("calls PutObjectCommand with the correct Bucket and Key", async () => {
-    // Given
     mockS3Send.mockResolvedValueOnce({});
     const script = buildValidScript();
 
-    // When
-    await uploadScriptToS3(
-      "video-factory",
-      "script-generator/script.json",
-      script,
+    await Effect.runPromise(
+      uploadScriptToS3("video-factory", "script-generator/script.json", script),
     );
 
-    // Then
     expect(mockS3Send).toHaveBeenCalledWith(
       expect.objectContaining({
         Bucket: "video-factory",
@@ -228,18 +221,13 @@ describe("uploadScriptToS3", () => {
   });
 
   it("JSON-serializes the Script as the request body", async () => {
-    // Given
     mockS3Send.mockResolvedValueOnce({});
     const script = buildValidScript();
 
-    // When
-    await uploadScriptToS3(
-      "video-factory",
-      "script-generator/script.json",
-      script,
+    await Effect.runPromise(
+      uploadScriptToS3("video-factory", "script-generator/script.json", script),
     );
 
-    // Then
     const callArgs = mockS3Send.mock.calls[0]?.[0] as {
       Body: Buffer;
       [key: string]: unknown;

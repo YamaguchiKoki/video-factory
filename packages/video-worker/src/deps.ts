@@ -1,9 +1,10 @@
 import fs from "node:fs/promises";
 import path, { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type ResultAsync, fromPromise } from "neverthrow";
+import { toMessage } from "@video-factory/shared";
+import { Effect } from "effect";
 import { parseEnrichedScript } from "./core/enriched-parser";
-import { createFileSystemError, type FileSystemError } from "./core/errors";
+import { FileSystemError, S3DownloadError, S3UploadError } from "./core/errors";
 import {
   bundleComposition,
   cleanupTempDir,
@@ -12,7 +13,6 @@ import {
   readFile,
 } from "./infrastructure";
 import { createLogger } from "./infrastructure/logger";
-import type { S3Error } from "./infrastructure/s3";
 import {
   createS3Client,
   downloadToFile,
@@ -27,30 +27,28 @@ const PUBLIC_DIR = resolve(__dirname, "../public");
 
 const STATIC_ASSETS = ["left.png", "right.png", "bg.jpeg"] as const;
 
-const toMessage = (e: unknown): string =>
-  e instanceof Error ? e.message : String(e);
-
 const copyStaticAssets = (
   destDir: string,
-): ResultAsync<void, FileSystemError> =>
-  fromPromise(
-    Promise.all(
-      STATIC_ASSETS.map((file) =>
-        fs.copyFile(path.join(PUBLIC_DIR, file), path.join(destDir, file)),
-      ),
-    ).then(() => undefined),
-    (e): FileSystemError =>
-      createFileSystemError(
-        "IO_ERROR",
-        `Failed to copy static assets: ${toMessage(e)}`,
-        e instanceof Error ? e : null,
-        { destDir },
-      ),
-  );
+): Effect.Effect<void, FileSystemError> =>
+  Effect.tryPromise({
+    try: () =>
+      Promise.all(
+        STATIC_ASSETS.map((file) =>
+          fs.copyFile(path.join(PUBLIC_DIR, file), path.join(destDir, file)),
+        ),
+      ).then(() => undefined),
+    catch: (e): FileSystemError =>
+      new FileSystemError({
+        message: `Failed to copy static assets: ${toMessage(e)}`,
+        cause: e instanceof Error ? e : undefined,
+      }),
+  });
 
-const createTempDirWithAssets = (): ResultAsync<string, FileSystemError> =>
-  createTempDirBase().andThen((tempDir) =>
-    copyStaticAssets(tempDir).map(() => tempDir),
+const createTempDirWithAssets = (): Effect.Effect<string, FileSystemError> =>
+  createTempDirBase().pipe(
+    Effect.flatMap((tempDir) =>
+      copyStaticAssets(tempDir).pipe(Effect.map(() => tempDir)),
+    ),
   );
 
 type DockerDepsConfig = {
@@ -103,15 +101,23 @@ export const createLocalDeps = (
     bundleComposition,
     renderVideo,
     downloadFromS3: (key, destPath) =>
-      fromPromise(
-        fs.copyFile(key, destPath),
-        (e): S3Error => ({ type: "GET_OBJECT_ERROR", message: toMessage(e) }),
-      ),
+      Effect.tryPromise({
+        try: () => fs.copyFile(key, destPath),
+        catch: (e): S3DownloadError =>
+          new S3DownloadError({
+            message: `Failed to copy file: ${toMessage(e)}`,
+            cause: e instanceof Error ? e : undefined,
+          }),
+      }),
     uploadToS3: (outputKey, srcPath) =>
-      fromPromise(
-        fs.copyFile(srcPath, outputKey),
-        (e): S3Error => ({ type: "PUT_OBJECT_ERROR", message: toMessage(e) }),
-      ),
+      Effect.tryPromise({
+        try: () => fs.copyFile(srcPath, outputKey),
+        catch: (e): S3UploadError =>
+          new S3UploadError({
+            message: `Failed to copy file: ${toMessage(e)}`,
+            cause: e instanceof Error ? e : undefined,
+          }),
+      }),
     createTempDir: createTempDirBase,
     cleanupTempDir,
     logger,

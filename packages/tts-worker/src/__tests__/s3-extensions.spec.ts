@@ -1,20 +1,21 @@
-// Tests for new exports added to s3.ts as part of the RustFS local E2E setup:
-//   createS3ClientConfig(): S3ClientConfig
-//   uploadEnrichedScriptToS3(bucket, key, data): ResultAsync<void, S3Error>
+// Tests for S3 client configuration and enriched-script upload (s3.ts).
 //
 // Design contract:
-//   createS3ClientConfig — reads S3_ENDPOINT_URL env var
-//     if set   → { endpoint: url, forcePathStyle: true }
-//     if unset → {}
-//   uploadEnrichedScriptToS3 — PutObjectCommand with ContentType: application/json
-//     success → Ok(void)
-//     failure → Err({ type: "PUT_OBJECT_ERROR", message: string })
+//   createS3ClientConfig(env?): S3ClientConfig
+//     if S3_ENDPOINT_URL is set   → { endpoint, region, forcePathStyle: true }
+//     if unset                    → {}
+//
+//   StorageService.uploadEnrichedScript(data): Effect<void, S3Error>
+//     success → succeeds with void
+//     failure → S3PutObjectError
 
+import { Effect, Result } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EnrichedScript } from "../schema";
+import { StorageService } from "../storage";
 
 // ============================================
-// Mock @aws-sdk/client-s3 (module-level singleton in s3.ts)
+// Mock @aws-sdk/client-s3 (module-level mock, s3.ts creates S3Client internally)
 // ============================================
 
 const { mockS3Send } = vi.hoisted(() => ({
@@ -36,7 +37,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
   }),
 }));
 
-import { createS3ClientConfig, uploadEnrichedScriptToS3 } from "../s3";
+import { createS3ClientConfig, createStorageServiceLive } from "../s3";
 
 // ============================================
 // Test data
@@ -257,108 +258,130 @@ describe("createS3ClientConfig", () => {
 });
 
 // ============================================
-// uploadEnrichedScriptToS3
+// StorageService.uploadEnrichedScript
 // ============================================
 
-describe("uploadEnrichedScriptToS3", () => {
+describe("StorageService.uploadEnrichedScript", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns Ok void on successful upload", async () => {
-    // Given
+  it("succeeds on successful upload", async () => {
     mockS3Send.mockResolvedValueOnce({});
     const enrichedScript = buildValidEnrichedScript();
-
-    // When
-    const result = await uploadEnrichedScriptToS3(
+    const layer = createStorageServiceLive(
       "video-factory",
+      "tts-worker/audio.wav",
       "tts-worker/script.json",
-      enrichedScript,
     );
 
-    // Then
-    expect(result.isOk()).toBe(true);
+    const result = await Effect.runPromise(
+      Effect.result(
+        Effect.gen(function* () {
+          const storage = yield* StorageService;
+          return yield* storage.uploadEnrichedScript(enrichedScript);
+        }).pipe(Effect.provide(layer)),
+      ),
+    );
+
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("returns Err PUT_OBJECT_ERROR when S3 send rejects", async () => {
-    // Given
+  it("fails with S3PutObjectError when S3 send rejects", async () => {
     mockS3Send.mockRejectedValueOnce(new Error("NoSuchBucket"));
     const enrichedScript = buildValidEnrichedScript();
-
-    // When
-    const result = await uploadEnrichedScriptToS3(
+    const layer = createStorageServiceLive(
       "video-factory",
+      "tts-worker/audio.wav",
       "tts-worker/script.json",
-      enrichedScript,
     );
 
-    // Then
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("PUT_OBJECT_ERROR");
-      expect(result.error.message).toContain("NoSuchBucket");
+    const result = await Effect.runPromise(
+      Effect.result(
+        Effect.gen(function* () {
+          const storage = yield* StorageService;
+          return yield* storage.uploadEnrichedScript(enrichedScript);
+        }).pipe(Effect.provide(layer)),
+      ),
+    );
+
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3PutObjectError");
+      expect(result.failure.message).toContain("NoSuchBucket");
     }
   });
 
   it("uploads with ContentType: application/json", async () => {
-    // Given
     mockS3Send.mockResolvedValueOnce({});
     const enrichedScript = buildValidEnrichedScript();
-
-    // When
-    await uploadEnrichedScriptToS3(
+    const layer = createStorageServiceLive(
       "video-factory",
+      "tts-worker/audio.wav",
       "tts-worker/script.json",
-      enrichedScript,
     );
 
-    // Then — PutObjectCommand was called with correct ContentType
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const storage = yield* StorageService;
+        return yield* storage.uploadEnrichedScript(enrichedScript);
+      }).pipe(Effect.provide(layer)),
+    );
+
     expect(mockS3Send).toHaveBeenCalledWith(
       expect.objectContaining({ ContentType: "application/json" }),
     );
   });
 
   it("JSON-serializes the EnrichedScript as the request body", async () => {
-    // Given
     mockS3Send.mockResolvedValueOnce({});
     const enrichedScript = buildValidEnrichedScript();
-
-    // When
-    await uploadEnrichedScriptToS3(
+    const layer = createStorageServiceLive(
       "video-factory",
+      "tts-worker/audio.wav",
       "tts-worker/script.json",
-      enrichedScript,
     );
 
-    // Then — Body contains the JSON-serialized EnrichedScript
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const storage = yield* StorageService;
+        return yield* storage.uploadEnrichedScript(enrichedScript);
+      }).pipe(Effect.provide(layer)),
+    );
+
     const callArgs = mockS3Send.mock.calls[0]?.[0] as {
       Body: Buffer;
       [key: string]: unknown;
     };
     expect(callArgs).toBeDefined();
-    const parsed = JSON.parse(callArgs.Body.toString());
+    const parsed = JSON.parse(callArgs.Body.toString()) as {
+      title: string;
+      totalDurationSec: number;
+    };
     expect(parsed.title).toBe(enrichedScript.title);
     expect(parsed.totalDurationSec).toBe(enrichedScript.totalDurationSec);
   });
 
-  it("calls PutObjectCommand with the correct Bucket and Key", async () => {
-    // Given
+  it("calls PutObjectCommand with the correct Bucket and Key (outputScriptKey)", async () => {
     mockS3Send.mockResolvedValueOnce({});
     const enrichedScript = buildValidEnrichedScript();
-
-    // When
-    await uploadEnrichedScriptToS3(
+    const layer = createStorageServiceLive(
       "video-factory",
-      "tts-worker/script.json",
-      enrichedScript,
+      "tts-worker/audio.wav",
+      "tts-worker/enriched.json",
     );
 
-    // Then
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const storage = yield* StorageService;
+        return yield* storage.uploadEnrichedScript(enrichedScript);
+      }).pipe(Effect.provide(layer)),
+    );
+
     expect(mockS3Send).toHaveBeenCalledWith(
       expect.objectContaining({
         Bucket: "video-factory",
-        Key: "tts-worker/script.json",
+        Key: "tts-worker/enriched.json",
       }),
     );
   });

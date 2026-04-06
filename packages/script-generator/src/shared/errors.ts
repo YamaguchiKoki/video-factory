@@ -1,2 +1,1 @@
-export const toError = (e: unknown): Error =>
-  e instanceof Error ? e : new Error(String(e));
+export { toError } from "@video-factory/shared";

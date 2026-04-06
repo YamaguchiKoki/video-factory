@@ -1,17 +1,89 @@
-export type VoicevoxError = {
-  readonly type: "AUDIO_QUERY_ERROR" | "SYNTHESIS_ERROR";
-  readonly message: string;
-};
+import { Schema } from "effect";
 
-export type WavError = {
-  readonly type: "INVALID_HEADER" | "FORMAT_MISMATCH" | "EMPTY_INPUT";
-  readonly message: string;
-};
+// ============================================
+// Voicevox Errors
+// ============================================
 
-export type S3Error = {
-  readonly type: "GET_OBJECT_ERROR" | "PUT_OBJECT_ERROR" | "VALIDATION_ERROR";
-  readonly message: string;
-};
+export class AudioQueryError extends Schema.TaggedErrorClass<AudioQueryError>()(
+  "AudioQueryError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-export const toError = (e: unknown): Error =>
-  e instanceof Error ? e : new Error(String(e));
+export class SynthesisError extends Schema.TaggedErrorClass<SynthesisError>()(
+  "SynthesisError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
+
+export type VoicevoxError = AudioQueryError | SynthesisError;
+
+// ============================================
+// WAV Errors
+// ============================================
+
+export class InvalidHeaderError extends Schema.TaggedErrorClass<InvalidHeaderError>()(
+  "InvalidHeaderError",
+  {
+    message: Schema.String,
+  },
+) {}
+
+export class FormatMismatchError extends Schema.TaggedErrorClass<FormatMismatchError>()(
+  "FormatMismatchError",
+  {
+    message: Schema.String,
+  },
+) {}
+
+export class EmptyInputError extends Schema.TaggedErrorClass<EmptyInputError>()(
+  "EmptyInputError",
+  {
+    message: Schema.String,
+  },
+) {}
+
+export type WavError =
+  | InvalidHeaderError
+  | FormatMismatchError
+  | EmptyInputError;
+
+// ============================================
+// S3 Errors
+// ============================================
+
+export class S3GetObjectError extends Schema.TaggedErrorClass<S3GetObjectError>()(
+  "S3GetObjectError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
+
+export class S3PutObjectError extends Schema.TaggedErrorClass<S3PutObjectError>()(
+  "S3PutObjectError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
+
+export class S3ValidationError extends Schema.TaggedErrorClass<S3ValidationError>()(
+  "S3ValidationError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
+
+export type S3Error = S3GetObjectError | S3PutObjectError | S3ValidationError;
+
+// ============================================
+// Env Error
+// ============================================
+
+export { EnvValidationError } from "@video-factory/shared";
