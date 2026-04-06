@@ -7,7 +7,7 @@ Bedrock + Tavily でニュースラジオ用スクリプトを生成する Lambd
 - **本番**: Lambda (Docker image) — Step Functions から呼び出し
 - **エントリポイント**:
   - `src/entrypoints/lambda.ts` — Lambda handler (esbuild でバンドル)
-  - `src/entrypoints/docker.ts` — Docker compose 用 (S3 アップロード付き)
+  - `src/entrypoints/docker-runner.ts` — Docker compose 用 (S3 アップロード付き)
   - `src/entrypoints/local.ts` — ローカル開発用 (stdout 出力)
 
 ## ローカル実行
