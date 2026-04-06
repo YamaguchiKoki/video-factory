@@ -1,17 +1,30 @@
 // Tests for the TTS pipeline (pipeline.ts).
 //
 // Design contract:
-//   runPipeline(storage: StorageDeps, scriptKey: string): ResultAsync<EnrichedScript, PipelineError>
+//   runPipeline(scriptKey): Effect<EnrichedScript, PipelineError, StorageService | VoicevoxService>
 //   PipelineError = VoicevoxError | S3Error | WavError
 
-import { err, errAsync, ok, okAsync } from "neverthrow";
+import { Effect, Layer, Result } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  AudioQueryError,
+  EmptyInputError,
+  FormatMismatchError,
+  InvalidHeaderError,
+  type S3Error,
+  S3GetObjectError,
+  S3PutObjectError,
+  SynthesisError,
+  type VoicevoxError,
+} from "../errors";
+import { runPipeline } from "../pipeline";
+import type { EnrichedScript, Script } from "../schema";
+import { StorageService } from "../storage";
+import { type VoicevoxAudioQuery, VoicevoxService } from "../voicevox";
 
-// All external side-effects are mocked so no network or AWS calls occur.
-vi.mock("../voicevox", () => ({
-  audioQuery: vi.fn(),
-  synthesis: vi.fn(),
-}));
+// ============================================
+// Mock direct imports in pipeline (non-service functions)
+// ============================================
 
 vi.mock("../wav", () => ({
   getWavDurationSec: vi.fn(),
@@ -23,22 +36,17 @@ vi.mock("../speaker", () => ({
   SPEAKER_IDS: { A: 0, B: 1 },
 }));
 
-import { runPipeline } from "../pipeline";
-import type { Script } from "../schema";
 import { getSpeakerId } from "../speaker";
-import type { StorageDeps } from "../storage";
-import { audioQuery, synthesis } from "../voicevox";
 import { concatenateWavs, getWavDurationSec } from "../wav";
 
 // ============================================
-// Minimal valid script fixture
-// 13 lines total:
+// Minimal valid script fixture (13 lines total)
 //   intro:         greeting(1) + newsOverview(1)             =  2
 //   discussion×3:  3 discussions × 3 blocks × 1 line each   =  9
 //   outro:         recap(1) + closing(1)                     =  2
 // ============================================
 
-const MINIMAL_SCRIPT = {
+const MINIMAL_SCRIPT: Script = {
   title: "テストラジオ 2026年3月21日号",
   newsItems: [
     { id: "news-1", title: "ニュース1" },
@@ -109,30 +117,81 @@ const MOCK_WAV = new ArrayBuffer(100);
 const MOCK_COMBINED_WAV = new ArrayBuffer(1000);
 const MOCK_OUTPUT_KEY = "audio/2026-03-21/テストラジオ 2026年3月21日号.wav";
 
-const createMockStorage = (): StorageDeps => ({
-  getScript: vi
-    .fn()
-    .mockReturnValue(okAsync(MINIMAL_SCRIPT as unknown as Script)),
-  uploadWav: vi.fn().mockReturnValue(okAsync(undefined)),
-  uploadEnrichedScript: vi.fn().mockReturnValue(okAsync(undefined)),
-  buildOutputKey: vi.fn().mockReturnValue(MOCK_OUTPUT_KEY),
+// ============================================
+// Helper: mock service implementations
+// Explicit return type annotations prevent TypeScript from inferring narrow Effect error types
+// ============================================
+
+const createMockStorageImpl = () => ({
+  getScript: vi.fn(
+    (_key: string): Effect.Effect<Script, S3Error> =>
+      Effect.succeed(MINIMAL_SCRIPT),
+  ),
+  uploadWav: vi.fn(
+    (_key: string, _data: ArrayBuffer): Effect.Effect<void, S3Error> =>
+      Effect.succeed(undefined),
+  ),
+  uploadEnrichedScript: vi.fn(
+    (_data: EnrichedScript): Effect.Effect<void, S3Error> =>
+      Effect.succeed(undefined),
+  ),
+  buildOutputKey: vi.fn(
+    (_date: string, _title: string): string => MOCK_OUTPUT_KEY,
+  ),
 });
+
+const createMockVoicevoxImpl = () => ({
+  audioQuery: vi.fn(
+    (
+      _text: string,
+      _speakerId: number,
+    ): Effect.Effect<VoicevoxAudioQuery, VoicevoxError> =>
+      Effect.succeed(MOCK_QUERY_OBJ as VoicevoxAudioQuery),
+  ),
+  synthesis: vi.fn(
+    (
+      _speakerId: number,
+      _query: VoicevoxAudioQuery,
+    ): Effect.Effect<ArrayBuffer, VoicevoxError> => Effect.succeed(MOCK_WAV),
+  ),
+});
+
+type MockStorage = ReturnType<typeof createMockStorageImpl>;
+type MockVoicevox = ReturnType<typeof createMockVoicevoxImpl>;
+
+const buildTestLayer = (storage: MockStorage, voicevox: MockVoicevox) =>
+  Layer.merge(
+    Layer.succeed(StorageService, storage),
+    Layer.succeed(VoicevoxService, voicevox),
+  );
+
+const runPipelineWith = (
+  key: string,
+  storage: MockStorage,
+  voicevox: MockVoicevox,
+) =>
+  Effect.runPromise(
+    runPipeline(key).pipe(Effect.provide(buildTestLayer(storage, voicevox))),
+  );
+
+const runPipelineWithResult = (
+  key: string,
+  storage: MockStorage,
+  voicevox: MockVoicevox,
+) =>
+  Effect.runPromise(
+    Effect.result(
+      runPipeline(key).pipe(Effect.provide(buildTestLayer(storage, voicevox))),
+    ),
+  );
 
 // ============================================
 // Setup / Teardown
 // ============================================
 
-let mockStorage: StorageDeps;
-
 beforeEach(() => {
-  vi.clearAllMocks();
-
-  mockStorage = createMockStorage();
-
-  vi.mocked(audioQuery).mockReturnValue(okAsync(MOCK_QUERY_OBJ));
-  vi.mocked(synthesis).mockReturnValue(okAsync(MOCK_WAV));
-  vi.mocked(getWavDurationSec).mockReturnValue(ok(1.5));
-  vi.mocked(concatenateWavs).mockReturnValue(ok(MOCK_COMBINED_WAV));
+  vi.mocked(getWavDurationSec).mockReturnValue(Effect.succeed(1.5));
+  vi.mocked(concatenateWavs).mockReturnValue(Effect.succeed(MOCK_COMBINED_WAV));
   vi.mocked(getSpeakerId).mockImplementation((speaker: "A" | "B") =>
     speaker === "A" ? 0 : 1,
   );
@@ -147,224 +206,277 @@ afterEach(() => {
 // ============================================
 
 describe("runPipeline — success", () => {
-  it("returns Ok with an EnrichedScript", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
+  it("resolves with an EnrichedScript", async () => {
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(enrichedScript).toBeDefined();
   });
 
-  it("returns Ok with the correct title from the script", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.title).toBe(MINIMAL_SCRIPT.title);
-    }
+  it("returns the correct title from the script", async () => {
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(enrichedScript.title).toBe(MINIMAL_SCRIPT.title);
   });
 
-  it("returns Ok with totalDurationSec equal to the sum of all line durations", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.totalDurationSec).toBeCloseTo(13 * 1.5, 5);
-    }
+  it("returns totalDurationSec equal to the sum of all line durations (13 × 1.5)", async () => {
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(enrichedScript.totalDurationSec).toBeCloseTo(13 * 1.5, 5);
   });
 
-  it("returns Ok with outputWavS3Key set to the value returned by buildOutputKey", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.outputWavS3Key).toBe(MOCK_OUTPUT_KEY);
-    }
+  it("returns outputWavS3Key equal to the value returned by buildOutputKey", async () => {
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(enrichedScript.outputWavS3Key).toBe(MOCK_OUTPUT_KEY);
   });
 
-  it("returns Ok with 5 sections in the correct type order", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.sections).toHaveLength(5);
-      expect(result.value.sections[0]?.type).toBe("intro");
-      expect(result.value.sections[1]?.type).toBe("discussion");
-      expect(result.value.sections[2]?.type).toBe("discussion");
-      expect(result.value.sections[3]?.type).toBe("discussion");
-      expect(result.value.sections[4]?.type).toBe("outro");
-    }
+  it("returns 5 sections in the correct type order", async () => {
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(enrichedScript.sections).toHaveLength(5);
+    expect(enrichedScript.sections[0]?.type).toBe("intro");
+    expect(enrichedScript.sections[1]?.type).toBe("discussion");
+    expect(enrichedScript.sections[2]?.type).toBe("discussion");
+    expect(enrichedScript.sections[3]?.type).toBe("discussion");
+    expect(enrichedScript.sections[4]?.type).toBe("outro");
   });
 
   it("preserves newsItems from the original script", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.newsItems).toEqual(MINIMAL_SCRIPT.newsItems);
-    }
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(enrichedScript.newsItems).toEqual(MINIMAL_SCRIPT.newsItems);
   });
 
   it("calls storage.getScript with the provided key", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(mockStorage.getScript).toHaveBeenCalledWith(
+    const storage = createMockStorageImpl();
+    await runPipelineWith(
       "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
     );
+    expect(storage.getScript).toHaveBeenCalledWith("scripts/2026-03-21.json");
   });
 
   it("calls storage.uploadWav with the output key and combined WAV buffer", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(mockStorage.uploadWav).toHaveBeenCalledWith(
+    const storage = createMockStorageImpl();
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(storage.uploadWav).toHaveBeenCalledWith(
       MOCK_OUTPUT_KEY,
       MOCK_COMBINED_WAV,
     );
   });
 
   it("calls audioQuery once per line in the script (13 lines total)", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(vi.mocked(audioQuery)).toHaveBeenCalledTimes(13);
+    const voicevox = createMockVoicevoxImpl();
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      voicevox,
+    );
+    expect(voicevox.audioQuery).toHaveBeenCalledTimes(13);
   });
 
   it("calls synthesis once per line in the script (13 lines total)", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(vi.mocked(synthesis)).toHaveBeenCalledTimes(13);
+    const voicevox = createMockVoicevoxImpl();
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      voicevox,
+    );
+    expect(voicevox.synthesis).toHaveBeenCalledTimes(13);
   });
 
   it("calls storage.buildOutputKey with the date extracted from the key", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(mockStorage.buildOutputKey).toHaveBeenCalledWith(
+    const storage = createMockStorageImpl();
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(storage.buildOutputKey).toHaveBeenCalledWith(
       "2026-03-21",
       MINIMAL_SCRIPT.title,
     );
   });
 
   it("accumulates offsets sequentially: second line offset equals first line duration", async () => {
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      const intro = result.value.sections[0];
-      if (intro?.type === "intro") {
-        expect(intro.greeting[0]?.offsetSec).toBeCloseTo(0, 5);
-        expect(intro.newsOverview[0]?.offsetSec).toBeCloseTo(1.5, 5);
-      }
+    const enrichedScript = await runPipelineWith(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    const intro = enrichedScript.sections[0];
+    if (intro?.type === "intro") {
+      expect(intro.greeting[0]?.offsetSec).toBeCloseTo(0, 5);
+      expect(intro.newsOverview[0]?.offsetSec).toBeCloseTo(1.5, 5);
     }
   });
 });
 
 // ============================================
-// runPipeline — error cases (returns Err, never throws)
+// runPipeline — error cases (fails, never throws)
 // ============================================
 
 describe("runPipeline — errors", () => {
-  it("returns Err when storage.getScript fails", async () => {
-    const storage = {
-      ...mockStorage,
-      getScript: vi
-        .fn()
-        .mockReturnValue(
-          errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
-        ),
-    };
-
-    const result = await runPipeline(storage, "scripts/2026-03-21.json");
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("GET_OBJECT_ERROR");
-    }
-  });
-
-  it("returns Err when audioQuery fails", async () => {
-    vi.mocked(audioQuery).mockReturnValueOnce(
-      errAsync({
-        type: "AUDIO_QUERY_ERROR" as const,
-        message: "VOICEVOX unreachable",
-      }),
-    );
-
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("AUDIO_QUERY_ERROR");
-    }
-  });
-
-  it("returns Err when synthesis fails", async () => {
-    vi.mocked(synthesis).mockReturnValueOnce(
-      errAsync({
-        type: "SYNTHESIS_ERROR" as const,
-        message: "Synthesis failed",
-      }),
-    );
-
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("SYNTHESIS_ERROR");
-    }
-  });
-
-  it("returns Err when getWavDurationSec fails", async () => {
-    vi.mocked(getWavDurationSec).mockReturnValueOnce(
-      err({ type: "INVALID_HEADER" as const, message: "Invalid WAV header" }),
-    );
-
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("INVALID_HEADER");
-    }
-  });
-
-  it("returns Err when concatenateWavs fails", async () => {
-    vi.mocked(concatenateWavs).mockReturnValue(
-      err({ type: "EMPTY_INPUT" as const, message: "No WAV buffers" }),
-    );
-
-    const result = await runPipeline(mockStorage, "scripts/2026-03-21.json");
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("EMPTY_INPUT");
-    }
-  });
-
-  it("returns Err when storage.uploadWav fails", async () => {
-    const storage = {
-      ...mockStorage,
-      uploadWav: vi.fn().mockReturnValue(
-        errAsync({
-          type: "PUT_OBJECT_ERROR" as const,
-          message: "Upload failed",
-        }),
+  it("fails when storage.getScript fails", async () => {
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      getScript: vi.fn(
+        (_key: string): Effect.Effect<Script, S3Error> =>
+          Effect.fail(new S3GetObjectError({ message: "NoSuchKey" })),
       ),
     };
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3GetObjectError");
+    }
+  });
 
-    const result = await runPipeline(storage, "scripts/2026-03-21.json");
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("PUT_OBJECT_ERROR");
+  it("fails when audioQuery fails", async () => {
+    const voicevox: MockVoicevox = {
+      ...createMockVoicevoxImpl(),
+      audioQuery: vi.fn(
+        (
+          _text: string,
+          _speakerId: number,
+        ): Effect.Effect<VoicevoxAudioQuery, VoicevoxError> =>
+          Effect.fail(new AudioQueryError({ message: "VOICEVOX unreachable" })),
+      ),
+    };
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      voicevox,
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("AudioQueryError");
+    }
+  });
+
+  it("fails when synthesis fails", async () => {
+    const voicevox: MockVoicevox = {
+      ...createMockVoicevoxImpl(),
+      synthesis: vi.fn(
+        (
+          _speakerId: number,
+          _query: unknown,
+        ): Effect.Effect<ArrayBuffer, VoicevoxError> =>
+          Effect.fail(new SynthesisError({ message: "Synthesis failed" })),
+      ),
+    };
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      voicevox,
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("SynthesisError");
+    }
+  });
+
+  it("fails when getWavDurationSec fails", async () => {
+    vi.mocked(getWavDurationSec).mockReturnValueOnce(
+      Effect.fail(new InvalidHeaderError({ message: "Invalid WAV header" })),
+    );
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("InvalidHeaderError");
+    }
+  });
+
+  it("fails when concatenateWavs fails", async () => {
+    vi.mocked(concatenateWavs).mockReturnValue(
+      Effect.fail(new EmptyInputError({ message: "No WAV buffers" })),
+    );
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      createMockStorageImpl(),
+      createMockVoicevoxImpl(),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("EmptyInputError");
+    }
+  });
+
+  it("fails when storage.uploadWav fails", async () => {
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      uploadWav: vi.fn(
+        (_key: string, _data: ArrayBuffer): Effect.Effect<void, S3Error> =>
+          Effect.fail(new S3PutObjectError({ message: "Upload failed" })),
+      ),
+    };
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3PutObjectError");
     }
   });
 
   it("short-circuits and skips TTS calls when script fetch fails", async () => {
-    const storage = {
-      ...mockStorage,
-      getScript: vi.fn().mockReturnValue(
-        errAsync({
-          type: "GET_OBJECT_ERROR" as const,
-          message: "Bucket not found",
-        }),
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      getScript: vi.fn(
+        (_key: string): Effect.Effect<Script, S3Error> =>
+          Effect.fail(new S3GetObjectError({ message: "Bucket not found" })),
       ),
     };
-
-    await runPipeline(storage, "scripts/2026-03-21.json");
-
-    expect(vi.mocked(audioQuery)).not.toHaveBeenCalled();
-    expect(vi.mocked(synthesis)).not.toHaveBeenCalled();
+    const voicevox = createMockVoicevoxImpl();
+    await runPipelineWithResult("scripts/2026-03-21.json", storage, voicevox);
+    expect(voicevox.audioQuery).not.toHaveBeenCalled();
+    expect(voicevox.synthesis).not.toHaveBeenCalled();
   });
 
-  it("does not upload when WAV concatenation fails", async () => {
+  it("does not upload WAV when concatenation fails", async () => {
     vi.mocked(concatenateWavs).mockReturnValue(
-      err({
-        type: "FORMAT_MISMATCH" as const,
-        message: "Incompatible formats",
-      }),
+      Effect.fail(new FormatMismatchError({ message: "Incompatible formats" })),
     );
-
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-
-    expect(mockStorage.uploadWav).not.toHaveBeenCalled();
+    const storage = createMockStorageImpl();
+    await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(storage.uploadWav).not.toHaveBeenCalled();
   });
 });
 
@@ -374,16 +486,24 @@ describe("runPipeline — errors", () => {
 
 describe("runPipeline — uploadEnrichedScript integration", () => {
   it("calls storage.uploadEnrichedScript after uploadWav on success", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-
-    expect(mockStorage.uploadWav).toHaveBeenCalledTimes(1);
-    expect(mockStorage.uploadEnrichedScript).toHaveBeenCalledTimes(1);
+    const storage = createMockStorageImpl();
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(storage.uploadWav).toHaveBeenCalledTimes(1);
+    expect(storage.uploadEnrichedScript).toHaveBeenCalledTimes(1);
   });
 
   it("calls uploadEnrichedScript with the assembled EnrichedScript", async () => {
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-
-    expect(mockStorage.uploadEnrichedScript).toHaveBeenCalledWith(
+    const storage = createMockStorageImpl();
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(storage.uploadEnrichedScript).toHaveBeenCalledWith(
       expect.objectContaining({
         title: MINIMAL_SCRIPT.title,
         outputWavS3Key: MOCK_OUTPUT_KEY,
@@ -393,80 +513,92 @@ describe("runPipeline — uploadEnrichedScript integration", () => {
 
   it("calls uploadEnrichedScript AFTER uploadWav (ordering constraint)", async () => {
     const callOrder: string[] = [];
-    vi.mocked(mockStorage.uploadWav).mockImplementation(() => {
-      callOrder.push("uploadWav");
-      return okAsync(undefined);
-    });
-    vi.mocked(mockStorage.uploadEnrichedScript).mockImplementation(() => {
-      callOrder.push("uploadEnrichedScript");
-      return okAsync(undefined);
-    });
-
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      uploadWav: vi.fn(
+        (_key: string, _data: ArrayBuffer): Effect.Effect<void, S3Error> => {
+          callOrder.push("uploadWav");
+          return Effect.succeed(undefined);
+        },
+      ),
+      uploadEnrichedScript: vi.fn(
+        (_data: EnrichedScript): Effect.Effect<void, S3Error> => {
+          callOrder.push("uploadEnrichedScript");
+          return Effect.succeed(undefined);
+        },
+      ),
+    };
+    await runPipelineWith(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
     expect(callOrder).toEqual(["uploadWav", "uploadEnrichedScript"]);
   });
 
-  it("returns Err when uploadEnrichedScript fails", async () => {
-    const storage = {
-      ...mockStorage,
-      uploadEnrichedScript: vi.fn().mockReturnValue(
-        errAsync({
-          type: "PUT_OBJECT_ERROR" as const,
-          message: "Enriched script upload failed",
-        }),
+  it("fails when uploadEnrichedScript fails", async () => {
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      uploadEnrichedScript: vi.fn(
+        (_data: EnrichedScript): Effect.Effect<void, S3Error> =>
+          Effect.fail(
+            new S3PutObjectError({ message: "Enriched script upload failed" }),
+          ),
       ),
     };
-
-    const result = await runPipeline(storage, "scripts/2026-03-21.json");
-
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("PUT_OBJECT_ERROR");
+    const result = await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3PutObjectError");
     }
   });
 
   it("does not call uploadEnrichedScript when uploadWav fails", async () => {
-    const storage = {
-      ...mockStorage,
-      uploadWav: vi.fn().mockReturnValue(
-        errAsync({
-          type: "PUT_OBJECT_ERROR" as const,
-          message: "WAV upload failed",
-        }),
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      uploadWav: vi.fn(
+        (_key: string, _data: ArrayBuffer): Effect.Effect<void, S3Error> =>
+          Effect.fail(new S3PutObjectError({ message: "WAV upload failed" })),
       ),
     };
-
-    await runPipeline(storage, "scripts/2026-03-21.json");
-
+    await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
     expect(storage.uploadEnrichedScript).not.toHaveBeenCalled();
   });
 
   it("does not call uploadEnrichedScript when WAV concatenation fails", async () => {
     vi.mocked(concatenateWavs).mockReturnValue(
-      err({
-        type: "FORMAT_MISMATCH" as const,
-        message: "Incompatible formats",
-      }),
+      Effect.fail(new FormatMismatchError({ message: "Incompatible formats" })),
     );
-
-    await runPipeline(mockStorage, "scripts/2026-03-21.json");
-
-    expect(mockStorage.uploadEnrichedScript).not.toHaveBeenCalled();
+    const storage = createMockStorageImpl();
+    await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
+    expect(storage.uploadEnrichedScript).not.toHaveBeenCalled();
   });
 
   it("does not call uploadEnrichedScript when script fetch fails", async () => {
-    const storage = {
-      ...mockStorage,
-      getScript: vi
-        .fn()
-        .mockReturnValue(
-          errAsync({ type: "GET_OBJECT_ERROR" as const, message: "NoSuchKey" }),
-        ),
+    const storage: MockStorage = {
+      ...createMockStorageImpl(),
+      getScript: vi.fn(
+        (_key: string): Effect.Effect<Script, S3Error> =>
+          Effect.fail(new S3GetObjectError({ message: "NoSuchKey" })),
+      ),
     };
-
-    await runPipeline(storage, "scripts/2026-03-21.json");
-
+    await runPipelineWithResult(
+      "scripts/2026-03-21.json",
+      storage,
+      createMockVoicevoxImpl(),
+    );
     expect(storage.uploadEnrichedScript).not.toHaveBeenCalled();
   });
 });

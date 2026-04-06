@@ -1,8 +1,6 @@
 import { createStep } from "@mastra/core/workflows";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { err, fromPromise, ok, safeTry } from "neverthrow";
-import { toError } from "../../shared/errors";
 import { TOPIC_SELECTION_AGENT_ID } from "./agent";
 import type { WorkflowInput } from "./schema";
 import { TopicsOutputSchema, WorkflowInputSchema } from "./schema";
@@ -12,23 +10,17 @@ export const topicSelectionStep = createStep({
   inputSchema: WorkflowInputSchema,
   outputSchema: TopicsOutputSchema,
   execute: async ({ inputData, mastra }) => {
-    const result = await safeTry(async function* () {
-      const agent = mastra.getAgent(TOPIC_SELECTION_AGENT_ID);
-      if (!agent)
-        return err(new Error(`${TOPIC_SELECTION_AGENT_ID} not found`));
+    const agent = mastra.getAgent(TOPIC_SELECTION_AGENT_ID);
+    if (!agent) throw new Error(`${TOPIC_SELECTION_AGENT_ID} not found`);
 
-      const response = yield* fromPromise(
-        agent.generate(buildTopicSelectionPrompt(inputData), {
-          structuredOutput: { schema: TopicsOutputSchema },
-        }),
-        toError,
-      );
+    const response = await agent.generate(
+      buildTopicSelectionPrompt(inputData),
+      {
+        structuredOutput: { schema: TopicsOutputSchema },
+      },
+    );
 
-      return ok(response.object);
-    });
-
-    if (result.isErr()) throw result.error;
-    return result.value;
+    return response.object;
   },
 });
 

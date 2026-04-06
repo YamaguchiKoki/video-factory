@@ -9,11 +9,7 @@ describe("Package Configuration", () => {
       expect(packageJson.dependencies).toHaveProperty("remotion");
     });
 
-    it("should include neverthrow for Railway Oriented Programming", () => {
-      expect(packageJson.dependencies).toHaveProperty("neverthrow");
-    });
-
-    it("should include zod for validation", () => {
+    it("should include zod for Remotion schema validation", () => {
       expect(packageJson.dependencies).toHaveProperty("zod");
     });
 

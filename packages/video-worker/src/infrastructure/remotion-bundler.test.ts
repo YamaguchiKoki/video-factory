@@ -1,5 +1,5 @@
+import { Effect, Result } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { RenderError } from "../core/errors";
 import { bundleComposition } from "./remotion-bundler";
 
 // ---------------------------------------------------------------------------
@@ -11,6 +11,13 @@ vi.mock("@remotion/bundler", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Helper
+// ---------------------------------------------------------------------------
+
+const run = (entryPoint: string, publicDir: string) =>
+  Effect.runPromise(Effect.result(bundleComposition(entryPoint, publicDir)));
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -20,19 +27,19 @@ describe("bundleComposition", () => {
   });
 
   describe("正常系", () => {
-    it("bundle() 成功時に Ok(bundleUrl) を返す", async () => {
+    it("bundle() 成功時に Success(bundleUrl) を返す", async () => {
       const { bundle } = await import("@remotion/bundler");
       const bundleUrl = "http://localhost:3000/bundle/index.html";
       vi.mocked(bundle).mockResolvedValue(bundleUrl);
 
-      const result = await bundleComposition(
+      const result = await run(
         "/path/to/src/remotion/index.ts",
         "/path/to/public",
       );
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.value).toBe(bundleUrl);
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(result.success).toBe(bundleUrl);
       }
     });
 
@@ -43,7 +50,7 @@ describe("bundleComposition", () => {
       const entryPoint = "/app/src/remotion/index.ts";
       const publicDir = "/app/public";
 
-      await bundleComposition(entryPoint, publicDir);
+      await run(entryPoint, publicDir);
 
       expect(bundle).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -57,29 +64,28 @@ describe("bundleComposition", () => {
       const { bundle } = await import("@remotion/bundler");
       vi.mocked(bundle).mockResolvedValue("/tmp/remotion-bundle-12345");
 
-      const result = await bundleComposition("/entry.ts", "/public");
+      const result = await run("/entry.ts", "/public");
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(typeof result.value).toBe("string");
-        expect(result.value.length).toBeGreaterThan(0);
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(typeof result.success).toBe("string");
+        expect(result.success.length).toBeGreaterThan(0);
       }
     });
   });
 
   describe("異常系", () => {
-    it("bundle() がエラーをスローしたとき Err(RenderError) を返す", async () => {
+    it("bundle() がエラーをスローしたとき Failure(RenderError) を返す", async () => {
       const { bundle } = await import("@remotion/bundler");
       const originalError = new Error("Webpack build failed");
       vi.mocked(bundle).mockRejectedValue(originalError);
 
-      const result = await bundleComposition("/entry.ts", "/public");
+      const result = await run("/entry.ts", "/public");
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        const error: RenderError = result.error;
-        expect(error.type).toBe("RENDER_FAILED");
-        expect(error.cause).toBe(originalError);
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure._tag).toBe("RenderError");
+        expect(result.failure.cause).toBe(originalError);
       }
     });
 
@@ -87,23 +93,23 @@ describe("bundleComposition", () => {
       const { bundle } = await import("@remotion/bundler");
       vi.mocked(bundle).mockRejectedValue(new Error("Module not found: react"));
 
-      const result = await bundleComposition("/entry.ts", "/public");
+      const result = await run("/entry.ts", "/public");
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.message).toContain("Module not found");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.message).toContain("Module not found");
       }
     });
 
-    it("Error インスタンス以外のスローでも Err を返す", async () => {
+    it("Error インスタンス以外のスローでも Failure を返す", async () => {
       const { bundle } = await import("@remotion/bundler");
       vi.mocked(bundle).mockRejectedValue("string error");
 
-      const result = await bundleComposition("/entry.ts", "/public");
+      const result = await run("/entry.ts", "/public");
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("RENDER_FAILED");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure._tag).toBe("RenderError");
       }
     });
   });

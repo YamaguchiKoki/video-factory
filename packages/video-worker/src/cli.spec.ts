@@ -1,118 +1,50 @@
-// Tests for the Docker CLI entry point (cli.ts) using commander.
+// Tests for the Docker CLI entry point (cli.ts).
 //
 // Design contract:
 //   DEFAULT_SCRIPT_KEY = "tts-worker/script.json"
 //   DEFAULT_AUDIO_KEY  = "tts-worker/audio.wav"
 //   DEFAULT_OUTPUT_KEY = "video-worker/video.mp4"
 //
-//   createProgram(): Command
+//   createMainProgram(opts): Effect<void, ...>
 
-import { errAsync, okAsync } from "neverthrow";
+import { Effect, Result } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
-// Mock ./infrastructure
+// Mock ./deps
 // ============================================
 
 const {
-  mockCreateTempDir,
-  mockCleanupTempDir,
-  mockCreateRenderVideo,
-  mockBundleComposition,
-  mockReadFile,
-} = vi.hoisted(() => ({
-  mockCreateTempDir: vi.fn(),
-  mockCleanupTempDir: vi.fn(),
-  mockCreateRenderVideo: vi.fn(),
-  mockBundleComposition: vi.fn(),
-  mockReadFile: vi.fn(),
-}));
+  mockRenderWorkflow,
+  mockCreateRenderVideoWorkflow,
+  mockCreateDockerDeps,
+} = vi.hoisted(() => {
+  const mockRenderWorkflow = vi.fn();
+  return {
+    mockRenderWorkflow,
+    mockCreateRenderVideoWorkflow: vi.fn(() => mockRenderWorkflow),
+    mockCreateDockerDeps: vi.fn(),
+  };
+});
 
-vi.mock("./infrastructure", () => ({
-  createTempDir: mockCreateTempDir,
-  cleanupTempDir: mockCleanupTempDir,
-  createRenderVideo: mockCreateRenderVideo,
-  bundleComposition: mockBundleComposition,
-  readFile: mockReadFile,
-}));
-
-// ============================================
-// Mock ./infrastructure/logger
-// ============================================
-
-const { mockCreateLogger } = vi.hoisted(() => ({
-  mockCreateLogger: vi.fn(),
-}));
-
-vi.mock("./infrastructure/logger", () => ({
-  createLogger: mockCreateLogger,
+vi.mock("./deps", () => ({
+  createDockerDeps: mockCreateDockerDeps,
 }));
 
 // ============================================
 // Mock ./service/video-service
 // ============================================
 
-const { mockRenderWorkflow, mockCreateRenderVideoWorkflow } = vi.hoisted(() => {
-  const mockRenderWorkflow = vi.fn();
-  return {
-    mockRenderWorkflow,
-    mockCreateRenderVideoWorkflow: vi.fn(() => mockRenderWorkflow),
-  };
-});
-
 vi.mock("./service/video-service", () => ({
   createRenderVideoWorkflow: mockCreateRenderVideoWorkflow,
 }));
 
-// ============================================
-// Mock ./infrastructure/s3
-// ============================================
-
-const { mockCreateS3Client, mockDownloadToFile, mockUploadFromFile } =
-  vi.hoisted(() => ({
-    mockCreateS3Client: vi.fn(),
-    mockDownloadToFile: vi.fn(),
-    mockUploadFromFile: vi.fn(),
-  }));
-
-vi.mock("./infrastructure/s3", () => ({
-  createS3Client: mockCreateS3Client,
-  downloadToFile: mockDownloadToFile,
-  uploadFromFile: mockUploadFromFile,
-}));
-
-// ============================================
-// Mock ./core/enriched-parser
-// ============================================
-
-vi.mock("./core/enriched-parser", () => ({
-  parseEnrichedScript: vi.fn(),
-}));
-
 import {
-  createProgram,
+  createMainProgram,
   DEFAULT_AUDIO_KEY,
   DEFAULT_OUTPUT_KEY,
   DEFAULT_SCRIPT_KEY,
 } from "./cli";
-
-// ============================================
-// Test data
-// ============================================
-
-const videoServiceError = {
-  type: "RENDER_ERROR" as const,
-  message: "render failed",
-  cause: null,
-  context: {},
-};
-
-// ============================================
-// Helper
-// ============================================
-
-const runProgram = (...args: ReadonlyArray<string>) =>
-  createProgram().parseAsync(["node", "cli.ts", ...args]);
 
 // ============================================
 // Constant assertions
@@ -137,10 +69,10 @@ describe("DEFAULT_OUTPUT_KEY", () => {
 });
 
 // ============================================
-// createProgram — commander CLI
+// createMainProgram
 // ============================================
 
-describe("createProgram", () => {
+describe("createMainProgram", () => {
   const mockLogger = {
     info: vi.fn(),
     debug: vi.fn(),
@@ -151,11 +83,10 @@ describe("createProgram", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.S3_BUCKET = "video-factory";
-    vi.spyOn(process, "exit").mockReturnValue(undefined as never);
-    mockCreateLogger.mockReturnValue(mockLogger);
-    mockCreateS3Client.mockReturnValue({});
-    mockCreateRenderVideo.mockReturnValue(vi.fn());
-    mockRenderWorkflow.mockReturnValue(okAsync("video-worker/video.mp4"));
+    mockCreateDockerDeps.mockReturnValue({ logger: mockLogger });
+    mockRenderWorkflow.mockReturnValue(
+      Effect.succeed("video-worker/video.mp4"),
+    );
   });
 
   afterEach(() => {
@@ -163,24 +94,47 @@ describe("createProgram", () => {
     vi.restoreAllMocks();
   });
 
-  it("exits with code 1 when S3_BUCKET is not set", async () => {
+  it("fails with EnvValidationError when S3_BUCKET is not set", async () => {
     delete process.env.S3_BUCKET;
 
-    await runProgram();
+    const result = await Effect.runPromise(
+      Effect.result(
+        createMainProgram({
+          scriptKey: DEFAULT_SCRIPT_KEY,
+          audioKey: DEFAULT_AUDIO_KEY,
+          outputKey: DEFAULT_OUTPUT_KEY,
+        }),
+      ),
+    );
 
-    expect(process.exit).toHaveBeenCalledWith(1);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("EnvValidationError");
+    }
   });
 
-  it("exits with code 1 when render workflow fails", async () => {
-    mockRenderWorkflow.mockReturnValue(errAsync(videoServiceError));
+  it("succeeds when env is valid and workflow succeeds", async () => {
+    const result = await Effect.runPromise(
+      Effect.result(
+        createMainProgram({
+          scriptKey: DEFAULT_SCRIPT_KEY,
+          audioKey: DEFAULT_AUDIO_KEY,
+          outputKey: DEFAULT_OUTPUT_KEY,
+        }),
+      ),
+    );
 
-    await runProgram();
-
-    expect(process.exit).toHaveBeenCalledWith(1);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("calls renderWorkflow with default S3 keys when no options provided", async () => {
-    await runProgram();
+  it("calls renderWorkflow with default S3 keys", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        scriptKey: DEFAULT_SCRIPT_KEY,
+        audioKey: DEFAULT_AUDIO_KEY,
+        outputKey: DEFAULT_OUTPUT_KEY,
+      }),
+    );
 
     expect(mockRenderWorkflow).toHaveBeenCalledWith(
       DEFAULT_SCRIPT_KEY,
@@ -189,8 +143,14 @@ describe("createProgram", () => {
     );
   });
 
-  it("passes custom --script-key to renderWorkflow", async () => {
-    await runProgram("--script-key", "custom/script.json");
+  it("passes custom scriptKey to renderWorkflow", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        scriptKey: "custom/script.json",
+        audioKey: DEFAULT_AUDIO_KEY,
+        outputKey: DEFAULT_OUTPUT_KEY,
+      }),
+    );
 
     expect(mockRenderWorkflow).toHaveBeenCalledWith(
       "custom/script.json",
@@ -199,8 +159,14 @@ describe("createProgram", () => {
     );
   });
 
-  it("passes custom --audio-key to renderWorkflow", async () => {
-    await runProgram("--audio-key", "custom/audio.wav");
+  it("passes custom audioKey to renderWorkflow", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        scriptKey: DEFAULT_SCRIPT_KEY,
+        audioKey: "custom/audio.wav",
+        outputKey: DEFAULT_OUTPUT_KEY,
+      }),
+    );
 
     expect(mockRenderWorkflow).toHaveBeenCalledWith(
       expect.any(String),
@@ -209,8 +175,14 @@ describe("createProgram", () => {
     );
   });
 
-  it("passes custom --output-key to renderWorkflow", async () => {
-    await runProgram("--output-key", "custom/video.mp4");
+  it("passes custom outputKey to renderWorkflow", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        scriptKey: DEFAULT_SCRIPT_KEY,
+        audioKey: DEFAULT_AUDIO_KEY,
+        outputKey: "custom/video.mp4",
+      }),
+    );
 
     expect(mockRenderWorkflow).toHaveBeenCalledWith(
       expect.any(String),
@@ -219,9 +191,25 @@ describe("createProgram", () => {
     );
   });
 
-  it("does not exit when render workflow succeeds", async () => {
-    await runProgram();
+  it("fails when render workflow fails", async () => {
+    const { RenderError } = await import("./core/errors");
+    mockRenderWorkflow.mockReturnValue(
+      Effect.fail(new RenderError({ message: "render failed" })),
+    );
 
-    expect(process.exit).not.toHaveBeenCalled();
+    const result = await Effect.runPromise(
+      Effect.result(
+        createMainProgram({
+          scriptKey: DEFAULT_SCRIPT_KEY,
+          audioKey: DEFAULT_AUDIO_KEY,
+          outputKey: DEFAULT_OUTPUT_KEY,
+        }),
+      ),
+    );
+
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("RenderError");
+    }
   });
 });

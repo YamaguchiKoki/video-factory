@@ -1,54 +1,65 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { err, fromPromise, fromThrowable, ok } from "neverthrow";
-import { type S3Error, toError } from "./errors.js";
-import { type EnrichedScript, type Script, ScriptSchema } from "./schema.js";
-import type { StorageDeps } from "./storage.js";
+import { Effect, Layer, Schema } from "effect";
+import {
+  S3GetObjectError,
+  S3PutObjectError,
+  S3ValidationError,
+} from "./errors.js";
+import { type EnrichedScript, Script } from "./schema.js";
+import { StorageService } from "./storage.js";
 
 const readScriptFromFile = (filePath: string) =>
-  fromPromise(
-    fs.readFile(filePath, "utf-8"),
-    (e): S3Error => ({ type: "GET_OBJECT_ERROR", message: toError(e).message }),
-  )
-    .andThen((jsonStr) =>
-      fromThrowable(
-        JSON.parse,
-        (e): S3Error => ({
-          type: "VALIDATION_ERROR",
-          message: toError(e).message,
-        }),
-      )(jsonStr),
-    )
-    .andThen((raw) => {
-      const parsed = ScriptSchema.safeParse(raw);
-      if (!parsed.success) {
-        return err<Script, S3Error>({
-          type: "VALIDATION_ERROR",
-          message: parsed.error.message,
-        });
-      }
-      return ok<Script, S3Error>(parsed.data);
-    });
+  Effect.tryPromise({
+    try: () => fs.readFile(filePath, "utf-8"),
+    catch: (e) =>
+      new S3GetObjectError({
+        message: e instanceof Error ? e.message : String(e),
+        cause: e,
+      }),
+  }).pipe(
+    Effect.flatMap((jsonStr) =>
+      Effect.try({
+        try: () => JSON.parse(jsonStr) as unknown,
+        catch: (e) =>
+          new S3ValidationError({
+            message: e instanceof Error ? e.message : String(e),
+            cause: e,
+          }),
+      }),
+    ),
+    Effect.flatMap((raw) =>
+      Schema.decodeUnknownEffect(Script)(raw).pipe(
+        Effect.mapError((e) => new S3ValidationError({ message: String(e) })),
+      ),
+    ),
+  );
 
 const writeToFile = (filePath: string, data: Buffer | string) =>
-  fromPromise(
-    fs
-      .mkdir(path.dirname(filePath), { recursive: true })
-      .then(() => fs.writeFile(filePath, data)),
-    (e): S3Error => ({ type: "PUT_OBJECT_ERROR", message: toError(e).message }),
-  );
+  Effect.tryPromise({
+    try: () =>
+      fs
+        .mkdir(path.dirname(filePath), { recursive: true })
+        .then(() => fs.writeFile(filePath, data)),
+    catch: (e) =>
+      new S3PutObjectError({
+        message: e instanceof Error ? e.message : String(e),
+        cause: e,
+      }),
+  });
 
 const buildLocalOutputKey = (date: string, title: string): string =>
   `output/${date}/${title}.wav`;
 
-export const createLocalStorage = (baseDir: string): StorageDeps => ({
-  getScript: (key) => readScriptFromFile(path.resolve(baseDir, key)),
-  uploadWav: (key, data) =>
-    writeToFile(path.resolve(baseDir, key), Buffer.from(data)),
-  uploadEnrichedScript: (data: EnrichedScript) =>
-    writeToFile(
-      path.resolve(baseDir, "output/enriched-script.json"),
-      JSON.stringify(data, null, 2),
-    ),
-  buildOutputKey: buildLocalOutputKey,
-});
+export const createLocalStorageLayer = (baseDir: string) =>
+  Layer.succeed(StorageService, {
+    getScript: (key: string) => readScriptFromFile(path.resolve(baseDir, key)),
+    uploadWav: (key: string, data: ArrayBuffer) =>
+      writeToFile(path.resolve(baseDir, key), Buffer.from(data)),
+    uploadEnrichedScript: (data: EnrichedScript) =>
+      writeToFile(
+        path.resolve(baseDir, "output/enriched-script.json"),
+        JSON.stringify(data, null, 2),
+      ),
+    buildOutputKey: buildLocalOutputKey,
+  });

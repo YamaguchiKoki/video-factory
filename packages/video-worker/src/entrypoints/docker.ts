@@ -1,3 +1,3 @@
-import { createProgram } from "../cli.js";
+import { main } from "../cli.js";
 
-createProgram().parseAsync(process.argv);
+main();
