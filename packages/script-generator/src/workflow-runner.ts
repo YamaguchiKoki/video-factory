@@ -45,11 +45,11 @@ export const runWorkflow = (
         }
         return result.result;
       },
-      catch: (e) =>
-        ({
-          type: "WORKFLOW_ERROR",
-          message: toError(e).message,
-        }) satisfies WorkflowError,
+      catch: (e) => {
+        const err = toError(e);
+        console.error("[workflow-runner] error:", err.stack ?? err.message);
+        return { type: "WORKFLOW_ERROR", message: err.message } satisfies WorkflowError;
+      },
     });
 
   const parseOutput = (raw: unknown): Effect.Effect<Script, WorkflowError> => {
