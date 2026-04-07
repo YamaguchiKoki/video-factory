@@ -11,8 +11,3 @@ export const VerifiedTopicSchema = z.object({
 
 export const VerifiedTopicsOutputSchema = z.array(VerifiedTopicSchema);
 export type VerifiedTopicsOutput = z.infer<typeof VerifiedTopicsOutputSchema>;
-
-// LLM structured output requires an object at the root level
-export const VerifiedTopicsLLMOutputSchema = z.object({
-  topics: VerifiedTopicsOutputSchema,
-});

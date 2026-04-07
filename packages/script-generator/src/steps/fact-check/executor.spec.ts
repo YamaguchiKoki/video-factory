@@ -14,7 +14,7 @@ describe("factCheckStep", () => {
       buildVerifiedTopic("news-2"),
       buildVerifiedTopic("news-3"),
     ];
-    const mockMastra = buildMockMastra({ object: { topics: verifiedTopics } });
+    const mockMastra = buildMockMastra({ object: verifiedTopics });
 
     // Act
     const result = await factCheckStep.execute(
@@ -51,7 +51,7 @@ describe("factCheckStep", () => {
     // Arrange
     const mockAgent = {
       generate: vi.fn().mockResolvedValue({
-        object: { topics: [buildVerifiedTopic("news-1")] },
+        object: [buildVerifiedTopic("news-1")],
       }),
     };
     const mockGetAgent = vi.fn().mockReturnValue(mockAgent);
