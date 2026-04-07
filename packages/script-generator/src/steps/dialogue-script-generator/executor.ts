@@ -1,7 +1,5 @@
 import { createStep } from "@mastra/core/workflows";
-import { err, fromPromise, ok, safeTry } from "neverthrow";
 import { ScriptSchema } from "../../schema";
-import { toError } from "../../shared/errors";
 import type { VerifiedTopicsOutput } from "../fact-check/schema";
 import { VerifiedTopicsOutputSchema } from "../fact-check/schema";
 import { DIALOGUE_SCRIPT_GENERATOR_AGENT_ID } from "./agent";
@@ -11,25 +9,18 @@ export const dialogueScriptGeneratorStep = createStep({
   inputSchema: VerifiedTopicsOutputSchema,
   outputSchema: ScriptSchema,
   execute: async ({ inputData, mastra }) => {
-    const result = await safeTry(async function* () {
-      const agent = mastra.getAgent(DIALOGUE_SCRIPT_GENERATOR_AGENT_ID);
-      if (!agent)
-        return err(
-          new Error(`${DIALOGUE_SCRIPT_GENERATOR_AGENT_ID} not found`),
-        );
+    const agent = mastra.getAgent(DIALOGUE_SCRIPT_GENERATOR_AGENT_ID);
+    if (!agent)
+      throw new Error(`${DIALOGUE_SCRIPT_GENERATOR_AGENT_ID} not found`);
 
-      const response = yield* fromPromise(
-        agent.generate(buildDialogueScriptPrompt(inputData), {
-          structuredOutput: { schema: ScriptSchema },
-        }),
-        toError,
-      );
+    const response = await agent.generate(
+      buildDialogueScriptPrompt(inputData),
+      {
+        structuredOutput: { schema: ScriptSchema },
+      },
+    );
 
-      return ok(response.object);
-    });
-
-    if (result.isErr()) throw result.error;
-    return result.value;
+    return response.object;
   },
 });
 

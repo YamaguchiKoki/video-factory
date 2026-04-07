@@ -1,0 +1,24 @@
+{
+  "workspaces": {
+    "packages/tts-worker": {
+      "entry": ["src/entrypoints/*.ts", "src/cli.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/script-generator": {
+      "entry": ["src/entrypoints/*.ts", "src/mastra/index.ts"],
+      "project": ["src/**/*.ts"],
+      "ignoreDependencies": ["esbuild"],
+      "ignoreBinaries": ["tsc"]
+    },
+    "packages/video-worker": {
+      "entry": [
+        "src/entrypoints/*.ts",
+        "src/remotion/index.ts",
+        "remotion.config.ts",
+        "postcss.config.mjs"
+      ],
+      "project": ["src/**/*.{ts,tsx}"],
+      "ignoreDependencies": ["@remotion/tailwind-v4", "tailwindcss"]
+    }
+  }
+}

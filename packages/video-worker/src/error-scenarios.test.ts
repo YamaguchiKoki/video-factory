@@ -1,25 +1,11 @@
 import { existsSync } from "node:fs";
 import { writeFile as fsWriteFile, mkdir, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { fromPromise, okAsync } from "neverthrow";
+import { join } from "node:path";
+import { Effect } from "effect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { parseEnrichedScript } from "./core/enriched-parser";
-import {
-  bundleComposition,
-  cleanupTempDir,
-  createRenderVideo,
-  createTempDir,
-  readFile,
-  writeFile,
-} from "./infrastructure";
-import { createLogger } from "./infrastructure/logger";
+import { createLocalDeps } from "./deps";
 import { createRenderVideoWorkflow } from "./service/video-service";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const entryPoint = resolve(__dirname, "remotion/index.ts");
 
 // Skip error scenario tests unless explicitly enabled
 const shouldRunErrorTests = process.env.RUN_ERROR_TESTS === "true";
@@ -36,111 +22,62 @@ describeError("Task 10.3: Error Scenarios E2E", () => {
   });
 
   afterAll(async () => {
-    await fromPromise(unlink(outputPath), (e) => e).orElse(() =>
-      okAsync(undefined),
-    );
+    await unlink(outputPath).catch(() => {});
   });
 
   it("should handle missing script file gracefully", async () => {
-    const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const nonExistentScriptPath = join(testDir, "non-existent-script.json");
     const audioPath = join(process.cwd(), "mock-data/audio.wav");
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const error = await Effect.runPromise(
+      Effect.flip(workflow(nonExistentScriptPath, audioPath, outputPath)),
+    );
 
-    const result = await workflow(nonExistentScriptPath, audioPath, outputPath);
-
-    expect(result.isErr()).toBe(true);
-
-    if (result.isErr()) {
-      expect(result.error.type).toBe("FILE_READ_ERROR");
-      expect(result.error.message).toContain("no such file or directory");
-    }
-
+    expect(error._tag).toBe("FileSystemError");
+    expect(error.message).toContain("no such file or directory");
     expect(existsSync(outputPath)).toBe(false);
   });
 
   it("should handle missing audio file gracefully", async () => {
-    const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const scriptPath = join(process.cwd(), "mock-data/script.json");
     const nonExistentAudioPath = join(testDir, "non-existent-audio.wav");
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const error = await Effect.runPromise(
+      Effect.flip(workflow(scriptPath, nonExistentAudioPath, outputPath)),
+    );
 
-    const result = await workflow(scriptPath, nonExistentAudioPath, outputPath);
-
-    expect(result.isErr()).toBe(true);
-
-    if (result.isErr()) {
-      expect(result.error.type).toBe("FILE_READ_ERROR");
-    }
-
+    expect(error._tag).toBe("FileSystemError");
     expect(existsSync(outputPath)).toBe(false);
   });
 
   it("should handle invalid JSON in script file", async () => {
-    const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const invalidScriptPath = join(testDir, "invalid-script.json");
     await fsWriteFile(invalidScriptPath, "{ invalid json }", "utf-8");
 
     const audioPath = join(process.cwd(), "mock-data/audio.wav");
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const error = await Effect.runPromise(
+      Effect.flip(workflow(invalidScriptPath, audioPath, outputPath)),
+    );
 
-    const result = await workflow(invalidScriptPath, audioPath, outputPath);
-
-    expect(result.isErr()).toBe(true);
-
-    if (result.isErr()) {
-      expect(result.error.type).toBe("VALIDATION_ERROR");
-      expect(result.error.message).toContain("JSON");
-    }
+    expect(error._tag).toBe("ValidationError");
+    expect(error.message).toContain("JSON");
 
     await unlink(invalidScriptPath);
   });
 
   it("should handle script with invalid schema", async () => {
-    const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const invalidSchemaPath = join(testDir, "invalid-schema.json");
     const invalidScript = {
@@ -156,91 +93,45 @@ describeError("Task 10.3: Error Scenarios E2E", () => {
 
     const audioPath = join(process.cwd(), "mock-data/audio.wav");
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const error = await Effect.runPromise(
+      Effect.flip(workflow(invalidSchemaPath, audioPath, outputPath)),
+    );
 
-    const result = await workflow(invalidSchemaPath, audioPath, outputPath);
-
-    expect(result.isErr()).toBe(true);
-
-    if (result.isErr()) {
-      expect(result.error.type).toBe("VALIDATION_ERROR");
-    }
+    expect(error._tag).toBe("ValidationError");
 
     await unlink(invalidSchemaPath);
   });
 
   it("should cleanup temp files after error", async () => {
-    const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const invalidScriptPath = join(testDir, "cleanup-test.json");
     await fsWriteFile(invalidScriptPath, "{ invalid }", "utf-8");
 
     const audioPath = join(process.cwd(), "mock-data/audio.wav");
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const error = await Effect.runPromise(
+      Effect.flip(workflow(invalidScriptPath, audioPath, outputPath)),
+    );
 
-    const result = await workflow(invalidScriptPath, audioPath, outputPath);
-
-    expect(result.isErr()).toBe(true);
+    expect(error._tag).toBeDefined();
 
     await unlink(invalidScriptPath);
   });
 
   it("should log detailed error information", async () => {
-    const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId: crypto.randomUUID() });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const nonExistentPath = join(testDir, "does-not-exist.json");
     const audioPath = join(process.cwd(), "mock-data/audio.wav");
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const error = await Effect.runPromise(
+      Effect.flip(workflow(nonExistentPath, audioPath, outputPath)),
+    );
 
-    const result = await workflow(nonExistentPath, audioPath, outputPath);
-
-    expect(result.isErr()).toBe(true);
-
-    if (result.isErr()) {
-      const error = result.error;
-
-      expect(error.type).toBeDefined();
-      expect(error.message).toBeDefined();
-      expect(error.context).toBeDefined();
-
-      expect(error.context).toHaveProperty("scriptPath");
-    }
+    expect(error._tag).toBeDefined();
+    expect(error.message).toBeDefined();
   });
 });

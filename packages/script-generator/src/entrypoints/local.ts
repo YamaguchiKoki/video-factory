@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { createTavilyMcpClient } from "../mcp/tavily";
 import { runWorkflow } from "../workflow-runner";
 
@@ -11,12 +12,12 @@ if (!tavilyApiKey) {
 console.log(`Starting workflow with genre: ${genre}`);
 
 const tavilyClient = createTavilyMcpClient(tavilyApiKey);
-const result = await runWorkflow({ genre }, tavilyClient);
 
-result.match(
+Effect.runPromise(runWorkflow({ genre }, tavilyClient)).then(
   (script) => console.log(JSON.stringify(script, null, 2)),
-  (error) => {
-    console.error(`[${error.type}] ${error.message}`);
+  (error: unknown) => {
+    const e = error instanceof Error ? error : new Error(String(error));
+    console.error(e.message);
     process.exit(1);
   },
 );

@@ -1,4 +1,4 @@
-import { ok, okAsync, type ResultAsync, safeTry } from "neverthrow";
+import { Effect } from "effect";
 import type { S3Error, VoicevoxError, WavError } from "./errors.js";
 import { extractDateFromKey } from "./s3.js";
 import type {
@@ -9,20 +9,23 @@ import type {
   Script,
 } from "./schema.js";
 import { getSpeakerId } from "./speaker.js";
-import type { StorageDeps } from "./storage.js";
-import { audioQuery, synthesis } from "./voicevox.js";
+import { StorageService } from "./storage.js";
+import { VoicevoxService } from "./voicevox.js";
 import { concatenateWavs, getWavDurationSec } from "./wav.js";
 
-export type PipelineError = VoicevoxError | S3Error | WavError;
+type PipelineError = VoicevoxError | S3Error | WavError;
 
 export const runPipeline = (
-  storage: StorageDeps,
   scriptKey: string,
-): ResultAsync<EnrichedScript, PipelineError> =>
-  safeTry(async function* () {
-    const script = yield* storage
-      .getScript(scriptKey)
-      .mapErr((e): PipelineError => e);
+): Effect.Effect<
+  EnrichedScript,
+  PipelineError,
+  StorageService | VoicevoxService
+> =>
+  Effect.gen(function* () {
+    const storage = yield* StorageService;
+
+    const script = yield* storage.getScript(scriptKey);
 
     const allLines = flattenScriptLines(script);
     const {
@@ -31,16 +34,12 @@ export const runPipeline = (
       offsetSec: totalDurationSec,
     } = yield* processLines(allLines, 0);
 
-    const combinedWav = yield* concatenateWavs(wavBuffers).mapErr(
-      (e): PipelineError => e,
-    );
+    const combinedWav = yield* concatenateWavs(wavBuffers);
 
     const date = extractDateFromKey(scriptKey);
     const outputWavKey = storage.buildOutputKey(date, script.title);
 
-    yield* storage
-      .uploadWav(outputWavKey, combinedWav)
-      .mapErr((e): PipelineError => e);
+    yield* storage.uploadWav(outputWavKey, combinedWav);
 
     const enrichedScript = rebuildEnrichedScript(
       script,
@@ -49,11 +48,9 @@ export const runPipeline = (
       totalDurationSec,
     );
 
-    yield* storage
-      .uploadEnrichedScript(enrichedScript)
-      .mapErr((e): PipelineError => e);
+    yield* storage.uploadEnrichedScript(enrichedScript);
 
-    return ok(enrichedScript);
+    return enrichedScript;
   });
 
 type LineResult = {
@@ -65,19 +62,14 @@ type LineResult = {
 const processLine = (
   line: Line,
   offsetSec: number,
-): ResultAsync<LineResult, PipelineError> =>
-  safeTry(async function* () {
+): Effect.Effect<LineResult, PipelineError, VoicevoxService> =>
+  Effect.gen(function* () {
+    const voicevox = yield* VoicevoxService;
     const speakerId = getSpeakerId(line.speaker);
-    const query = yield* audioQuery(line.text, speakerId).mapErr(
-      (e): PipelineError => e,
-    );
-    const wavBuffer = yield* synthesis(speakerId, query).mapErr(
-      (e): PipelineError => e,
-    );
-    const durationSec = yield* getWavDurationSec(wavBuffer).mapErr(
-      (e): PipelineError => e,
-    );
-    return ok({
+    const query = yield* voicevox.audioQuery(line.text, speakerId);
+    const wavBuffer = yield* voicevox.synthesis(speakerId, query);
+    const durationSec = yield* getWavDurationSec(wavBuffer);
+    return {
       enrichedLine: {
         speaker: line.speaker,
         text: line.text,
@@ -87,7 +79,7 @@ const processLine = (
       },
       wavBuffer,
       nextOffset: offsetSec + durationSec,
-    });
+    };
   });
 
 type LinesAccumulator = {
@@ -99,19 +91,28 @@ type LinesAccumulator = {
 const processLines = (
   lines: readonly Line[],
   initialOffset: number,
-): ResultAsync<LinesAccumulator, PipelineError> =>
+): Effect.Effect<LinesAccumulator, PipelineError, VoicevoxService> =>
   lines.reduce(
-    (accAsync: ResultAsync<LinesAccumulator, PipelineError>, line) =>
-      accAsync.andThen((acc) =>
-        processLine(line, acc.offsetSec).map(
-          ({ enrichedLine, wavBuffer, nextOffset }) => ({
-            enrichedLines: [...acc.enrichedLines, enrichedLine],
-            wavBuffers: [...acc.wavBuffers, wavBuffer],
-            offsetSec: nextOffset,
-          }),
+    (
+      accEffect: Effect.Effect<
+        LinesAccumulator,
+        PipelineError,
+        VoicevoxService
+      >,
+      line,
+    ) =>
+      accEffect.pipe(
+        Effect.flatMap((acc) =>
+          processLine(line, acc.offsetSec).pipe(
+            Effect.map(({ enrichedLine, wavBuffer, nextOffset }) => ({
+              enrichedLines: [...acc.enrichedLines, enrichedLine],
+              wavBuffers: [...acc.wavBuffers, wavBuffer],
+              offsetSec: nextOffset,
+            })),
+          ),
         ),
       ),
-    okAsync<LinesAccumulator, PipelineError>({
+    Effect.succeed<LinesAccumulator>({
       enrichedLines: [],
       wavBuffers: [],
       offsetSec: initialOffset,

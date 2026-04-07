@@ -5,6 +5,7 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
+    fonts-noto-cjk \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libcups2 \
@@ -29,9 +30,11 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY config/ ./config/
 
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/video-worker/package.json ./packages/video-worker/
 RUN pnpm --filter video-worker install --frozen-lockfile
 
+COPY packages/shared/ ./packages/shared/
 COPY packages/video-worker/ ./packages/video-worker/
 
 WORKDIR /app/packages/video-worker

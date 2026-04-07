@@ -1,6 +1,6 @@
 import { it } from "@fast-check/vitest";
 import { describe, expect } from "vitest";
-import { ScriptSchema } from "./schema";
+import { ScriptSchema } from "../../schema";
 
 // ScriptSchema is the final output of the entire pipeline.
 // These tests document the exact shape the dialogue-script-generator must produce.

@@ -1,61 +1,47 @@
-// Tests for the NEW schema (after schema.ts is rewritten in the implement phase).
-// These tests define the expected shape of each schema and will fail until
-// schema.ts is updated with the correct fields.
+// Tests for the Effect Schema definitions (schema.ts).
+//
+// Design contract: validates Script and EnrichedScript shapes.
 
+import { Result, Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import {
-  EnrichedLineSchema,
-  EnrichedScriptSchema,
-  NewsItemSchema,
-  ScriptSchema,
-} from "../schema";
+import { EnrichedLine, EnrichedScript, NewsItem, Script } from "../schema";
 
 // ============================================
-// ScriptSchema (Layer 1 — mirrors script-generator source of truth)
+// Helper
 // ============================================
 
-describe("ScriptSchema", () => {
+const decode = <A>(schema: Schema.Decoder<A>) =>
+  Schema.decodeUnknownResult(schema);
+
+// ============================================
+// Script
+// ============================================
+
+describe("Script", () => {
   it("should parse a valid complete script", () => {
-    // Arrange
-    const script = buildValidScript();
-
-    // Act
-    const result = ScriptSchema.safeParse(script);
-
-    // Assert
-    expect(result.success).toBe(true);
+    const result = decode(Script)(buildValidScript());
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("should fail when newsItems count is not 3", () => {
-    // Arrange — only 2 news items
     const script = {
       ...buildValidScript(),
       newsItems: [buildNewsItem("news-1"), buildNewsItem("news-2")],
     };
-
-    // Act
-    const result = ScriptSchema.safeParse(script);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(Script)(script);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when sections tuple has wrong structure", () => {
-    // Arrange — only intro, missing discussion and outro
     const script = {
       ...buildValidScript(),
       sections: [buildIntroSection()],
     };
-
-    // Act
-    const result = ScriptSchema.safeParse(script);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(Script)(script);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when speaker value is not A or B", () => {
-    // Arrange
     const script = {
       ...buildValidScript(),
       sections: [
@@ -69,37 +55,25 @@ describe("ScriptSchema", () => {
         buildOutroSection(),
       ],
     };
-
-    // Act
-    const result = ScriptSchema.safeParse(script);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(Script)(script);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when title is missing", () => {
-    // Arrange
     const { title: _omitted, ...withoutTitle } = buildValidScript();
-
-    // Act
-    const result = ScriptSchema.safeParse(withoutTitle);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(Script)(withoutTitle);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when a discussion block is missing a phase", () => {
-    // Arrange — blocks tuple has only 2 elements instead of 3
     const incompleteDiscussion = {
       type: "discussion" as const,
       newsId: "news-1",
       blocks: [
         buildDiscussionBlock("summary"),
         buildDiscussionBlock("background"),
-        // deepDive is missing
       ],
     };
-
     const script = {
       ...buildValidScript(),
       sections: [
@@ -110,220 +84,148 @@ describe("ScriptSchema", () => {
         buildOutroSection(),
       ],
     };
-
-    // Act
-    const result = ScriptSchema.safeParse(script);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(Script)(script);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });
 
 // ============================================
-// NewsItemSchema — sourceUrl is optional (matches script-generator source of truth)
+// NewsItem
 // ============================================
 
-describe("NewsItemSchema", () => {
+describe("NewsItem", () => {
   it("should parse a newsItem with optional sourceUrl", () => {
-    // Arrange
     const newsItem = {
       id: "news-1",
       title: "テストニュース",
       sourceUrl: "https://example.com/news",
     };
-
-    // Act
-    const result = NewsItemSchema.safeParse(newsItem);
-
-    // Assert
-    expect(result.success).toBe(true);
+    const result = decode(NewsItem)(newsItem);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("should parse a newsItem without sourceUrl (field is optional)", () => {
-    // Arrange
     const newsItem = { id: "news-1", title: "テストニュース" };
-
-    // Act
-    const result = NewsItemSchema.safeParse(newsItem);
-
-    // Assert
-    expect(result.success).toBe(true);
+    const result = decode(NewsItem)(newsItem);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("should fail when sourceUrl is not a valid URL", () => {
-    // Arrange
     const newsItem = { id: "news-1", title: "テスト", sourceUrl: "not-a-url" };
-
-    // Act
-    const result = NewsItemSchema.safeParse(newsItem);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(NewsItem)(newsItem);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when id is missing", () => {
-    // Arrange
     const newsItem = { title: "テストニュース" };
-
-    // Act
-    const result = NewsItemSchema.safeParse(newsItem);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(NewsItem)(newsItem);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });
 
 // ============================================
-// EnrichedLineSchema — Layer 2 fields: voicevoxSpeakerId, offsetSec, durationSec
+// EnrichedLine
 // ============================================
 
-describe("EnrichedLineSchema", () => {
-  it("should parse a valid EnrichedLine with voicevoxSpeakerId and offsetSec", () => {
-    // Arrange — new fields: voicevoxSpeakerId (was audioPath), offsetSec (was startSec)
+describe("EnrichedLine", () => {
+  it("should parse a valid EnrichedLine", () => {
     const line = {
       speaker: "A",
-      text: "こんにちは、ニュースラジオへようこそ",
+      text: "こんにちは",
       voicevoxSpeakerId: 0,
       offsetSec: 0.0,
       durationSec: 2.5,
     };
-
-    // Act
-    const result = EnrichedLineSchema.safeParse(line);
-
-    // Assert
-    expect(result.success).toBe(true);
+    const result = decode(EnrichedLine)(line);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("should fail when voicevoxSpeakerId is missing", () => {
-    // Arrange — voicevoxSpeakerId is required in the new schema
     const line = {
       speaker: "A",
       text: "こんにちは",
       offsetSec: 0.0,
       durationSec: 1.5,
     };
-
-    // Act
-    const result = EnrichedLineSchema.safeParse(line);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedLine)(line);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when offsetSec is missing", () => {
-    // Arrange — offsetSec is required (replaces startSec)
     const line = {
       speaker: "A",
       text: "こんにちは",
       voicevoxSpeakerId: 0,
       durationSec: 1.5,
     };
-
-    // Act
-    const result = EnrichedLineSchema.safeParse(line);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedLine)(line);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when durationSec is missing", () => {
-    // Arrange
     const line = {
       speaker: "A",
       text: "こんにちは",
       voicevoxSpeakerId: 0,
       offsetSec: 0.0,
     };
-
-    // Act
-    const result = EnrichedLineSchema.safeParse(line);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedLine)(line);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when speaker is missing", () => {
-    // Arrange
     const line = {
       text: "こんにちは",
       voicevoxSpeakerId: 0,
       offsetSec: 0.0,
       durationSec: 1.5,
     };
-
-    // Act
-    const result = EnrichedLineSchema.safeParse(line);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedLine)(line);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when voicevoxSpeakerId is not a number", () => {
-    // Arrange
     const line = {
       speaker: "A",
       text: "こんにちは",
-      voicevoxSpeakerId: "zero", // should be a number
+      voicevoxSpeakerId: "zero",
       offsetSec: 0.0,
       durationSec: 1.5,
     };
-
-    // Act
-    const result = EnrichedLineSchema.safeParse(line);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedLine)(line);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });
 
 // ============================================
-// EnrichedScriptSchema — adds totalDurationSec and outputWavS3Key
+// EnrichedScript
 // ============================================
 
-describe("EnrichedScriptSchema", () => {
+describe("EnrichedScript", () => {
   it("should parse a valid EnrichedScript with outputWavS3Key", () => {
-    // Arrange — outputWavS3Key is a new field in the updated schema
-    const enrichedScript = buildValidEnrichedScript();
-
-    // Act
-    const result = EnrichedScriptSchema.safeParse(enrichedScript);
-
-    // Assert
-    expect(result.success).toBe(true);
+    const result = decode(EnrichedScript)(buildValidEnrichedScript());
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("should fail when outputWavS3Key is missing", () => {
-    // Arrange
     const { outputWavS3Key: _omitted, ...withoutKey } =
       buildValidEnrichedScript();
-
-    // Act
-    const result = EnrichedScriptSchema.safeParse(withoutKey);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedScript)(withoutKey);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should fail when totalDurationSec is missing", () => {
-    // Arrange
     const { totalDurationSec: _omitted, ...withoutDuration } =
       buildValidEnrichedScript();
-
-    // Act
-    const result = EnrichedScriptSchema.safeParse(withoutDuration);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedScript)(withoutDuration);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("should parse EnrichedIntroSection without startSec or endSec", () => {
-    // Arrange — section-level startSec/endSec are removed in the new schema
     const enrichedScript = {
       ...buildValidEnrichedScript(),
       sections: [
         {
-          // No startSec or endSec — these should not be required
           type: "intro" as const,
           greeting: [buildEnrichedLine("A", "こんにちは", 0)],
           newsOverview: [buildEnrichedLine("A", "今日のニュース", 1.5)],
@@ -338,32 +240,17 @@ describe("EnrichedScriptSchema", () => {
         },
       ],
     };
-
-    // Act
-    const result = EnrichedScriptSchema.safeParse(enrichedScript);
-
-    // Assert
-    expect(result.success).toBe(true);
+    const result = decode(EnrichedScript)(enrichedScript);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
   it("should fail when sections tuple has wrong length", () => {
-    // Arrange
     const enrichedScript = {
       ...buildValidEnrichedScript(),
-      sections: [
-        {
-          type: "intro" as const,
-          greeting: [],
-          newsOverview: [],
-        },
-      ],
+      sections: [{ type: "intro" as const, greeting: [], newsOverview: [] }],
     };
-
-    // Act
-    const result = EnrichedScriptSchema.safeParse(enrichedScript);
-
-    // Assert
-    expect(result.success).toBe(false);
+    const result = decode(EnrichedScript)(enrichedScript);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });
 
@@ -385,10 +272,7 @@ const buildEnrichedLine = (
   durationSec: 1.5,
 });
 
-const buildNewsItem = (id: string) => ({
-  id,
-  title: `${id}のニュース見出し`,
-});
+const buildNewsItem = (id: string) => ({ id, title: `${id}のニュース見出し` });
 
 const buildDiscussionBlock = (
   phase: "summary" | "background" | "deepDive",
@@ -409,24 +293,18 @@ const buildDiscussionSection = (newsId: string) => ({
 
 const buildIntroSection = () => ({
   type: "intro" as const,
-  greeting: [
-    buildLine("A", "こんにちは"),
-    buildLine("B", "よろしくお願いします"),
-  ],
-  newsOverview: [buildLine("A", "今日は3つのニュースをお届けします")],
+  greeting: [buildLine("A", "こんにちは"), buildLine("B", "よろしく")],
+  newsOverview: [buildLine("A", "今日のニュース")],
 });
 
 const buildOutroSection = () => ({
   type: "outro" as const,
-  recap: [buildLine("A", "本日のまとめです")],
-  closing: [
-    buildLine("A", "ありがとうございました"),
-    buildLine("B", "またお会いしましょう"),
-  ],
+  recap: [buildLine("A", "まとめ")],
+  closing: [buildLine("A", "ありがとう"), buildLine("B", "またね")],
 });
 
 const buildValidScript = () => ({
-  title: "今日の政治経済ニュースラジオ 2026年3月21日号",
+  title: "今日のラジオ 2026年3月21日号",
   newsItems: [
     buildNewsItem("news-1"),
     buildNewsItem("news-2"),
@@ -466,9 +344,9 @@ const buildEnrichedDiscussionSection = (
 });
 
 const buildValidEnrichedScript = () => ({
-  title: "今日の政治経済ニュースラジオ 2026年3月21日号",
+  title: "今日のラジオ 2026年3月21日号",
   totalDurationSec: 45.0,
-  outputWavS3Key: "audio/2026-03-21/今日の政治経済ニュースラジオ.wav",
+  outputWavS3Key: "audio/2026-03-21/ラジオ.wav",
   newsItems: [
     buildNewsItem("news-1"),
     buildNewsItem("news-2"),
@@ -479,7 +357,7 @@ const buildValidEnrichedScript = () => ({
       type: "intro" as const,
       greeting: [
         buildEnrichedLine("A", "こんにちは", 0.0),
-        buildEnrichedLine("B", "よろしくお願いします", 1.5),
+        buildEnrichedLine("B", "よろしく", 1.5),
       ],
       newsOverview: [buildEnrichedLine("A", "今日のニュース", 3.0)],
     },
@@ -490,8 +368,8 @@ const buildValidEnrichedScript = () => ({
       type: "outro" as const,
       recap: [buildEnrichedLine("A", "まとめ", 31.5)],
       closing: [
-        buildEnrichedLine("A", "ありがとうございました", 33.0),
-        buildEnrichedLine("B", "またお会いしましょう", 34.5),
+        buildEnrichedLine("A", "ありがとう", 33.0),
+        buildEnrichedLine("B", "またね", 34.5),
       ],
     },
   ],

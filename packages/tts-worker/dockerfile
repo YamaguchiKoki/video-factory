@@ -13,9 +13,11 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY config/ ./config/
 
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/tts-worker/package.json ./packages/tts-worker/
 RUN pnpm --filter tts-worker install --frozen-lockfile
 
+COPY packages/shared/ ./packages/shared/
 COPY packages/tts-worker/ ./packages/tts-worker/
 
 WORKDIR /app/packages/tts-worker

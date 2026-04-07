@@ -1,26 +1,19 @@
-import { err, ok, type Result } from "neverthrow";
-import { z } from "zod";
+import { DockerEnvSchema, EnvValidationError } from "@video-factory/shared";
+import { Effect, Schema } from "effect";
 
-const DockerEnvSchema = z.object({
-  S3_BUCKET: z.string().min(1),
-  S3_ENDPOINT_URL: z.string().optional(),
-  S3_ACCESS_KEY_ID: z.string().optional(),
-  S3_SECRET_ACCESS_KEY: z.string().optional(),
+export type { DockerEnv } from "@video-factory/shared";
+export { EnvValidationError, parseDockerEnv } from "@video-factory/shared";
+
+export const ScriptGeneratorEnvSchema = Schema.Struct({
+  ...DockerEnvSchema.fields,
+  TAVILY_API_KEY: Schema.String.check(Schema.isNonEmpty()),
 });
 
-export type DockerEnv = z.infer<typeof DockerEnvSchema>;
+export type ScriptGeneratorEnv = typeof ScriptGeneratorEnvSchema.Type;
 
-export type EnvError = {
-  readonly type: "ENV_VALIDATION_ERROR";
-  readonly message: string;
-};
-
-export const parseDockerEnv = (
+export const parseScriptGeneratorEnv = (
   env: Record<string, string | undefined>,
-): Result<DockerEnv, EnvError> => {
-  const parsed = DockerEnvSchema.safeParse(env);
-  if (!parsed.success) {
-    return err({ type: "ENV_VALIDATION_ERROR", message: parsed.error.message });
-  }
-  return ok(parsed.data);
-};
+): Effect.Effect<ScriptGeneratorEnv, EnvValidationError> =>
+  Schema.decodeUnknownEffect(ScriptGeneratorEnvSchema)(env).pipe(
+    Effect.mapError((e) => new EnvValidationError({ message: String(e) })),
+  );

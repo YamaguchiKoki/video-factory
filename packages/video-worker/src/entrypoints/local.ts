@@ -1,44 +1,55 @@
 import { fileURLToPath } from "node:url";
-import { Command } from "commander";
-import { fromPromise } from "neverthrow";
+import { Effect } from "effect";
 import { createLocalDeps } from "../deps";
 import { createRenderVideoWorkflow } from "../service/video-service";
 
+const isTaggedError = (e: unknown): e is { _tag: string } =>
+  e !== null &&
+  typeof e === "object" &&
+  "_tag" in e &&
+  typeof (e as Record<string, unknown>)._tag === "string";
+
 const __filename = fileURLToPath(import.meta.url);
 
-export const main = async (): Promise<void> => {
-  const program = new Command()
-    .option("--script <path>", "Path to the script JSON file")
-    .option("--audio <path>", "Path to the audio WAV file")
-    .option("--output <path>", "Path for the output video");
+const parseArgs = (): { script?: string; audio?: string; output?: string } => {
+  const args = process.argv.slice(2);
+  const getArg = (flag: string): string | undefined => {
+    const idx = args.indexOf(flag);
+    return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : undefined;
+  };
+  return {
+    script: getArg("--script"),
+    audio: getArg("--audio"),
+    output: getArg("--output"),
+  };
+};
 
-  program.parse(process.argv);
-  const opts = program.opts<{
-    script?: string;
-    audio?: string;
-    output?: string;
-  }>();
+export const main = async (): Promise<void> => {
+  const opts = parseArgs();
 
   if (!opts.script || !opts.audio || !opts.output) {
     console.error("Error: --script, --audio, and --output are all required");
     process.exit(1);
+    return;
   }
 
   const deps = createLocalDeps({ requestId: crypto.randomUUID() });
   const renderWorkflow = createRenderVideoWorkflow(deps);
-  const result = await renderWorkflow(opts.script, opts.audio, opts.output);
+  const program = renderWorkflow(opts.script, opts.audio, opts.output);
 
-  result.match(
+  await Effect.runPromise(program).then(
     (outputFilePath) => {
       deps.logger.info("Video rendering successful", {
         outputPath: outputFilePath,
       });
     },
-    (error) => {
-      console.error("Error:", error.message);
-      console.error("Type:", error.type);
-      if (error.context) {
-        console.error("Context:", JSON.stringify(error.context, null, 2));
+    (error: unknown) => {
+      console.error(
+        "Error:",
+        error instanceof Error ? error.message : String(error),
+      );
+      if (isTaggedError(error)) {
+        console.error("Type:", error._tag);
       }
       process.exit(1);
     },
@@ -46,8 +57,8 @@ export const main = async (): Promise<void> => {
 };
 
 if (process.argv[1] === __filename) {
-  fromPromise(main(), (error) => {
+  main().catch((error: unknown) => {
     console.error("Unhandled error:", error);
-    return error;
-  }).mapErr(() => process.exit(1));
+    process.exit(1);
+  });
 }

@@ -1,25 +1,11 @@
 import { existsSync } from "node:fs";
 import { readFile as fsReadFile, mkdir, stat, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { fromPromise, okAsync } from "neverthrow";
+import { join } from "node:path";
+import { Effect } from "effect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { parseEnrichedScript } from "./core/enriched-parser";
-import {
-  bundleComposition,
-  cleanupTempDir,
-  createRenderVideo,
-  createTempDir,
-  readFile,
-  writeFile,
-} from "./infrastructure";
-import { createLogger } from "./infrastructure/logger";
+import { createLocalDeps } from "./deps";
 import { createRenderVideoWorkflow } from "./service/video-service";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const entryPoint = resolve(__dirname, "remotion/index.ts");
 
 // Skip E2E tests unless explicitly enabled
 const shouldRunE2E = process.env.RUN_E2E_TESTS === "true";
@@ -36,48 +22,24 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
       await mkdir(outputDir, { recursive: true });
     }
 
-    const scriptExists = existsSync(scriptPath);
-    const audioExists = existsSync(audioPath);
-
-    if (!scriptExists) {
+    if (!existsSync(scriptPath)) {
       throw new Error(`Mock script not found: ${scriptPath}`);
     }
-    if (!audioExists) {
+    if (!existsSync(audioPath)) {
       throw new Error(`Mock audio not found: ${audioPath}`);
     }
   });
 
   afterAll(async () => {
-    await fromPromise(unlink(outputPath), (e) => e).orElse(() =>
-      okAsync(undefined),
-    );
+    await unlink(outputPath).catch(() => {});
   });
 
   it("should generate complete video from mock data", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
-
-    const result = await workflow(scriptPath, audioPath, outputPath);
-
-    expect(result.isOk()).toBe(true);
-
-    if (result.isErr()) {
-      console.error("Workflow error:", result.error);
-      throw new Error(`Workflow failed: ${result.error.message}`);
-    }
+    await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
 
     const fileExists = existsSync(outputPath);
     expect(fileExists).toBe(true);
@@ -85,7 +47,7 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
     const stats = await stat(outputPath);
     expect(stats.size).toBeGreaterThan(0);
 
-    logger.info("Generated video file", {
+    deps.logger.info("Generated video file", {
       path: outputPath,
       sizeBytes: stats.size,
       sizeMB: (stats.size / 1024 / 1024).toFixed(2),
@@ -94,28 +56,14 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
 
   it("should generate video with correct metadata", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const scriptContent = await fsReadFile(scriptPath, "utf-8");
     const scriptData = JSON.parse(scriptContent);
     const expectedDuration = scriptData.totalDurationSec;
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
-
-    const result = await workflow(scriptPath, audioPath, outputPath);
-
-    expect(result.isOk()).toBe(true);
+    await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
 
     const stats = await stat(outputPath);
 
@@ -126,7 +74,7 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
     expect(stats.size).toBeGreaterThanOrEqual(minExpectedSize);
     expect(stats.size).toBeLessThanOrEqual(maxExpectedSize);
 
-    logger.info("Video metadata verified", {
+    deps.logger.info("Video metadata verified", {
       expectedDuration,
       actualSize: stats.size,
       minExpected: minExpectedSize,
@@ -136,7 +84,8 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
 
   it("should handle all section types", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const scriptContent = await fsReadFile(scriptPath, "utf-8");
     const scriptData = JSON.parse(scriptContent);
@@ -149,24 +98,9 @@ describeE2E("Task 10.1: Complete Video Generation E2E", () => {
     expect(sectionTypes.has("discussion")).toBe(true);
     expect(sectionTypes.has("outro")).toBe(true);
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
 
-    const result = await workflow(scriptPath, audioPath, outputPath);
-
-    expect(result.isOk()).toBe(true);
-
-    logger.info("All section types verified", {
+    deps.logger.info("All section types verified", {
       types: Array.from(sectionTypes),
     });
   }, 900000);

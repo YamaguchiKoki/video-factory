@@ -1,104 +1,63 @@
-/**
- * Domain error types for Video Worker
- * All errors follow Railway Oriented Programming pattern with Result<T, E>
- */
+import { Schema } from "effect";
 
-type DomainError<T extends string> = {
-  readonly type: T;
-  readonly message: string;
-  readonly cause: Error | null;
-  readonly context: Record<string, unknown>;
-};
+// ============================================
+// FileSystem Errors
+// ============================================
 
-const createDomainError = <T extends string>(
-  type: T,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): DomainError<T> => ({ type, message, cause, context });
+export class FileSystemError extends Schema.TaggedErrorClass<FileSystemError>()(
+  "FileSystemError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-/**
- * Validation error types for script parsing and schema validation
- */
-export type ValidationErrorType =
-  | "JSON_PARSE_ERROR"
-  | "SCHEMA_VALIDATION_ERROR"
-  | "TIMESTAMP_ERROR";
+// ============================================
+// Validation Errors
+// ============================================
 
-export type ValidationError = DomainError<ValidationErrorType>;
+export class ValidationError extends Schema.TaggedErrorClass<ValidationError>()(
+  "ValidationError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-export const createValidationError = (
-  type: ValidationErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): ValidationError => createDomainError(type, message, cause, context);
+// ============================================
+// Render Errors
+// ============================================
 
-/**
- * S3 download error types
- */
-export type S3DownloadErrorType =
-  | "S3_NOT_FOUND"
-  | "S3_ACCESS_DENIED"
-  | "S3_NETWORK_ERROR";
+export class RenderError extends Schema.TaggedErrorClass<RenderError>()(
+  "RenderError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-export type S3DownloadError = DomainError<S3DownloadErrorType>;
+// ============================================
+// S3 Errors
+// ============================================
 
-export const createS3DownloadError = (
-  type: S3DownloadErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): S3DownloadError => createDomainError(type, message, cause, context);
+export class S3DownloadError extends Schema.TaggedErrorClass<S3DownloadError>()(
+  "S3DownloadError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-/**
- * Remotion rendering error types
- */
-export type RenderErrorType =
-  | "RENDER_TIMEOUT"
-  | "RENDER_FAILED"
-  | "BROWSER_ERROR";
+export class S3UploadError extends Schema.TaggedErrorClass<S3UploadError>()(
+  "S3UploadError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-export type RenderError = DomainError<RenderErrorType>;
+// ============================================
+// Env Errors
+// ============================================
 
-export const createRenderError = (
-  type: RenderErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): RenderError => createDomainError(type, message, cause, context);
-
-/**
- * File system operation error types
- */
-export type FileSystemErrorType =
-  | "DISK_FULL"
-  | "PERMISSION_DENIED"
-  | "IO_ERROR";
-
-export type FileSystemError = DomainError<FileSystemErrorType>;
-
-export const createFileSystemError = (
-  type: FileSystemErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): FileSystemError => createDomainError(type, message, cause, context);
-
-/**
- * VideoService error types (high-level workflow errors)
- */
-export type VideoServiceErrorType =
-  | "FILE_READ_ERROR"
-  | "VALIDATION_ERROR"
-  | "RENDER_ERROR"
-  | "FILE_WRITE_ERROR";
-
-export type VideoServiceError = DomainError<VideoServiceErrorType>;
-
-export const createVideoServiceError = (
-  type: VideoServiceErrorType,
-  message: string,
-  cause: Error | null,
-  context: Record<string, unknown>,
-): VideoServiceError => createDomainError(type, message, cause, context);
+export { EnvValidationError } from "@video-factory/shared";

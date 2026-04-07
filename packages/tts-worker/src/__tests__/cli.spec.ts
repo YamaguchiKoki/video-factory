@@ -1,18 +1,18 @@
-// Tests for the Docker CLI entry point (cli.ts) using commander.
+// Tests for the CLI entry point (cli.ts).
 //
 // Design contract:
 //   DEFAULT_INPUT_KEY = "script-generator/script.json"
 //   DEFAULT_OUTPUT_WAV_KEY = "tts-worker/audio.wav"
 //   DEFAULT_OUTPUT_SCRIPT_KEY = "tts-worker/script.json"
 //
-//   createProgram(): Command
+//   createMainProgram(opts): Effect<void, PipelineError | EnvValidationError>
 
-import { errAsync, okAsync } from "neverthrow";
+import { Effect, Layer, Result } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { EnrichedScript } from "../schema";
+import { StorageService } from "../storage";
 
 // ============================================
-// Mock pipeline and s3 modules
+// Mock dependencies
 // ============================================
 
 const { mockRunPipeline } = vi.hoisted(() => ({
@@ -23,46 +23,35 @@ vi.mock("../pipeline", () => ({
   runPipeline: mockRunPipeline,
 }));
 
-const {
-  mockGetScriptFromS3,
-  mockUploadWavToS3,
-  mockUploadEnrichedScriptToS3,
-  mockCreateDockerStorage,
-} = vi.hoisted(() => ({
-  mockGetScriptFromS3: vi.fn(),
-  mockUploadWavToS3: vi.fn(),
-  mockUploadEnrichedScriptToS3: vi.fn(),
-  mockCreateDockerStorage: vi.fn(),
+const { mockCreateStorageServiceLive } = vi.hoisted(() => ({
+  mockCreateStorageServiceLive: vi.fn(),
 }));
 
 vi.mock("../s3", () => ({
-  getScriptFromS3: mockGetScriptFromS3,
-  uploadWavToS3: mockUploadWavToS3,
-  uploadEnrichedScriptToS3: mockUploadEnrichedScriptToS3,
-  createDockerStorage: mockCreateDockerStorage,
-  createS3ClientConfig: vi.fn(() => ({})),
+  createStorageServiceLive: mockCreateStorageServiceLive,
   extractDateFromKey: vi.fn(
     (key: string) => key.split("/").at(-1)?.replace(".json", "") ?? key,
   ),
+  createS3ClientConfig: vi.fn(() => ({})),
+}));
+
+vi.mock("../voicevox", () => ({
+  VoicevoxServiceLive: Layer.empty,
+  VoicevoxService: {},
+  VOICEVOX_URL: "http://localhost:50021",
 }));
 
 import {
-  createProgram,
+  createMainProgram,
   DEFAULT_INPUT_KEY,
   DEFAULT_OUTPUT_SCRIPT_KEY,
   DEFAULT_OUTPUT_WAV_KEY,
 } from "../cli";
+import type { EnrichedScript } from "../schema";
 
 // ============================================
-// Test data
+// Test data helpers
 // ============================================
-
-const buildMockStorage = () => ({
-  getScript: vi.fn().mockReturnValue(okAsync({})),
-  uploadWav: vi.fn().mockReturnValue(okAsync(undefined)),
-  uploadEnrichedScript: vi.fn().mockReturnValue(okAsync(undefined)),
-  buildOutputKey: vi.fn().mockReturnValue("tts-worker/audio.wav"),
-});
 
 const buildValidEnrichedScript = (): EnrichedScript => ({
   title: "テストラジオ",
@@ -245,12 +234,13 @@ const buildValidEnrichedScript = (): EnrichedScript => ({
   ],
 });
 
-// ============================================
-// Helper to run the program with args
-// ============================================
-
-const runProgram = (...args: ReadonlyArray<string>) =>
-  createProgram().parseAsync(["node", "cli.ts", ...args]);
+const createNullStorageLayer = () =>
+  Layer.succeed(StorageService, {
+    getScript: () => Effect.succeed({} as never),
+    uploadWav: () => Effect.succeed(undefined),
+    uploadEnrichedScript: () => Effect.succeed(undefined),
+    buildOutputKey: () => "key",
+  });
 
 // ============================================
 // S3 key constants
@@ -271,18 +261,15 @@ describe("default S3 key constants", () => {
 });
 
 // ============================================
-// createProgram — commander CLI
+// createMainProgram
 // ============================================
 
-describe("createProgram", () => {
-  let exitSpy: ReturnType<typeof vi.spyOn>;
-
+describe("createMainProgram", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.S3_BUCKET = "video-factory";
-    exitSpy = vi.spyOn(process, "exit").mockReturnValue(undefined as never);
-    mockCreateDockerStorage.mockReturnValue(buildMockStorage());
-    mockRunPipeline.mockReturnValue(okAsync(buildValidEnrichedScript()));
+    mockCreateStorageServiceLive.mockReturnValue(createNullStorageLayer());
+    mockRunPipeline.mockReturnValue(Effect.succeed(buildValidEnrichedScript()));
   });
 
   afterEach(() => {
@@ -290,88 +277,120 @@ describe("createProgram", () => {
     vi.restoreAllMocks();
   });
 
-  it("exits with code 1 when S3_BUCKET is not set", async () => {
+  it("succeeds when env is valid and pipeline succeeds", async () => {
+    const result = await Effect.runPromise(
+      Effect.result(
+        createMainProgram({
+          inputKey: DEFAULT_INPUT_KEY,
+          outputWavKey: DEFAULT_OUTPUT_WAV_KEY,
+          outputScriptKey: DEFAULT_OUTPUT_SCRIPT_KEY,
+        }),
+      ),
+    );
+    expect(Result.isSuccess(result)).toBe(true);
+  });
+
+  it("fails with EnvValidationError when S3_BUCKET is not set", async () => {
     delete process.env.S3_BUCKET;
 
-    await runProgram();
+    const result = await Effect.runPromise(
+      Effect.result(
+        createMainProgram({
+          inputKey: DEFAULT_INPUT_KEY,
+          outputWavKey: DEFAULT_OUTPUT_WAV_KEY,
+          outputScriptKey: DEFAULT_OUTPUT_SCRIPT_KEY,
+        }),
+      ),
+    );
 
-    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("EnvValidationError");
+    }
   });
 
-  it("uses default keys when no options are provided", async () => {
-    await runProgram();
-
-    expect(mockRunPipeline).toHaveBeenCalledWith(
-      expect.any(Object),
-      DEFAULT_INPUT_KEY,
+  it("calls runPipeline with opts.inputKey", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        inputKey: "custom/script.json",
+        outputWavKey: DEFAULT_OUTPUT_WAV_KEY,
+        outputScriptKey: DEFAULT_OUTPUT_SCRIPT_KEY,
+      }),
     );
-    expect(mockCreateDockerStorage).toHaveBeenCalledWith(
+
+    expect(mockRunPipeline).toHaveBeenCalledWith("custom/script.json");
+  });
+
+  it("calls createStorageServiceLive with the bucket from env", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        inputKey: DEFAULT_INPUT_KEY,
+        outputWavKey: DEFAULT_OUTPUT_WAV_KEY,
+        outputScriptKey: DEFAULT_OUTPUT_SCRIPT_KEY,
+      }),
+    );
+
+    expect(mockCreateStorageServiceLive).toHaveBeenCalledWith(
       "video-factory",
-      DEFAULT_OUTPUT_WAV_KEY,
-      DEFAULT_OUTPUT_SCRIPT_KEY,
-    );
-  });
-
-  it("passes custom --input-key to runPipeline", async () => {
-    await runProgram("--input-key", "custom/script.json");
-
-    expect(mockRunPipeline).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
       expect.any(Object),
-      "custom/script.json",
     );
   });
 
-  it("passes custom --output-wav-key to createDockerStorage", async () => {
-    await runProgram("--output-wav-key", "custom/audio.wav");
+  it("calls createStorageServiceLive with opts.outputWavKey", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        inputKey: DEFAULT_INPUT_KEY,
+        outputWavKey: "custom/audio.wav",
+        outputScriptKey: DEFAULT_OUTPUT_SCRIPT_KEY,
+      }),
+    );
 
-    expect(mockCreateDockerStorage).toHaveBeenCalledWith(
-      "video-factory",
+    expect(mockCreateStorageServiceLive).toHaveBeenCalledWith(
+      expect.any(String),
       "custom/audio.wav",
       expect.any(String),
+      expect.any(Object),
     );
   });
 
-  it("passes custom --output-script-key to createDockerStorage", async () => {
-    await runProgram("--output-script-key", "custom/enriched.json");
+  it("calls createStorageServiceLive with opts.outputScriptKey", async () => {
+    await Effect.runPromise(
+      createMainProgram({
+        inputKey: DEFAULT_INPUT_KEY,
+        outputWavKey: DEFAULT_OUTPUT_WAV_KEY,
+        outputScriptKey: "custom/enriched.json",
+      }),
+    );
 
-    expect(mockCreateDockerStorage).toHaveBeenCalledWith(
-      "video-factory",
+    expect(mockCreateStorageServiceLive).toHaveBeenCalledWith(
+      expect.any(String),
       expect.any(String),
       "custom/enriched.json",
+      expect.any(Object),
     );
   });
 
-  it("does NOT call uploadEnrichedScriptToS3 directly", async () => {
-    await runProgram();
-
-    expect(mockUploadEnrichedScriptToS3).not.toHaveBeenCalled();
-  });
-
-  it("exits with code 1 when runPipeline returns an error", async () => {
+  it("fails when runPipeline fails", async () => {
+    const { S3GetObjectError } = await import("../errors");
     mockRunPipeline.mockReturnValue(
-      errAsync({ type: "GET_OBJECT_ERROR" as const, message: "S3 error" }),
+      Effect.fail(new S3GetObjectError({ message: "S3 error" })),
     );
 
-    await runProgram();
-
-    expect(exitSpy).toHaveBeenCalledWith(1);
-  });
-
-  it("does not exit when runPipeline returns Ok", async () => {
-    await runProgram();
-
-    expect(exitSpy).not.toHaveBeenCalled();
-  });
-
-  it("passes the created storage object to runPipeline", async () => {
-    const mockStorage = buildMockStorage();
-    mockCreateDockerStorage.mockReturnValue(mockStorage);
-
-    await runProgram();
-
-    expect(mockRunPipeline).toHaveBeenCalledWith(
-      mockStorage,
-      DEFAULT_INPUT_KEY,
+    const result = await Effect.runPromise(
+      Effect.result(
+        createMainProgram({
+          inputKey: DEFAULT_INPUT_KEY,
+          outputWavKey: DEFAULT_OUTPUT_WAV_KEY,
+          outputScriptKey: DEFAULT_OUTPUT_SCRIPT_KEY,
+        }),
+      ),
     );
+
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3GetObjectError");
+    }
   });
 });

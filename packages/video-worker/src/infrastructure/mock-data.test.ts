@@ -1,15 +1,13 @@
-/**
- * Mock data loader tests
- * Tests for loading mock script and audio files
- */
-
-import { errAsync, okAsync } from "neverthrow";
+import { Effect, Result } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFileSystemError } from "../core/errors";
+import { FileSystemError } from "../core/errors";
 import * as fs from "./file-system";
 import { loadMockAudio, loadMockScript } from "./mock-data";
 
 vi.mock("./file-system");
+
+const run = <A>(effect: Effect.Effect<A, FileSystemError>) =>
+  Effect.runPromise(Effect.result(effect));
 
 describe("loadMockScript()", () => {
   beforeEach(() => {
@@ -17,7 +15,6 @@ describe("loadMockScript()", () => {
   });
 
   it("should load mock script from mock-data/script.json", async () => {
-    // Mock readFile to return sample script content
     const mockContent = Buffer.from(
       JSON.stringify({
         metadata: {
@@ -45,29 +42,27 @@ describe("loadMockScript()", () => {
       }),
     );
 
-    vi.mocked(fs.readFile).mockReturnValue(okAsync(mockContent));
+    vi.mocked(fs.readFile).mockReturnValue(Effect.succeed(mockContent));
 
-    const result = await loadMockScript();
+    const result = await run(loadMockScript());
 
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value).toContain("Test");
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success).toContain("Test");
     }
     expect(fs.readFile).toHaveBeenCalledWith("mock-data/script.json");
   });
 
   it("should return FileSystemError when mock file is not found", async () => {
-    const error = createFileSystemError("IO_ERROR", "File not found", null, {
-      path: "mock-data/script.json",
-    });
+    const error = new FileSystemError({ message: "File not found" });
 
-    vi.mocked(fs.readFile).mockReturnValue(errAsync(error));
+    vi.mocked(fs.readFile).mockReturnValue(Effect.fail(error));
 
-    const result = await loadMockScript();
+    const result = await run(loadMockScript());
 
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("IO_ERROR");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("FileSystemError");
     }
   });
 });
@@ -78,31 +73,29 @@ describe("loadMockAudio()", () => {
   });
 
   it("should load mock audio from mock-data/audio.wav", async () => {
-    const mockAudioBuffer = Buffer.from([0x52, 0x49, 0x46, 0x46]); // "RIFF" header
+    const mockAudioBuffer = Buffer.from([0x52, 0x49, 0x46, 0x46]);
 
-    vi.mocked(fs.readFile).mockReturnValue(okAsync(mockAudioBuffer));
+    vi.mocked(fs.readFile).mockReturnValue(Effect.succeed(mockAudioBuffer));
 
-    const result = await loadMockAudio();
+    const result = await run(loadMockAudio());
 
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value).toBeInstanceOf(Buffer);
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.success).toBeInstanceOf(Buffer);
     }
     expect(fs.readFile).toHaveBeenCalledWith("mock-data/audio.wav");
   });
 
   it("should return FileSystemError when mock audio file is not found", async () => {
-    const error = createFileSystemError("IO_ERROR", "File not found", null, {
-      path: "mock-data/audio.wav",
-    });
+    const error = new FileSystemError({ message: "File not found" });
 
-    vi.mocked(fs.readFile).mockReturnValue(errAsync(error));
+    vi.mocked(fs.readFile).mockReturnValue(Effect.fail(error));
 
-    const result = await loadMockAudio();
+    const result = await run(loadMockAudio());
 
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.type).toBe("IO_ERROR");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("FileSystemError");
     }
   });
 });

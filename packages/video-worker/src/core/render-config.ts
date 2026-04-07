@@ -1,3 +1,5 @@
+import type { VideoProps } from "../schema/schema";
+
 export type CompositionConfig = {
   readonly id: string;
   readonly width: number;
@@ -9,7 +11,7 @@ export type CompositionConfig = {
 export type RenderConfig = {
   readonly composition: CompositionConfig;
   readonly serveUrl: string;
-  readonly inputProps: Record<string, unknown>;
+  readonly inputProps: VideoProps;
   readonly codec: "h264";
   readonly crf: number;
   readonly imageFormat: "jpeg";

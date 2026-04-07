@@ -1,15 +1,16 @@
 import { bundle } from "@remotion/bundler";
-import { ResultAsync } from "neverthrow";
-import { createRenderError, type RenderError } from "../core/errors";
-
-const toBundleError = (e: unknown): RenderError => {
-  const cause = e instanceof Error ? e : null;
-  const message = e instanceof Error ? e.message : String(e);
-  return createRenderError("RENDER_FAILED", message, cause, {});
-};
+import { Effect } from "effect";
+import { RenderError } from "../core/errors";
 
 export const bundleComposition = (
   entryPoint: string,
   publicDir: string,
-): ResultAsync<string, RenderError> =>
-  ResultAsync.fromPromise(bundle({ entryPoint, publicDir }), toBundleError);
+): Effect.Effect<string, RenderError> =>
+  Effect.tryPromise({
+    try: () => bundle({ entryPoint, publicDir }),
+    catch: (e) =>
+      new RenderError({
+        message: e instanceof Error ? e.message : String(e),
+        cause: e instanceof Error ? e : undefined,
+      }),
+  });

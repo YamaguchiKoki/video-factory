@@ -3,6 +3,7 @@
  * Comprehensive tests including property-based testing (fuzzing)
  */
 
+import { Result } from "effect";
 import { describe, expect, it } from "vitest";
 import { parseScript } from "./script-parser";
 
@@ -49,9 +50,9 @@ describe("parseScript", () => {
 
       const result = parseScript(validScript);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        const parsed = result.value;
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        const parsed = result.success;
         expect(parsed.metadata.title).toBe("Test Script");
         expect(parsed.speakers).toHaveLength(2);
         expect(parsed.segments).toHaveLength(2);
@@ -101,9 +102,9 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithUnsortedSegments);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        const segments = result.value.segments;
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        const segments = result.success.segments;
         expect(segments[0].id).toBe("seg-001");
         expect(segments[1].id).toBe("seg-002");
         expect(segments[2].id).toBe("seg-003");
@@ -117,19 +118,19 @@ describe("parseScript", () => {
 
       const result = parseScript(invalidJson);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("JSON_PARSE_ERROR");
-        expect(result.error.message).toContain("Invalid JSON");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("JSON_PARSE_ERROR");
+        expect(result.failure.message).toContain("Invalid JSON");
       }
     });
 
     it("should return JSON_PARSE_ERROR for empty string", () => {
       const result = parseScript("");
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("JSON_PARSE_ERROR");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("JSON_PARSE_ERROR");
       }
     });
   });
@@ -155,10 +156,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithoutSpeakers);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("SCHEMA_VALIDATION_ERROR");
-        expect(result.error.message).toContain("speakers");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("SCHEMA_VALIDATION_ERROR");
+        expect(result.failure.message).toContain("speakers");
       }
     });
 
@@ -181,10 +182,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithoutSegments);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("SCHEMA_VALIDATION_ERROR");
-        expect(result.error.message).toContain("segments");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("SCHEMA_VALIDATION_ERROR");
+        expect(result.failure.message).toContain("segments");
       }
     });
 
@@ -211,10 +212,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithoutMetadata);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("SCHEMA_VALIDATION_ERROR");
-        expect(result.error.message).toContain("metadata");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("SCHEMA_VALIDATION_ERROR");
+        expect(result.failure.message).toContain("metadata");
       }
     });
 
@@ -239,10 +240,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithEmptySpeakers);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("SCHEMA_VALIDATION_ERROR");
-        expect(result.error.message).toContain("at least one speaker");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("SCHEMA_VALIDATION_ERROR");
+        expect(result.failure.message).toContain("at least one speaker");
       }
     });
 
@@ -266,10 +267,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithEmptySegments);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("SCHEMA_VALIDATION_ERROR");
-        expect(result.error.message).toContain("at least one segment");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("SCHEMA_VALIDATION_ERROR");
+        expect(result.failure.message).toContain("at least one segment");
       }
     });
   });
@@ -303,10 +304,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithEqualTimestamps);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("TIMESTAMP_ERROR");
-        expect(result.error.message).toContain(
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("TIMESTAMP_ERROR");
+        expect(result.failure.message).toContain(
           "Start time must be less than end time",
         );
       }
@@ -340,9 +341,9 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithInvertedTimestamps);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("TIMESTAMP_ERROR");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("TIMESTAMP_ERROR");
       }
     });
 
@@ -381,10 +382,10 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithOverlappingSegments);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("TIMESTAMP_ERROR");
-        expect(result.error.message).toContain("overlap");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("TIMESTAMP_ERROR");
+        expect(result.failure.message).toContain("overlap");
       }
     });
 
@@ -423,7 +424,7 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithAdjacentSegments);
 
-      expect(result.isOk()).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
     });
   });
 
@@ -456,11 +457,11 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithInvalidSpeakerId);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.type).toBe("SCHEMA_VALIDATION_ERROR");
-        expect(result.error.message).toContain("non-existent-speaker");
-        expect(result.error.message).toContain("speaker");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.type).toBe("SCHEMA_VALIDATION_ERROR");
+        expect(result.failure.message).toContain("non-existent-speaker");
+        expect(result.failure.message).toContain("speaker");
       }
     });
 
@@ -505,7 +506,7 @@ describe("parseScript", () => {
 
       const result = parseScript(scriptWithValidSpeakerIds);
 
-      expect(result.isOk()).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
     });
   });
 
@@ -541,13 +542,13 @@ describe("parseScript", () => {
 
       const result = parseScript(largeScript);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.value.segments).toHaveLength(1000);
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(result.success.segments).toHaveLength(1000);
         // Verify sorting is maintained
-        for (let i = 1; i < result.value.segments.length; i++) {
-          expect(result.value.segments[i].startTime).toBeGreaterThanOrEqual(
-            result.value.segments[i - 1].startTime,
+        for (let i = 1; i < result.success.segments.length; i++) {
+          expect(result.success.segments[i].startTime).toBeGreaterThanOrEqual(
+            result.success.segments[i - 1].startTime,
           );
         }
       }
@@ -600,7 +601,7 @@ describe("parseScript", () => {
 
       const result = parseScript(randomScript);
 
-      expect(result.isOk()).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
     });
 
     it("should reject scripts with extreme segment counts (limit validation)", () => {
@@ -636,7 +637,7 @@ describe("parseScript", () => {
 
       // Should either succeed or fail gracefully with appropriate error
       // For now, we'll accept success (limit can be added in future)
-      expect(result.isOk() || result.isErr()).toBe(true);
+      expect(Result.isSuccess(result) || Result.isFailure(result)).toBe(true);
     });
 
     it("should handle minimal valid script (single segment)", () => {
@@ -667,7 +668,7 @@ describe("parseScript", () => {
 
       const result = parseScript(minimalScript);
 
-      expect(result.isOk()).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
     });
   });
 });

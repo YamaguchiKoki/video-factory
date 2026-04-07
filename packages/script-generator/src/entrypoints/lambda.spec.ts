@@ -10,8 +10,8 @@
 //     — throws when uploadScriptToS3 returns an error
 //     — uploads script to S3 and returns it on success
 
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { errAsync, okAsync } from "neverthrow";
 
 // ============================================
 // Mock @aws-sdk/client-secrets-manager
@@ -57,7 +57,7 @@ vi.mock("../workflow-runner", () => ({
 }));
 
 // ============================================
-// Mock ../infrastructure/s3
+// Mock ../infrastructure/s3 (uploadScriptToS3 returns Effect)
 // ============================================
 
 const { mockUploadScriptToS3 } = vi.hoisted(() => ({
@@ -115,13 +115,15 @@ describe("handler", () => {
   it("throws when Secrets Manager API call fails", async () => {
     mockSend.mockRejectedValue(new Error("AccessDeniedException"));
 
-    await expect(handler({})).rejects.toThrow("AccessDeniedException");
+    await expect(handler({ genre: "technology" })).rejects.toThrow(
+      "AccessDeniedException",
+    );
   });
 
   it("throws when SecretString is undefined in the response", async () => {
     mockSend.mockResolvedValue({ SecretString: undefined });
 
-    await expect(handler({})).rejects.toThrow(
+    await expect(handler({ genre: "technology" })).rejects.toThrow(
       `Secret ${VALID_SECRET_ARN} has no string value`,
     );
   });
@@ -129,7 +131,7 @@ describe("handler", () => {
   it("throws when runWorkflow returns an error", async () => {
     mockSend.mockResolvedValue({ SecretString: "resolved-api-key" });
     mockRunWorkflow.mockReturnValue(
-      errAsync({ message: "workflow failed" }),
+      Effect.fail({ type: "WORKFLOW_ERROR", message: "workflow failed" }),
     );
 
     await expect(handler({ genre: "technology" })).rejects.toThrow(
@@ -139,9 +141,9 @@ describe("handler", () => {
 
   it("throws when uploadScriptToS3 returns an error", async () => {
     mockSend.mockResolvedValue({ SecretString: "resolved-api-key" });
-    mockRunWorkflow.mockReturnValue(okAsync(FAKE_SCRIPT));
+    mockRunWorkflow.mockReturnValue(Effect.succeed(FAKE_SCRIPT));
     mockUploadScriptToS3.mockReturnValue(
-      errAsync({ type: "PUT_OBJECT_ERROR", message: "upload failed" }),
+      Effect.fail({ _tag: "S3PutObjectError", message: "upload failed" }),
     );
 
     await expect(handler({ genre: "technology" })).rejects.toThrow(
@@ -151,8 +153,8 @@ describe("handler", () => {
 
   it("uploads script to S3 and returns it on success", async () => {
     mockSend.mockResolvedValue({ SecretString: "resolved-api-key" });
-    mockRunWorkflow.mockReturnValue(okAsync(FAKE_SCRIPT));
-    mockUploadScriptToS3.mockReturnValue(okAsync(undefined));
+    mockRunWorkflow.mockReturnValue(Effect.succeed(FAKE_SCRIPT));
+    mockUploadScriptToS3.mockReturnValue(Effect.succeed(undefined));
 
     const result = await handler({ genre: "technology" });
 

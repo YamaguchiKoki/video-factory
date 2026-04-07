@@ -1,61 +1,69 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
 // ---------------------------------------------------------------------------
 // Line (atomic unit shared across all section types)
 // ---------------------------------------------------------------------------
 
-export const EnrichedLineSchema = z.object({
-  speaker: z.enum(["A", "B"]),
-  text: z.string(),
-  voicevoxSpeakerId: z.number(),
-  offsetSec: z.number(),
-  durationSec: z.number(),
+export const EnrichedLineSchema = Schema.Struct({
+  speaker: Schema.Literals(["A", "B"]),
+  text: Schema.String,
+  voicevoxSpeakerId: Schema.Number,
+  offsetSec: Schema.Number,
+  durationSec: Schema.Number,
 });
 
-export type EnrichedLine = z.infer<typeof EnrichedLineSchema>;
+export type EnrichedLine = typeof EnrichedLineSchema.Type;
 
 // ---------------------------------------------------------------------------
 // NewsItem
 // ---------------------------------------------------------------------------
 
-const EnrichedNewsItemSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  sourceUrl: z.string(),
+const EnrichedNewsItemSchema = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  sourceUrl: Schema.String,
 });
 
 // ---------------------------------------------------------------------------
 // Discussion block
 // ---------------------------------------------------------------------------
 
-const DiscussionBlockSchema = z.object({
-  phase: z.enum(["summary", "background", "deepDive"]),
-  lines: z.array(EnrichedLineSchema).min(1),
+const DiscussionBlockSchema = Schema.Struct({
+  phase: Schema.Literals(["summary", "background", "deepDive"]),
+  lines: Schema.Array(EnrichedLineSchema).check(
+    Schema.makeFilter(
+      (lines) => lines.length >= 1 || "lines must have at least 1 element",
+    ),
+  ),
 });
 
 // ---------------------------------------------------------------------------
 // Section variants
 // ---------------------------------------------------------------------------
 
-const IntroSectionSchema = z.object({
-  type: z.literal("intro"),
-  greeting: z.array(EnrichedLineSchema),
-  newsOverview: z.array(EnrichedLineSchema),
+const IntroSectionSchema = Schema.Struct({
+  type: Schema.Literal("intro"),
+  greeting: Schema.Array(EnrichedLineSchema),
+  newsOverview: Schema.Array(EnrichedLineSchema),
 });
 
-const DiscussionSectionSchema = z.object({
-  type: z.literal("discussion"),
-  newsId: z.string(),
-  blocks: z.array(DiscussionBlockSchema).min(1),
+const DiscussionSectionSchema = Schema.Struct({
+  type: Schema.Literal("discussion"),
+  newsId: Schema.Literals(["news-1", "news-2", "news-3"]),
+  blocks: Schema.Array(DiscussionBlockSchema).check(
+    Schema.makeFilter(
+      (blocks) => blocks.length >= 1 || "blocks must have at least 1 element",
+    ),
+  ),
 });
 
-const OutroSectionSchema = z.object({
-  type: z.literal("outro"),
-  recap: z.array(EnrichedLineSchema),
-  closing: z.array(EnrichedLineSchema),
+const OutroSectionSchema = Schema.Struct({
+  type: Schema.Literal("outro"),
+  recap: Schema.Array(EnrichedLineSchema),
+  closing: Schema.Array(EnrichedLineSchema),
 });
 
-const EnrichedSectionSchema = z.discriminatedUnion("type", [
+const EnrichedSectionSchema = Schema.Union([
   IntroSectionSchema,
   DiscussionSectionSchema,
   OutroSectionSchema,
@@ -65,12 +73,12 @@ const EnrichedSectionSchema = z.discriminatedUnion("type", [
 // Top-level script
 // ---------------------------------------------------------------------------
 
-export const EnrichedScriptSchema = z.object({
-  title: z.string(),
-  totalDurationSec: z.number(),
-  outputWavS3Key: z.string(),
-  newsItems: z.array(EnrichedNewsItemSchema),
-  sections: z.array(EnrichedSectionSchema),
+export const EnrichedScriptSchema = Schema.Struct({
+  title: Schema.String,
+  totalDurationSec: Schema.Number,
+  outputWavS3Key: Schema.String,
+  newsItems: Schema.Array(EnrichedNewsItemSchema),
+  sections: Schema.Array(EnrichedSectionSchema),
 });
 
-export type EnrichedScript = z.infer<typeof EnrichedScriptSchema>;
+export type EnrichedScript = typeof EnrichedScriptSchema.Type;

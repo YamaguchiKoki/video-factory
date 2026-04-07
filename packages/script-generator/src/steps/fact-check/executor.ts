@@ -1,6 +1,4 @@
 import { createStep } from "@mastra/core/workflows";
-import { err, fromPromise, ok, safeTry } from "neverthrow";
-import { toError } from "../../shared/errors";
 import type { EnrichedTopicsOutput } from "../topic-deep-dive/schema";
 import { EnrichedTopicsOutputSchema } from "../topic-deep-dive/schema";
 import { FACT_CHECK_AGENT_ID } from "./agent";
@@ -11,22 +9,14 @@ export const factCheckStep = createStep({
   inputSchema: EnrichedTopicsOutputSchema,
   outputSchema: VerifiedTopicsOutputSchema,
   execute: async ({ inputData, mastra }) => {
-    const result = await safeTry(async function* () {
-      const agent = mastra.getAgent(FACT_CHECK_AGENT_ID);
-      if (!agent) return err(new Error(`${FACT_CHECK_AGENT_ID} not found`));
+    const agent = mastra.getAgent(FACT_CHECK_AGENT_ID);
+    if (!agent) throw new Error(`${FACT_CHECK_AGENT_ID} not found`);
 
-      const response = yield* fromPromise(
-        agent.generate(buildFactCheckPrompt(inputData), {
-          structuredOutput: { schema: VerifiedTopicsOutputSchema },
-        }),
-        toError,
-      );
-
-      return ok(response.object);
+    const response = await agent.generate(buildFactCheckPrompt(inputData), {
+      structuredOutput: { schema: VerifiedTopicsOutputSchema },
     });
 
-    if (result.isErr()) throw result.error;
-    return result.value;
+    return response.object;
   },
 });
 

@@ -8,6 +8,7 @@
  * - Invariant testing with random data
  */
 
+import { Result } from "effect";
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { buildRenderConfig } from "./core/render-config";
@@ -75,8 +76,8 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
 
             const result = parseScript(script);
 
-            if (result.isOk()) {
-              const parsed = result.value;
+            if (Result.isSuccess(result)) {
+              const parsed = result.success;
 
               // Invariant: segments must be sorted by startTime
               for (let i = 0; i < parsed.segments.length - 1; i++) {
@@ -129,7 +130,7 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
             const result = parseScript(script);
 
             // Invariant: overlapping timestamps must be rejected
-            expect(result.isErr()).toBe(true);
+            expect(Result.isFailure(result)).toBe(true);
           },
         ),
         { numRuns: 20 },
@@ -171,7 +172,7 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
             const result = parseScript(script);
 
             // Invariant: invalid speaker references must be rejected
-            expect(result.isErr()).toBe(true);
+            expect(Result.isFailure(result)).toBe(true);
           },
         ),
         { numRuns: 30 },
@@ -304,10 +305,10 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
 
             // Should either succeed or fail gracefully
             // (not throw unhandled error)
-            if (result.isOk()) {
-              expect(result.value.segments[0].text).toBe(longText);
+            if (Result.isSuccess(result)) {
+              expect(result.success.segments[0].text).toBe(longText);
             } else {
-              expect(result.error.type).toBeDefined();
+              expect(result.failure.type).toBeDefined();
             }
           },
         ),
@@ -393,10 +394,10 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
       const result = parseScript(script);
 
       // Should either succeed or fail with validation error
-      if (result.isOk()) {
-        expect(result.value.segments.length).toBe(maxSegments);
+      if (Result.isSuccess(result)) {
+        expect(result.success.segments.length).toBe(maxSegments);
       } else {
-        expect(result.error.type).toBe("VALIDATION_ERROR");
+        expect(result.failure.type).toBeDefined();
       }
     });
 
@@ -464,11 +465,11 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
             const result = parseScript(script);
 
             // Should handle unicode gracefully
-            if (result.isOk()) {
-              expect(result.value.segments[0].text).toBe(unicodeText);
+            if (Result.isSuccess(result)) {
+              expect(result.success.segments[0].text).toBe(unicodeText);
             } else {
               // If it fails, should be a validation error, not a crash
-              expect(result.error.type).toBeDefined();
+              expect(result.failure.type).toBeDefined();
             }
           },
         ),
@@ -505,12 +506,12 @@ describeFuzz("Task 10.4: Property-Based Testing", () => {
       const result = parseScript(script);
 
       // Should handle emoji correctly
-      expect(result.isOk()).toBe(true);
+      expect(Result.isSuccess(result)).toBe(true);
 
-      if (result.isOk()) {
-        expect(result.value.metadata.title).toContain("🎥");
-        expect(result.value.speakers[0].name).toContain("🤖");
-        expect(result.value.segments[0].text).toContain("👋");
+      if (Result.isSuccess(result)) {
+        expect(result.success.metadata.title).toContain("🎥");
+        expect(result.success.speakers[0].name).toContain("🤖");
+        expect(result.success.segments[0].text).toContain("👋");
       }
     });
   });

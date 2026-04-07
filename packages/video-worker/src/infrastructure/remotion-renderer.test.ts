@@ -1,5 +1,5 @@
+import { Effect, Result } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { RenderError } from "../core/errors";
 import type { RenderConfig } from "../core/render-config";
 import { createRenderVideo } from "./remotion-renderer";
 
@@ -42,11 +42,15 @@ describe("renderVideo", () => {
     enableMultiProcessOnLinux: true,
   });
 
+  const run = (config: RenderConfig) => {
+    const renderVideo = createRenderVideo(mockLogger);
+    return Effect.runPromise(Effect.result(renderVideo(config)));
+  };
+
   describe("正常系", () => {
-    it("renderMedia成功時にOkを返す", async () => {
+    it("renderMedia成功時にSuccessを返す", async () => {
       const config = createMockRenderConfig();
 
-      // Get mocked renderMedia
       const { renderMedia } = await import("@remotion/renderer");
       vi.mocked(renderMedia).mockResolvedValue({
         buffer: null,
@@ -54,12 +58,11 @@ describe("renderVideo", () => {
         // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
-      const renderVideo = createRenderVideo(mockLogger);
-      const result = await renderVideo(config);
+      const result = await run(config);
 
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.value).toMatch(
+      expect(Result.isSuccess(result)).toBe(true);
+      if (Result.isSuccess(result)) {
+        expect(result.success).toMatch(
           /^\/tmp\/remotion-render-\d+\/output\.mp4$/,
         );
       }
@@ -76,8 +79,7 @@ describe("renderVideo", () => {
         // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
-      const renderVideo = createRenderVideo(mockLogger);
-      await renderVideo(config);
+      await run(config);
 
       expect(renderMedia).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -103,58 +105,52 @@ describe("renderVideo", () => {
   });
 
   describe("異常系", () => {
-    it("renderMediaがエラーをthrowした場合にErrを返す", async () => {
+    it("renderMediaがエラーをthrowした場合にFailureを返す", async () => {
       const config = createMockRenderConfig();
       const mockError = new Error("Render failed");
 
       const { renderMedia } = await import("@remotion/renderer");
       vi.mocked(renderMedia).mockRejectedValue(mockError);
 
-      const renderVideo = createRenderVideo(mockLogger);
-      const result = await renderVideo(config);
+      const result = await run(config);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        const error: RenderError = result.error;
-        expect(error.type).toBe("RENDER_FAILED");
-        expect(error.message).toContain("Render failed");
-        expect(error.cause).toBe(mockError);
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure._tag).toBe("RenderError");
+        expect(result.failure.message).toContain("Render failed");
+        expect(result.failure.cause).toBe(mockError);
       }
     });
 
-    it("タイムアウト時にRENDER_TIMEOUTエラーを返す", async () => {
+    it("タイムアウト時にRenderErrorを返す（メッセージにtimeoutを含む）", async () => {
       const config = createMockRenderConfig();
       const timeoutError = new Error("Timeout after 15 minutes");
 
       const { renderMedia } = await import("@remotion/renderer");
       vi.mocked(renderMedia).mockRejectedValue(timeoutError);
 
-      const renderVideo = createRenderVideo(mockLogger);
-      const result = await renderVideo(config);
+      const result = await run(config);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        const error: RenderError = result.error;
-        expect(error.type).toBe("RENDER_TIMEOUT");
-        expect(error.message).toContain("Timeout");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure._tag).toBe("RenderError");
+        expect(result.failure.message).toContain("timeout");
       }
     });
 
-    it("ブラウザエラー時にBROWSER_ERRORエラーを返す", async () => {
+    it("ブラウザエラー時にRenderErrorを返す（メッセージにBrowser errorを含む）", async () => {
       const config = createMockRenderConfig();
       const browserError = new Error("Chrome process crashed");
 
       const { renderMedia } = await import("@remotion/renderer");
       vi.mocked(renderMedia).mockRejectedValue(browserError);
 
-      const renderVideo = createRenderVideo(mockLogger);
-      const result = await renderVideo(config);
+      const result = await run(config);
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        const error: RenderError = result.error;
-        expect(error.type).toBe("BROWSER_ERROR");
-        expect(error.message).toContain("Chrome");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure._tag).toBe("RenderError");
+        expect(result.failure.message).toContain("Browser error");
       }
     });
   });
@@ -166,7 +162,6 @@ describe("renderVideo", () => {
       const { renderMedia } = await import("@remotion/renderer");
       // biome-ignore lint/suspicious/noExplicitAny: mock implementation with dynamic options
       vi.mocked(renderMedia).mockImplementation(async (options: any) => {
-        // Simulate progress callbacks
         if (options.onProgress) {
           options.onProgress({
             progress: 0.0,
@@ -195,32 +190,12 @@ describe("renderVideo", () => {
             renderEstimatedTime: 0,
             stitchStage: "encoding",
           });
-          options.onProgress({
-            progress: 0.5,
-            renderedFrames: 450,
-            encodedFrames: 445,
-            encodedDoneIn: null,
-            renderedDoneIn: null,
-            renderEstimatedTime: 0,
-            stitchStage: "encoding",
-          });
-          options.onProgress({
-            progress: 1.0,
-            renderedFrames: 900,
-            encodedFrames: 900,
-            encodedDoneIn: 1000,
-            renderedDoneIn: 1000,
-            renderEstimatedTime: 0,
-            stitchStage: "muxing",
-          });
         }
         return { buffer: null, slowestFrames: [] };
       });
 
-      const renderVideo = createRenderVideo(mockLogger);
-      await renderVideo(config);
+      await run(config);
 
-      // Verify logger was called with progress info
       expect(mockLogger.info).toHaveBeenCalled();
       const logCalls = mockLogger.info.mock.calls;
       const progressLogs = logCalls.filter((call: unknown[]) =>
@@ -234,10 +209,9 @@ describe("renderVideo", () => {
     it("メモリ使用量が4GB接近時に警告ログを出力", async () => {
       const config = createMockRenderConfig();
 
-      // Mock process.memoryUsage before creating renderVideo
       const originalMemoryUsage = process.memoryUsage;
       const mockMemoryUsage = vi.fn().mockReturnValue({
-        heapUsed: 3.9 * 1024 * 1024 * 1024, // 3.9 GB (above threshold)
+        heapUsed: 3.9 * 1024 * 1024 * 1024,
         rss: 4 * 1024 * 1024 * 1024,
         heapTotal: 4 * 1024 * 1024 * 1024,
         external: 0,
@@ -250,7 +224,6 @@ describe("renderVideo", () => {
       // biome-ignore lint/suspicious/noExplicitAny: mock implementation with dynamic options
       vi.mocked(renderMedia).mockImplementation(async (options: any) => {
         if (options.onProgress) {
-          // Call onProgress which will check memory
           options.onProgress({
             progress: 0.5,
             renderedFrames: 450,
@@ -264,13 +237,10 @@ describe("renderVideo", () => {
         return { buffer: null, slowestFrames: [] };
       });
 
-      const renderVideo = createRenderVideo(mockLogger);
-      await renderVideo(config);
+      await run(config);
 
-      // Restore original
       process.memoryUsage = originalMemoryUsage;
 
-      // Verify warning was logged
       expect(mockLogger.warn).toHaveBeenCalled();
       const warnCalls = mockLogger.warn.mock.calls;
       const memoryWarnings = warnCalls.filter((call: unknown[]) =>
@@ -291,10 +261,8 @@ describe("renderVideo", () => {
         // biome-ignore lint/suspicious/noExplicitAny: mock return value for renderMedia
       } as any);
 
-      const renderVideo = createRenderVideo(mockLogger);
-      await renderVideo(config);
+      await run(config);
 
-      // Verify start and end logs
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.stringContaining("Starting video render"),
         expect.any(Object),

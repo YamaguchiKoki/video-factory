@@ -1,4 +1,4 @@
-import { err, fromThrowable, ok, type Result } from "neverthrow";
+import { Effect, Schema } from "effect";
 import {
   type EnrichedLine,
   type EnrichedScript,
@@ -10,16 +10,7 @@ import type {
   TimedLine,
   VideoProps,
 } from "../schema/schema";
-import { createValidationError, type ValidationError } from "./errors";
-
-// ---------------------------------------------------------------------------
-// JSON parsing
-// ---------------------------------------------------------------------------
-
-const safeJsonParse = fromThrowable(
-  JSON.parse,
-  (e): Error => (e instanceof Error ? e : new Error(String(e))),
-);
+import { ValidationError } from "./errors";
 
 // ---------------------------------------------------------------------------
 // Conversion helpers
@@ -33,7 +24,7 @@ const toTimedLine = (line: EnrichedLine, audioPath: string): TimedLine => ({
   durationSec: line.durationSec,
 });
 
-const lastOf = <T>(arr: T[]): T => arr[arr.length - 1];
+const lastOf = <T>(arr: readonly T[]): T => arr[arr.length - 1] as T;
 
 const endSecOf = (line: EnrichedLine): number =>
   line.offsetSec + line.durationSec;
@@ -48,30 +39,28 @@ const flattenLines = (script: EnrichedScript, audioPath: string): TimedLine[] =>
       return section.blocks.flatMap((block) =>
         block.lines.map((l) => toTimedLine(l, audioPath)),
       );
-    } else {
+    } else if (section.type === "outro") {
       return [...section.recap, ...section.closing].map((l) =>
         toTimedLine(l, audioPath),
       );
+    } else {
+      const _exhaustive: never = section;
+      return _exhaustive;
     }
   });
 
 const sectionToMarkers = (
   section: EnrichedScript["sections"][number],
   newsItems: IntroSectionMarker["agenda"],
-): Result<SectionMarker[], ValidationError> => {
+): Effect.Effect<SectionMarker[], ValidationError> => {
   if (section.type === "intro") {
     const allLines = [...section.greeting, ...section.newsOverview];
     if (allLines.length === 0) {
-      return err(
-        createValidationError(
-          "SCHEMA_VALIDATION_ERROR",
-          "intro section has no lines",
-          null,
-          { sectionType: "intro" },
-        ),
+      return Effect.fail(
+        new ValidationError({ message: "intro section has no lines" }),
       );
     }
-    return ok([
+    return Effect.succeed([
       {
         type: "intro",
         startSec: allLines[0].offsetSec,
@@ -80,7 +69,7 @@ const sectionToMarkers = (
       },
     ]);
   } else if (section.type === "discussion") {
-    return ok(
+    return Effect.succeed(
       section.blocks.map((block) => ({
         type: "discussion" as const,
         newsId: section.newsId,
@@ -89,55 +78,56 @@ const sectionToMarkers = (
         endSec: endSecOf(lastOf(block.lines)),
       })),
     );
-  } else {
+  } else if (section.type === "outro") {
     const allLines = [...section.recap, ...section.closing];
     if (allLines.length === 0) {
-      return err(
-        createValidationError(
-          "SCHEMA_VALIDATION_ERROR",
-          "outro section has no lines",
-          null,
-          { sectionType: "outro" },
-        ),
+      return Effect.fail(
+        new ValidationError({ message: "outro section has no lines" }),
       );
     }
-    return ok([
+    return Effect.succeed([
       {
         type: "outro",
         startSec: allLines[0].offsetSec,
         endSec: endSecOf(lastOf(allLines)),
       },
     ]);
+  } else {
+    const _exhaustive: never = section;
+    return _exhaustive;
   }
 };
 
 const buildSectionMarkers = (
   script: EnrichedScript,
   newsItems: IntroSectionMarker["agenda"],
-): Result<SectionMarker[], ValidationError> =>
+): Effect.Effect<SectionMarker[], ValidationError> =>
   script.sections.reduce(
-    (acc: Result<SectionMarker[], ValidationError>, section) =>
-      acc.andThen((markers) =>
-        sectionToMarkers(section, newsItems).map((newMarkers) => [
-          ...markers,
-          ...newMarkers,
-        ]),
+    (accEffect: Effect.Effect<SectionMarker[], ValidationError>, section) =>
+      accEffect.pipe(
+        Effect.flatMap((markers) =>
+          sectionToMarkers(section, newsItems).pipe(
+            Effect.map((newMarkers) => [...markers, ...newMarkers]),
+          ),
+        ),
       ),
-    ok([]),
+    Effect.succeed<SectionMarker[]>([]),
   );
 
 const toVideoProps = (
   script: EnrichedScript,
   wavPath: string,
-): Result<VideoProps, ValidationError> => {
+): Effect.Effect<VideoProps, ValidationError> => {
   const newsItems = script.newsItems.map((n) => ({ id: n.id, title: n.title }));
-  return buildSectionMarkers(script, newsItems).map((sectionMarkers) => ({
-    title: script.title,
-    totalDurationSec: script.totalDurationSec,
-    newsItems,
-    lines: flattenLines(script, wavPath),
-    sectionMarkers,
-  }));
+  return buildSectionMarkers(script, newsItems).pipe(
+    Effect.map((sectionMarkers) => ({
+      title: script.title,
+      totalDurationSec: script.totalDurationSec,
+      newsItems,
+      lines: flattenLines(script, wavPath),
+      sectionMarkers,
+    })),
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -147,23 +137,24 @@ const toVideoProps = (
 export const parseEnrichedScript = (
   jsonContent: string,
   wavPath: string,
-): Result<VideoProps, ValidationError> =>
-  safeJsonParse(jsonContent)
-    .mapErr(
-      (e): ValidationError =>
-        createValidationError("JSON_PARSE_ERROR", e.message, e, {}),
-    )
-    .andThen((raw): Result<VideoProps, ValidationError> => {
-      const parsed = EnrichedScriptSchema.safeParse(raw);
-      if (!parsed.success) {
-        return err(
-          createValidationError(
-            "SCHEMA_VALIDATION_ERROR",
-            parsed.error.message,
-            null,
-            {},
-          ),
-        );
-      }
-      return toVideoProps(parsed.data, wavPath);
-    });
+): Effect.Effect<VideoProps, ValidationError> =>
+  Effect.try({
+    try: () => JSON.parse(jsonContent) as unknown,
+    catch: (e) =>
+      new ValidationError({
+        message: e instanceof Error ? e.message : String(e),
+        cause: e,
+      }),
+  }).pipe(
+    Effect.flatMap((raw) =>
+      Schema.decodeUnknownEffect(EnrichedScriptSchema)(raw).pipe(
+        Effect.mapError(
+          (e) =>
+            new ValidationError({
+              message: String(e),
+            }),
+        ),
+      ),
+    ),
+    Effect.flatMap((script) => toVideoProps(script, wavPath)),
+  );

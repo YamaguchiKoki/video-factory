@@ -1,25 +1,11 @@
 import { existsSync } from "node:fs";
 import { mkdir, stat, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { fromPromise, okAsync } from "neverthrow";
+import { join } from "node:path";
+import { Effect } from "effect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { parseEnrichedScript } from "./core/enriched-parser";
-import {
-  bundleComposition,
-  cleanupTempDir,
-  createRenderVideo,
-  createTempDir,
-  readFile,
-  writeFile,
-} from "./infrastructure";
-import { createLogger } from "./infrastructure/logger";
+import { createLocalDeps } from "./deps";
 import { createRenderVideoWorkflow } from "./service/video-service";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const entryPoint = resolve(__dirname, "remotion/index.ts");
 
 // Skip performance tests unless explicitly enabled
 const shouldRunPerf = process.env.RUN_PERF_TESTS === "true";
@@ -47,43 +33,27 @@ describePerf("Task 10.2: Performance Requirements", () => {
   });
 
   afterAll(async () => {
-    await fromPromise(unlink(outputPath), (e) => e).orElse(() =>
-      okAsync(undefined),
-    );
+    await unlink(outputPath).catch(() => {});
   });
 
   it("should complete rendering within 15 minutes", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const startTime = Date.now();
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
-
-    const result = await workflow(scriptPath, audioPath, outputPath);
+    await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
 
     const endTime = Date.now();
     const elapsedMs = endTime - startTime;
     const elapsedMinutes = elapsedMs / 1000 / 60;
 
-    expect(result.isOk()).toBe(true);
-
     // Requirement: 15 minutes maximum
     const maxMinutes = 15;
     expect(elapsedMinutes).toBeLessThanOrEqual(maxMinutes);
 
-    logger.info("Rendering time verified", {
+    deps.logger.info("Rendering time verified", {
       elapsedMinutes: elapsedMinutes.toFixed(2),
       maxMinutes,
       passed: elapsedMinutes <= maxMinutes,
@@ -92,7 +62,8 @@ describePerf("Task 10.2: Performance Requirements", () => {
 
   it("should keep memory usage under 4GB", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const memoryReadings: number[] = [];
     const maxMemoryGB = 4;
@@ -104,7 +75,7 @@ describePerf("Task 10.2: Performance Requirements", () => {
 
       const usageGB = heapUsed / 1024 / 1024 / 1024;
       if (usageGB > 3.5) {
-        logger.warn("High memory usage detected", {
+        deps.logger.warn("High memory usage detected", {
           currentGB: usageGB.toFixed(2),
           maxGB: maxMemoryGB,
         });
@@ -112,29 +83,14 @@ describePerf("Task 10.2: Performance Requirements", () => {
     });
 
     try {
-      const renderVideo = createRenderVideo(logger);
-      const workflow = createRenderVideoWorkflow({
-        readFile,
-        parseEnrichedScript,
-        bundleComposition,
-        renderVideo,
-        writeFile,
-        createTempDir,
-        cleanupTempDir,
-        logger,
-        entryPoint,
-      });
-
-      const result = await workflow(scriptPath, audioPath, outputPath);
-
-      expect(result.isOk()).toBe(true);
+      await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
 
       const peakMemory = Math.max(...memoryReadings);
       const peakMemoryGB = peakMemory / 1024 / 1024 / 1024;
 
       expect(peakMemory).toBeLessThanOrEqual(maxMemoryBytes);
 
-      logger.info("Memory usage verified", {
+      deps.logger.info("Memory usage verified", {
         peakMemoryGB: peakMemoryGB.toFixed(2),
         maxMemoryGB,
         passed: peakMemory <= maxMemoryBytes,
@@ -147,24 +103,10 @@ describePerf("Task 10.2: Performance Requirements", () => {
 
   it("should generate video with reasonable file size", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
-
-    const result = await workflow(scriptPath, audioPath, outputPath);
-
-    expect(result.isOk()).toBe(true);
+    await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
 
     const stats = await stat(outputPath);
     const fileSizeMB = stats.size / 1024 / 1024;
@@ -176,7 +118,7 @@ describePerf("Task 10.2: Performance Requirements", () => {
     expect(fileSizeMB).toBeGreaterThanOrEqual(minSizeMB);
     expect(fileSizeMB).toBeLessThanOrEqual(maxSizeMB);
 
-    logger.info("File size verified", {
+    deps.logger.info("File size verified", {
       fileSizeMB: fileSizeMB.toFixed(2),
       minSizeMB,
       maxSizeMB,
@@ -186,30 +128,16 @@ describePerf("Task 10.2: Performance Requirements", () => {
 
   it("should verify concurrency setting optimizes performance", async () => {
     const requestId = crypto.randomUUID();
-    const logger = createLogger(requestId);
-
-    const renderVideo = createRenderVideo(logger);
-    const workflow = createRenderVideoWorkflow({
-      readFile,
-      parseEnrichedScript,
-      bundleComposition,
-      renderVideo,
-      writeFile,
-      createTempDir,
-      cleanupTempDir,
-      logger,
-      entryPoint,
-    });
+    const deps = createLocalDeps({ requestId });
+    const workflow = createRenderVideoWorkflow(deps);
 
     const startTime = Date.now();
-    const result = await workflow(scriptPath, audioPath, outputPath);
+    await Effect.runPromise(workflow(scriptPath, audioPath, outputPath));
     const elapsedMs = Date.now() - startTime;
-
-    expect(result.isOk()).toBe(true);
 
     const elapsedMinutes = elapsedMs / 1000 / 60;
 
-    logger.info("Concurrency optimization verified", {
+    deps.logger.info("Concurrency optimization verified", {
       elapsedMinutes: elapsedMinutes.toFixed(2),
       configuredConcurrency: 2,
       note: "Concurrency=2 balances speed and memory usage",

@@ -1,4 +1,4 @@
-// Tests for docker-runner.ts — TDD-first; module does not exist yet.
+// Tests for docker-runner.ts
 //
 // Design contract:
 //   OUTPUT_SCRIPT_KEY = "script-generator/script.json"  (exported const)
@@ -11,11 +11,12 @@
 //     — exits 1 when runWorkflow() throws
 //     — exits 1 when uploadScriptToS3 fails
 
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Script } from "../schema";
 
 // ============================================
-// Mock ./workflow-runner (renamed from handler.ts)
+// Mock ./workflow-runner
 // ============================================
 
 const { mockRunWorkflow } = vi.hoisted(() => ({
@@ -41,7 +42,7 @@ vi.mock("../mcp/tavily", () => ({
 }));
 
 // ============================================
-// Mock ./infrastructure/s3
+// Mock ./infrastructure/s3 (uploadScriptToS3 now returns Effect)
 // ============================================
 
 const { mockUploadScriptToS3 } = vi.hoisted(() => ({
@@ -51,9 +52,14 @@ const { mockUploadScriptToS3 } = vi.hoisted(() => ({
 vi.mock("../infrastructure/s3", () => ({
   uploadScriptToS3: mockUploadScriptToS3,
   createS3ClientConfig: vi.fn(() => ({})),
+  S3PutObjectError: class S3PutObjectError extends Error {
+    readonly _tag = "S3PutObjectError";
+    constructor(args: { message: string }) {
+      super(args.message);
+    }
+  },
 }));
 
-import { errAsync, okAsync } from "neverthrow";
 import { OUTPUT_SCRIPT_KEY, run } from "./docker-runner";
 
 // ============================================
@@ -108,6 +114,12 @@ const buildValidScript = (): Script => ({
   ],
 });
 
+// Helper: make runWorkflow mock return an Effect
+const makeOkWorkflowResult = (script: Script) => Effect.succeed(script);
+
+const makeErrWorkflowResult = (message: string) =>
+  Effect.fail({ type: "WORKFLOW_ERROR" as const, message });
+
 // ============================================
 // OUTPUT_SCRIPT_KEY constant
 // ============================================
@@ -128,49 +140,36 @@ describe("run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.S3_BUCKET = "video-factory";
+    process.env.TAVILY_API_KEY = "test-tavily-key";
     ctx.exitSpy = vi.spyOn(process, "exit").mockReturnValue(undefined as never);
-    mockRunWorkflow.mockReturnValue(okAsync(buildValidScript()));
-    mockUploadScriptToS3.mockReturnValue(okAsync(undefined));
+    mockRunWorkflow.mockReturnValue(makeOkWorkflowResult(buildValidScript()));
+    mockUploadScriptToS3.mockReturnValue(Effect.succeed(undefined));
     mockCreateTavilyMcpClient.mockReturnValue(mockTavilyClient);
   });
 
   afterEach(() => {
     delete process.env.S3_BUCKET;
+    delete process.env.TAVILY_API_KEY;
     vi.restoreAllMocks();
   });
 
   it("exits with code 1 when S3_BUCKET is not set", async () => {
-    // Given
     delete process.env.S3_BUCKET;
-
-    // When
     await run();
-
-    // Then
     expect(ctx.exitSpy).toHaveBeenCalledWith(1);
   });
 
   it("exits with code 1 when TAVILY_API_KEY is not set", async () => {
-    // Given — test-setup.ts stubs TAVILY_API_KEY globally; delete it here and
-    // restore inline so other tests are not affected
     const saved = process.env.TAVILY_API_KEY;
     delete process.env.TAVILY_API_KEY;
-
-    // When
     await run();
-
-    // Then
     expect(ctx.exitSpy).toHaveBeenCalledWith(1);
-
-    // Restore the stub value so subsequent tests see it
     if (saved !== undefined) process.env.TAVILY_API_KEY = saved;
   });
 
   it("calls runWorkflow with genre: technology and tavilyClient", async () => {
-    // Given / When
     await run();
-
-    // Then — runWorkflow receives both the workflow input and the DI tavilyClient
+    expect(mockCreateTavilyMcpClient).toHaveBeenCalledWith("test-tavily-key");
     expect(mockRunWorkflow).toHaveBeenCalledWith(
       { genre: "technology" },
       mockTavilyClient,
@@ -178,14 +177,9 @@ describe("run", () => {
   });
 
   it("uploads script result to OUTPUT_SCRIPT_KEY", async () => {
-    // Given
     const script = buildValidScript();
-    mockRunWorkflow.mockReturnValue(okAsync(script));
-
-    // When
+    mockRunWorkflow.mockReturnValue(makeOkWorkflowResult(script));
     await run();
-
-    // Then
     expect(mockUploadScriptToS3).toHaveBeenCalledWith(
       expect.any(String),
       OUTPUT_SCRIPT_KEY,
@@ -194,14 +188,9 @@ describe("run", () => {
   });
 
   it("uploads to the bucket configured in S3_BUCKET", async () => {
-    // Given
     process.env.S3_BUCKET = "my-custom-bucket";
-    mockRunWorkflow.mockReturnValue(okAsync(buildValidScript()));
-
-    // When
+    mockRunWorkflow.mockReturnValue(makeOkWorkflowResult(buildValidScript()));
     await run();
-
-    // Then
     expect(mockUploadScriptToS3).toHaveBeenCalledWith(
       "my-custom-bucket",
       expect.any(String),
@@ -210,55 +199,32 @@ describe("run", () => {
   });
 
   it("does not call uploadScriptToS3 when S3_BUCKET is not set", async () => {
-    // Given
     delete process.env.S3_BUCKET;
-
-    // When
     await run();
-
-    // Then
     expect(mockUploadScriptToS3).not.toHaveBeenCalled();
   });
 
   it("exits with code 1 when runWorkflow returns an error", async () => {
-    // Given
     mockRunWorkflow.mockReturnValue(
-      errAsync({
-        type: "WORKFLOW_ERROR" as const,
-        message: "LLM workflow failed",
-      }),
+      makeErrWorkflowResult("LLM workflow failed"),
     );
-
-    // When
     await run();
-
-    // Then
     expect(ctx.exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it("exits with code 1 when uploadScriptToS3 returns an error", async () => {
-    // Given
-    mockRunWorkflow.mockReturnValue(okAsync(buildValidScript()));
+  it("exits with code 1 when uploadScriptToS3 fails", async () => {
+    mockRunWorkflow.mockReturnValue(makeOkWorkflowResult(buildValidScript()));
     mockUploadScriptToS3.mockReturnValue(
-      errAsync({ type: "PUT_OBJECT_ERROR" as const, message: "NoSuchBucket" }),
+      Effect.fail({ _tag: "S3PutObjectError", message: "NoSuchBucket" }),
     );
-
-    // When
     await run();
-
-    // Then
     expect(ctx.exitSpy).toHaveBeenCalledWith(1);
   });
 
   it("does not exit when workflow succeeds and upload succeeds", async () => {
-    // Given
-    mockRunWorkflow.mockReturnValue(okAsync(buildValidScript()));
-    mockUploadScriptToS3.mockReturnValue(okAsync(undefined));
-
-    // When
+    mockRunWorkflow.mockReturnValue(makeOkWorkflowResult(buildValidScript()));
+    mockUploadScriptToS3.mockReturnValue(Effect.succeed(undefined));
     await run();
-
-    // Then
     expect(ctx.exitSpy).not.toHaveBeenCalled();
   });
 });

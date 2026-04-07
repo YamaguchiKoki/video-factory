@@ -1,12 +1,12 @@
 // Tests for the local.ts entrypoint.
 //
 // Design contract:
-//   - Uses commander: --script <path>, --audio <path>, --output <path>
+//   - Uses custom arg parsing: --script <path>, --audio <path>, --output <path>
 //   - main(): Promise<void> is exported as a pure function
 //   - Missing --script or --audio or --output → exits 1 with an error message
 //   - All required args present → runs renderWorkflow and exits based on result
 
-import { errAsync, okAsync } from "neverthrow";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -70,13 +70,6 @@ const mockLogger = {
   error: vi.fn(),
 };
 
-const videoServiceError = {
-  type: "RENDER_ERROR" as const,
-  message: "render failed",
-  cause: null,
-  context: {},
-};
-
 const TEMP_DIR = "/tmp/video-worker-local";
 
 beforeEach(() => {
@@ -84,9 +77,9 @@ beforeEach(() => {
   vi.spyOn(process, "exit").mockReturnValue(undefined as never);
   mockCreateLogger.mockReturnValue(mockLogger);
   mockCreateRenderVideo.mockReturnValue(vi.fn());
-  mockCreateTempDir.mockReturnValue(okAsync(TEMP_DIR));
-  mockCleanupTempDir.mockReturnValue(okAsync(undefined));
-  mockRenderWorkflow.mockReturnValue(okAsync("/path/to/output.mp4"));
+  mockCreateTempDir.mockReturnValue(Effect.succeed(TEMP_DIR));
+  mockCleanupTempDir.mockReturnValue(Effect.succeed(undefined));
+  mockRenderWorkflow.mockReturnValue(Effect.succeed("/path/to/output.mp4"));
 });
 
 afterEach(() => {
@@ -109,7 +102,7 @@ const runMain = async (args: string[]) => {
 // CLI argument validation
 // ============================================
 
-describe("local.ts main() — argument validation (commander)", () => {
+describe("local.ts main() — argument validation", () => {
   it("exits with code 1 when --script is missing", async () => {
     await runMain([
       "--audio",
@@ -192,7 +185,10 @@ describe("local.ts main() — successful execution", () => {
 
 describe("local.ts main() — error handling", () => {
   it("exits with code 1 when renderWorkflow returns an error", async () => {
-    mockRenderWorkflow.mockReturnValue(errAsync(videoServiceError));
+    const { RenderError } = await import("../core/errors");
+    mockRenderWorkflow.mockReturnValue(
+      Effect.fail(new RenderError({ message: "render failed" })),
+    );
 
     await runMain([
       "--script",

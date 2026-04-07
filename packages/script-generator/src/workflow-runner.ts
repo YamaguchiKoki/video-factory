@@ -1,4 +1,4 @@
-import { err, fromPromise, ok, type ResultAsync, safeTry } from "neverthrow";
+import { Effect } from "effect";
 import type { z } from "zod";
 import { createMastraInstance } from "./mastra/instance-factory";
 import type { TavilyMcpClient } from "./mcp/tavily";
@@ -6,83 +6,74 @@ import { type Script, ScriptSchema } from "./schema";
 import { toError } from "./shared/errors";
 import { WorkflowInputSchema } from "./steps/topic-selection";
 
-export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
+type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
 
-export type WorkflowError = {
+type WorkflowError = {
   readonly type: "VALIDATION_ERROR" | "WORKFLOW_ERROR";
   readonly message: string;
 };
 
-const parseInput = (input: WorkflowInput) => {
-  const result = WorkflowInputSchema.safeParse(input);
-  if (!result.success) {
-    return err<never, WorkflowError>({
-      type: "VALIDATION_ERROR",
-      message: result.error.message,
-    });
-  }
-  return ok(result.data);
-};
-
-const executeWorkflow = (
-  mastraInstance: ReturnType<typeof createMastraInstance>,
-  input: { readonly genre: string },
-) =>
-  fromPromise(
-    (async () => {
-      const workflow = mastraInstance.getWorkflow("generateScriptWorkflow");
-      const run = await workflow.createRun();
-      const result = await run.start({ inputData: input });
-
-      if (result.status !== "success") {
-        throw new Error(`Workflow ${result.status}: ${JSON.stringify(result)}`);
-      }
-
-      return result.result;
-    })(),
-    (e): WorkflowError => ({
-      type: "WORKFLOW_ERROR",
-      message: toError(e).message,
-    }),
-  );
-
-const parseOutput = (result: unknown) => {
-  const parsed = ScriptSchema.safeParse(result);
-  if (!parsed.success) {
-    return err<never, WorkflowError>({
-      type: "VALIDATION_ERROR",
-      message: `Output validation failed: ${parsed.error.message}`,
-    });
-  }
-  return ok(parsed.data);
-};
-
-const disconnectMcp = (tavilyClient: TavilyMcpClient) =>
-  fromPromise(tavilyClient.disconnect(), (e) => {
-    console.error("Failed to disconnect Tavily MCP client:", e);
-    return e;
-  });
-
 export const runWorkflow = (
   input: WorkflowInput,
   tavilyClient: TavilyMcpClient,
-): ResultAsync<Script, WorkflowError> => {
+): Effect.Effect<Script, WorkflowError> => {
   const mastraInstance = createMastraInstance(tavilyClient);
 
-  return safeTry(async function* () {
-    const validated = yield* parseInput(input);
-    const workflowResult = yield* executeWorkflow(mastraInstance, validated);
+  const parseInput = (): Effect.Effect<WorkflowInput, WorkflowError> => {
+    const result = WorkflowInputSchema.safeParse(input);
+    if (!result.success) {
+      return Effect.fail({
+        type: "VALIDATION_ERROR",
+        message: result.error.message,
+      } satisfies WorkflowError);
+    }
+    return Effect.succeed(result.data);
+  };
+
+  const executeWorkflow = (
+    validated: WorkflowInput,
+  ): Effect.Effect<unknown, WorkflowError> =>
+    Effect.tryPromise({
+      try: async () => {
+        const workflow = mastraInstance.getWorkflow("generateScriptWorkflow");
+        const run = await workflow.createRun();
+        const result = await run.start({ inputData: validated });
+        if (result.status !== "success") {
+          throw new Error(
+            `Workflow ${result.status}: ${JSON.stringify(result)}`,
+          );
+        }
+        return result.result;
+      },
+      catch: (e) => {
+        const err = toError(e);
+        console.error("[workflow-runner] error:", err.stack ?? err.message);
+        return {
+          type: "WORKFLOW_ERROR",
+          message: err.message,
+        } satisfies WorkflowError;
+      },
+    });
+
+  const parseOutput = (raw: unknown): Effect.Effect<Script, WorkflowError> => {
+    const result = ScriptSchema.safeParse(raw);
+    if (!result.success) {
+      return Effect.fail({
+        type: "VALIDATION_ERROR",
+        message: `Output validation failed: ${result.error.message}`,
+      } satisfies WorkflowError);
+    }
+    return Effect.succeed(result.data);
+  };
+
+  const disconnect = Effect.promise(() =>
+    tavilyClient.disconnect().catch(() => {}),
+  );
+
+  return Effect.gen(function* () {
+    const validated = yield* parseInput();
+    const workflowResult = yield* executeWorkflow(validated);
     const script = yield* parseOutput(workflowResult);
-    return ok(script);
-  })
-    .andThen((script) =>
-      disconnectMcp(tavilyClient)
-        .map(() => script)
-        .orElse(() => ok(script)),
-    )
-    .orElse((error) =>
-      disconnectMcp(tavilyClient)
-        .andThen(() => err(error))
-        .orElse(() => err(error)),
-    );
+    return script;
+  }).pipe(Effect.ensuring(disconnect));
 };

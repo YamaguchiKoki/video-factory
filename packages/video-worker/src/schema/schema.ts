@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const SpeakerSchema = z.enum(["A", "B"]);
+const SpeakerSchema = z.enum(["A", "B"]);
 
-export const NewsItemSchema = z.object({
+const NewsItemSchema = z.object({
   id: z.string(),
   title: z.string(),
 });
@@ -40,7 +40,7 @@ const IntroSectionMarkerSchema = z
 const DiscussionSectionMarkerSchema = z
   .object({
     type: z.literal("discussion"),
-    newsId: z.string(),
+    newsId: z.enum(["news-1", "news-2", "news-3"]),
     phase: z
       .enum(["summary", "background", "deepDive"])
       .describe("要約、背景情報の確認、深掘り"),

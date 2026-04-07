@@ -8,7 +8,7 @@ import { z } from "zod";
 /**
  * Speaker role enumeration
  */
-export const speakerRoleSchema = z.enum(["agent", "questioner"]);
+const speakerRoleSchema = z.enum(["agent", "questioner"]);
 
 /**
  * Speaker schema
@@ -168,15 +168,5 @@ export type ConceptExplanationData = z.infer<
 export type ConversationSummaryData = z.infer<
   typeof conversationSummaryDataSchema
 >;
-export type VisualComponent = z.infer<typeof visualComponentSchema>;
 export type Segment = z.infer<typeof segmentSchema>;
-export type ScriptMetadata = z.infer<typeof scriptMetadataSchema>;
 export type ParsedScript = z.infer<typeof parsedScriptSchema>;
-
-/**
- * Helper type for visual component data (union of all data types)
- */
-export type VisualComponentData =
-  | NewsListData
-  | ConceptExplanationData
-  | ConversationSummaryData;

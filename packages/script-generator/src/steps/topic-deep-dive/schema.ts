@@ -8,7 +8,6 @@ export const EnrichedTopicSchema = z.object({
   detailedContext: z.string().describe("詳細な背景・コンテキスト"),
   sourceUrls: z.array(z.string().url()),
 });
-export type EnrichedTopic = z.infer<typeof EnrichedTopicSchema>;
 
 export const EnrichedTopicsOutputSchema = z.array(EnrichedTopicSchema);
 export type EnrichedTopicsOutput = z.infer<typeof EnrichedTopicsOutputSchema>;

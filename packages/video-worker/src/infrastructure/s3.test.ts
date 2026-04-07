@@ -1,28 +1,3 @@
-/**
- * Tests for video-worker S3 infrastructure (s3.ts).
- * Written TDD-first — s3.ts does not exist yet.
- *
- * Design contract:
- *   createS3ClientConfig(): S3ClientConfig
- *     S3_ENDPOINT_URL unset → {}
- *     S3_ENDPOINT_URL set   → { endpoint: url, forcePathStyle: true }
- *
- *   createS3Client(): S3Client
- *     — wraps S3Client constructor with createS3ClientConfig()
- *
- *   downloadToFile(client, bucket, key, localPath): ResultAsync<void, S3Error>
- *     — sends GetObjectCommand with correct Bucket/Key
- *     — writes response body to localPath
- *     — Err when S3 rejects
- *     — Err when Body is undefined
- *
- *   uploadFromFile(client, bucket, key, localPath, contentType): ResultAsync<void, S3Error>
- *     — reads file at localPath and sends PutObjectCommand
- *     — PutObjectCommand includes correct Bucket, Key, ContentType
- *     — Ok(void) on success
- *     — Err when S3 rejects
- */
-
 import { randomUUID } from "node:crypto";
 import {
   writeFile as fsWriteFile,
@@ -32,6 +7,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Effect, Result } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -58,6 +34,35 @@ vi.mock("@aws-sdk/client-s3", () => ({
 }));
 
 import { createS3ClientConfig, downloadToFile, uploadFromFile } from "./s3";
+
+// ============================================
+// Helper
+// ============================================
+
+const runDownload = (bucket: string, key: string, localPath: string) =>
+  Effect.runPromise(
+    Effect.result(
+      downloadToFile({ send: mockSend } as never, bucket, key, localPath),
+    ),
+  );
+
+const runUpload = (
+  bucket: string,
+  key: string,
+  localPath: string,
+  contentType: string,
+) =>
+  Effect.runPromise(
+    Effect.result(
+      uploadFromFile(
+        { send: mockSend } as never,
+        bucket,
+        key,
+        localPath,
+        contentType,
+      ),
+    ),
+  );
 
 // ============================================
 // createS3ClientConfig
@@ -129,12 +134,7 @@ describe("downloadToFile", () => {
     const localPath = join(testDir, "output.json");
 
     // When
-    await downloadToFile(
-      { send: mockSend } as never,
-      "video-factory",
-      "tts-worker/script.json",
-      localPath,
-    );
+    await runDownload("video-factory", "tts-worker/script.json", localPath);
 
     // Then
     expect(mockSend).toHaveBeenCalledWith(
@@ -157,51 +157,50 @@ describe("downloadToFile", () => {
     const localPath = join(testDir, "script.json");
 
     // When
-    const result = await downloadToFile(
-      { send: mockSend } as never,
+    const result = await runDownload(
       "video-factory",
       "tts-worker/script.json",
       localPath,
     );
 
     // Then
-    expect(result.isOk()).toBe(true);
+    expect(Result.isSuccess(result)).toBe(true);
     const written = await readFile(localPath);
     expect(written).toEqual(content);
   });
 
-  it("returns Err when S3 send rejects", async () => {
+  it("returns Failure when S3 send rejects", async () => {
     // Given
     mockSend.mockRejectedValueOnce(new Error("NoSuchKey"));
     const localPath = join(testDir, "output.bin");
 
     // When
-    const result = await downloadToFile(
-      { send: mockSend } as never,
-      "video-factory",
-      "missing/key",
-      localPath,
-    );
+    const result = await runDownload("video-factory", "missing/key", localPath);
 
     // Then
-    expect(result.isErr()).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3DownloadError");
+    }
   });
 
-  it("returns Err when response Body is undefined", async () => {
+  it("returns Failure when response Body is undefined", async () => {
     // Given
     mockSend.mockResolvedValueOnce({ Body: undefined });
     const localPath = join(testDir, "output.bin");
 
     // When
-    const result = await downloadToFile(
-      { send: mockSend } as never,
+    const result = await runDownload(
       "video-factory",
       "tts-worker/audio.wav",
       localPath,
     );
 
     // Then
-    expect(result.isErr()).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3DownloadError");
+    }
   });
 });
 
@@ -229,8 +228,7 @@ describe("uploadFromFile", () => {
     await fsWriteFile(localPath, Buffer.from("mock video data"));
 
     // When
-    await uploadFromFile(
-      { send: mockSend } as never,
+    await runUpload(
       "video-factory",
       "video-worker/video.mp4",
       localPath,
@@ -255,8 +253,7 @@ describe("uploadFromFile", () => {
     await fsWriteFile(localPath, fileContent);
 
     // When
-    await uploadFromFile(
-      { send: mockSend } as never,
+    await runUpload(
       "video-factory",
       "video-worker/video.mp4",
       localPath,
@@ -271,15 +268,14 @@ describe("uploadFromFile", () => {
     expect(callArgs.Body).toEqual(fileContent);
   });
 
-  it("returns Ok void on successful upload", async () => {
+  it("returns Success on successful upload", async () => {
     // Given
     mockSend.mockResolvedValueOnce({});
     const localPath = join(testDir, "video.mp4");
     await fsWriteFile(localPath, Buffer.from("data"));
 
     // When
-    const result = await uploadFromFile(
-      { send: mockSend } as never,
+    const result = await runUpload(
       "video-factory",
       "video-worker/video.mp4",
       localPath,
@@ -287,18 +283,17 @@ describe("uploadFromFile", () => {
     );
 
     // Then
-    expect(result.isOk()).toBe(true);
+    expect(Result.isSuccess(result)).toBe(true);
   });
 
-  it("returns Err when S3 send rejects", async () => {
+  it("returns Failure when S3 send rejects", async () => {
     // Given
     mockSend.mockRejectedValueOnce(new Error("AccessDenied"));
     const localPath = join(testDir, "video.mp4");
     await fsWriteFile(localPath, Buffer.from("data"));
 
     // When
-    const result = await uploadFromFile(
-      { send: mockSend } as never,
+    const result = await runUpload(
       "video-factory",
       "video-worker/video.mp4",
       localPath,
@@ -306,17 +301,19 @@ describe("uploadFromFile", () => {
     );
 
     // Then
-    expect(result.isErr()).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3UploadError");
+    }
   });
 
-  it("returns Err when the local file does not exist", async () => {
+  it("returns Failure when the local file does not exist", async () => {
     // Given
     mockSend.mockResolvedValueOnce({});
     const nonExistentPath = join(testDir, "does-not-exist.mp4");
 
     // When
-    const result = await uploadFromFile(
-      { send: mockSend } as never,
+    const result = await runUpload(
       "video-factory",
       "video-worker/video.mp4",
       nonExistentPath,
@@ -324,6 +321,9 @@ describe("uploadFromFile", () => {
     );
 
     // Then
-    expect(result.isErr()).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure._tag).toBe("S3UploadError");
+    }
   });
 });

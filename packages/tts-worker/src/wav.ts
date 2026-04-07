@@ -1,5 +1,10 @@
-import { err, ok, type Result } from "neverthrow";
-import type { WavError } from "./errors.js";
+import { Effect } from "effect";
+import {
+  EmptyInputError,
+  FormatMismatchError,
+  InvalidHeaderError,
+  type WavError,
+} from "./errors.js";
 
 type WavHeader = {
   readonly numChannels: number;
@@ -11,68 +16,69 @@ type WavHeader = {
 
 export const parseWavHeader = (
   buffer: ArrayBuffer,
-): Result<WavHeader, WavError> => {
+): Effect.Effect<WavHeader, WavError> => {
   if (buffer.byteLength < 44) {
-    return err({
-      type: "INVALID_HEADER",
-      message: "Buffer too small for WAV header",
-    });
+    return Effect.fail(
+      new InvalidHeaderError({ message: "Buffer too small for WAV header" }),
+    );
   }
 
   const view = new DataView(buffer);
 
   if (readFourCC(view, 0) !== "RIFF") {
-    return err({ type: "INVALID_HEADER", message: "Missing RIFF marker" });
+    return Effect.fail(
+      new InvalidHeaderError({ message: "Missing RIFF marker" }),
+    );
   }
   if (readFourCC(view, 8) !== "WAVE") {
-    return err({ type: "INVALID_HEADER", message: "Missing WAVE marker" });
+    return Effect.fail(
+      new InvalidHeaderError({ message: "Missing WAVE marker" }),
+    );
   }
   if (readFourCC(view, 12) !== "fmt ") {
-    return err({ type: "INVALID_HEADER", message: "Missing fmt chunk" });
+    return Effect.fail(
+      new InvalidHeaderError({ message: "Missing fmt chunk" }),
+    );
   }
 
   const numChannels = view.getUint16(22, true);
   const sampleRate = view.getUint32(24, true);
   const bitsPerSample = view.getUint16(34, true);
 
-  return findDataChunk(view, buffer.byteLength).map(
-    ({ dataOffset, dataSize }) => ({
+  return findDataChunk(view, buffer.byteLength).pipe(
+    Effect.map(({ dataOffset, dataSize }) => ({
       numChannels,
       sampleRate,
       bitsPerSample,
       dataSize,
       dataOffset,
-    }),
+    })),
   );
 };
 
 export const getWavDurationSec = (
   buffer: ArrayBuffer,
-): Result<number, WavError> =>
-  parseWavHeader(buffer).map(
-    ({ sampleRate, numChannels, bitsPerSample, dataSize }) => {
+): Effect.Effect<number, WavError> =>
+  parseWavHeader(buffer).pipe(
+    Effect.map(({ sampleRate, numChannels, bitsPerSample, dataSize }) => {
       const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
       return dataSize / byteRate;
-    },
+    }),
   );
 
 export const concatenateWavs = (
   buffers: readonly ArrayBuffer[],
-): Result<ArrayBuffer, WavError> => {
+): Effect.Effect<ArrayBuffer, WavError> => {
   if (buffers.length === 0) {
-    return err({
-      type: "EMPTY_INPUT",
-      message: "No WAV buffers to concatenate",
-    });
+    return Effect.fail(
+      new EmptyInputError({ message: "No WAV buffers to concatenate" }),
+    );
   }
 
-  return buffers
-    .reduce(
-      (acc: Result<WavHeader[], WavError>, buffer) =>
-        acc.andThen((hs) => parseWavHeader(buffer).map((h) => [...hs, h])),
-      ok<WavHeader[], WavError>([]),
-    )
-    .andThen((headers) => {
+  return Effect.forEach(buffers, (buffer) => parseWavHeader(buffer), {
+    concurrency: 1,
+  }).pipe(
+    Effect.flatMap((headers) => {
       // biome-ignore lint/style/noNonNullAssertion: headers is guaranteed non-empty (EMPTY_INPUT check above)
       const first = headers[0]!;
 
@@ -85,10 +91,11 @@ export const concatenateWavs = (
       if (mismatchIdx !== -1) {
         // biome-ignore lint/style/noNonNullAssertion: mismatchIdx is a valid index from findIndex (!== -1)
         const h = headers[mismatchIdx]!;
-        return err<ArrayBuffer, WavError>({
-          type: "FORMAT_MISMATCH",
-          message: `Buffer ${mismatchIdx} has different format: ${h.sampleRate}Hz/${h.numChannels}ch/${h.bitsPerSample}bit vs ${first.sampleRate}Hz/${first.numChannels}ch/${first.bitsPerSample}bit`,
-        });
+        return Effect.fail(
+          new FormatMismatchError({
+            message: `Buffer ${mismatchIdx} has different format: ${h.sampleRate}Hz/${h.numChannels}ch/${h.bitsPerSample}bit vs ${first.sampleRate}Hz/${first.numChannels}ch/${first.bitsPerSample}bit`,
+          }),
+        );
       }
 
       const totalDataSize = headers.reduce((sum, h) => sum + h.dataSize, 0);
@@ -114,8 +121,9 @@ export const concatenateWavs = (
         return writeOffset + h.dataSize;
       }, 44);
 
-      return ok(output);
-    });
+      return Effect.succeed(output);
+    }),
+  );
 };
 
 const readFourCC = (view: DataView, offset: number): string =>
@@ -131,14 +139,16 @@ const findDataChunkFrom = (
   view: DataView,
   bufferSize: number,
   pos: number,
-): Result<{ dataOffset: number; dataSize: number }, WavError> => {
+): Effect.Effect<{ dataOffset: number; dataSize: number }, WavError> => {
   if (pos + 8 > bufferSize) {
-    return err({ type: "INVALID_HEADER", message: "data chunk not found" });
+    return Effect.fail(
+      new InvalidHeaderError({ message: "data chunk not found" }),
+    );
   }
   const chunkId = readFourCC(view, pos);
   const chunkSize = view.getUint32(pos + 4, true);
   if (chunkId === "data") {
-    return ok({ dataOffset: pos + 8, dataSize: chunkSize });
+    return Effect.succeed({ dataOffset: pos + 8, dataSize: chunkSize });
   }
   return findDataChunkFrom(view, bufferSize, pos + 8 + chunkSize);
 };
@@ -146,12 +156,11 @@ const findDataChunkFrom = (
 const findDataChunk = (
   view: DataView,
   bufferSize: number,
-): Result<{ dataOffset: number; dataSize: number }, WavError> => {
+): Effect.Effect<{ dataOffset: number; dataSize: number }, WavError> => {
   if (bufferSize < 20) {
-    return err({
-      type: "INVALID_HEADER",
-      message: "Buffer too small to read fmt chunk",
-    });
+    return Effect.fail(
+      new InvalidHeaderError({ message: "Buffer too small to read fmt chunk" }),
+    );
   }
   const subchunk1Size = view.getUint32(16, true);
   const searchStart = 12 + 4 + 4 + subchunk1Size;

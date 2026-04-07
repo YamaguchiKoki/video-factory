@@ -8,7 +8,6 @@ export const VerifiedTopicSchema = z.object({
   contradictions: z.array(z.string()).describe("ソース間の矛盾点"),
   sourceUrls: z.array(z.string().url()),
 });
-export type VerifiedTopic = z.infer<typeof VerifiedTopicSchema>;
 
 export const VerifiedTopicsOutputSchema = z.array(VerifiedTopicSchema);
 export type VerifiedTopicsOutput = z.infer<typeof VerifiedTopicsOutputSchema>;
