@@ -5,6 +5,7 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
+    fonts-noto-cjk \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libcups2 \
