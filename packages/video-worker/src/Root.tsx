@@ -1,10 +1,16 @@
 import "./index.css";
-import { type CalculateMetadataFunction, Composition } from "remotion";
+import {
+  type CalculateMetadataFunction,
+  Composition,
+  staticFile,
+} from "remotion";
 import { z } from "zod";
 import { VideoComposition } from "./components/VideoComposition";
 import type { ParsedScript, Speaker } from "./core/script-types";
 import { parsedScriptSchema } from "./core/script-types";
 import { loadMockScript } from "./lib/load-mock-script";
+import { VideoComposition2 } from "./prototype/composition";
+import { VideoPropsSchema } from "./schema/schema";
 
 // VideoComposition props type
 type VideoCompositionProps = {
@@ -35,6 +41,32 @@ const calculateVideoMetadata: CalculateMetadataFunction<
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      <Composition
+        id="TechNews"
+        component={VideoComposition2}
+        durationInFrames={30 * 182}
+        fps={30}
+        width={1920}
+        height={1080}
+        schema={VideoPropsSchema}
+        calculateMetadata={async () => {
+          const props = VideoPropsSchema.parse(
+            await fetch(staticFile("mock.json")).then((r) => r.json()),
+          );
+          return {
+            durationInFrames: Math.ceil(props.totalDurationSec * 30),
+            props,
+          };
+        }}
+        defaultProps={{
+          title: "",
+          newsItems: [],
+          totalDurationSec: 0,
+          lines: [],
+          sectionMarkers: [],
+        }}
+      />
+
       {/* VideoComposition for radio video generation */}
       <Composition
         id="VideoComposition"
