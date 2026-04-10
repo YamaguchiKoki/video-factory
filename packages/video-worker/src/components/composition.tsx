@@ -13,7 +13,7 @@ import { SectionLabel } from "./section-label";
 import { Subtitle } from "./subtitle";
 import { getVisualConfig } from "./visual-config";
 
-export const VideoComposition2: React.FC<VideoProps> = ({
+export const MainComposition: React.FC<VideoProps> = ({
   newsItems,
   lines,
   sectionMarkers,

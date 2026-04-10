@@ -50,7 +50,7 @@ export type RenderVideoWorkflowDeps = {
 };
 
 const FPS = 30;
-const COMPOSITION_ID = "TechNews";
+const COMPOSITION_ID = "Main";
 
 const buildVideoRenderConfig = (
   videoProps: VideoProps,

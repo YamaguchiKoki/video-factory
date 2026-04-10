@@ -10,5 +10,15 @@ Config.setEntryPoint("./src/remotion/index.ts");
 Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
 Config.overrideWebpackConfig((currentConfiguration) => {
-  return enableTailwind(currentConfiguration);
+  const withTailwind = enableTailwind(currentConfiguration);
+  return {
+    ...withTailwind,
+    resolve: {
+      ...withTailwind.resolve,
+      extensionAlias: {
+        ".js": [".ts", ".tsx", ".js"],
+        ".mjs": [".mts", ".mjs"],
+      },
+    },
+  };
 });

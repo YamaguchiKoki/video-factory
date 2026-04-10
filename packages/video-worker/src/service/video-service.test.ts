@@ -112,7 +112,7 @@ describe("renderVideoWorkflow", () => {
       expect(deps.cleanupTempDir).toHaveBeenCalled();
     });
 
-    it("renderVideo is called with TechNews composition id and bundle serveUrl", async () => {
+    it("renderVideo is called with Main composition id and bundle serveUrl", async () => {
       const deps = mockDeps();
       const bundleUrl = "http://localhost:3000/bundle";
 
@@ -140,7 +140,7 @@ describe("renderVideoWorkflow", () => {
 
       expect(deps.renderVideo).toHaveBeenCalledWith(
         expect.objectContaining({
-          composition: expect.objectContaining({ id: "TechNews" }),
+          composition: expect.objectContaining({ id: "Main" }),
           serveUrl: bundleUrl,
         }),
       );
