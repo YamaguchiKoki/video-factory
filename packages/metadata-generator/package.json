@@ -19,6 +19,7 @@
   "devDependencies": {
     "@fast-check/vitest": "^0.2.4",
     "@types/node": "^25.0.10",
+    "esbuild": "^0.27.2",
     "tsx": "^4.21.0",
     "vitest": "^4.0.18"
   },
