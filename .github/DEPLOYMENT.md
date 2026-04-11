@@ -145,6 +145,12 @@ aws iam attach-role-policy \
 # ※ 本番では最小権限に絞ること
 ```
 
+**注意**: 最小権限ポリシー (`github-actions-video-factory-policy`) を使う場合、
+`ecr:Put*` / `ecr:*LayerUpload` 等の push 系アクションの `Resource` は
+`arn:aws:ecr:ap-northeast-1:983882936274:repository/*` のワイルドカード
+指定を推奨。新しいワーカーを追加するたびに個別のリポジトリ ARN を追加
+する必要がなくなる。
+
 #### 3. GitHub 側: Repository Variables 設定
 
 Settings → Secrets and variables → Actions → Variables:
