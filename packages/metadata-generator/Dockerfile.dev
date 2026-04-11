@@ -1,0 +1,20 @@
+FROM node:22-slim
+
+RUN corepack enable && corepack prepare pnpm@10.25.0 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY config/ ./config/
+
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/metadata-generator/package.json ./packages/metadata-generator/
+
+RUN pnpm --filter metadata-generator install --frozen-lockfile
+
+COPY packages/shared/ ./packages/shared/
+COPY packages/metadata-generator/ ./packages/metadata-generator/
+
+WORKDIR /app/packages/metadata-generator
+
+ENTRYPOINT ["pnpm", "exec", "tsx", "src/entrypoints/docker-runner.ts"]

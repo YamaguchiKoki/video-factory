@@ -24,6 +24,8 @@ jobs:
         image:
           - name: script-generator
             dockerfile: packages/script-generator/Dockerfile
+          - name: metadata-generator
+            dockerfile: packages/metadata-generator/Dockerfile
           - name: tts-worker
             dockerfile: packages/tts-worker/Dockerfile
           - name: video-worker

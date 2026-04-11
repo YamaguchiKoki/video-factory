@@ -5,6 +5,7 @@ export type EcrRepositories = {
   readonly ttsEcrRepo: ecr.Repository;
   readonly videoEcrRepo: ecr.Repository;
   readonly scriptGeneratorEcrRepo: ecr.Repository;
+  readonly metadataGeneratorEcrRepo: ecr.Repository;
 };
 
 export type EcrStackOutput = {
@@ -45,8 +46,24 @@ export const createEcrStack = (scope: cdk.App): EcrStackOutput => {
     },
   );
 
+  const metadataGeneratorEcrRepo = new ecr.Repository(
+    stack,
+    "MetadataGeneratorRepo",
+    {
+      repositoryName: "metadata-generator",
+      imageScanOnPush: true,
+      emptyOnDelete: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    },
+  );
+
   return {
     stack,
-    repositories: { ttsEcrRepo, videoEcrRepo, scriptGeneratorEcrRepo },
+    repositories: {
+      ttsEcrRepo,
+      videoEcrRepo,
+      scriptGeneratorEcrRepo,
+      metadataGeneratorEcrRepo,
+    },
   };
 };

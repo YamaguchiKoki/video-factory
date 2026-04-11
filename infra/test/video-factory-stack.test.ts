@@ -139,11 +139,20 @@ describe("VideoFactoryStack CloudFormation template", () => {
 
   // ─── ECR ──────────────────────────────────────────────────────────────────
   describe("ECR Repositories (in EcrStack)", () => {
-    it("should create exactly three ECR repositories (tts-worker, video-worker, script-generator)", () => {
+    it("should create exactly four ECR repositories (tts-worker, video-worker, script-generator, metadata-generator)", () => {
       // Given: each containerised step has its own ECR repository
       // When: ECR repositories in the EcrStack template are counted
-      // Then: exactly 3 repositories are created
-      ecrTemplate.resourceCountIs("AWS::ECR::Repository", 3);
+      // Then: exactly 4 repositories are created
+      ecrTemplate.resourceCountIs("AWS::ECR::Repository", 4);
+    });
+
+    it("should create the metadata-generator repository", () => {
+      // Given: metadata-generator is deployed as a Lambda container image
+      // When: ECR repository names are inspected
+      // Then: a repository named "metadata-generator" exists
+      ecrTemplate.hasResourceProperties("AWS::ECR::Repository", {
+        RepositoryName: "metadata-generator",
+      });
     });
   });
 
@@ -194,15 +203,15 @@ describe("VideoFactoryStack CloudFormation template", () => {
 
   // ─── Lambda ───────────────────────────────────────────────────────────────
   describe("Lambda Functions", () => {
-    it("should create exactly two Lambda functions with a 15-minute timeout", () => {
-      // Given: Script Generator (Bedrock + Tavily) and Upload (Google Drive) both
-      //        may take many minutes to complete
+    it("should create exactly three Lambda functions with a 15-minute timeout", () => {
+      // Given: Script Generator (Bedrock + Tavily), Metadata Generator (Bedrock),
+      //        and Upload (Google Drive) all may take many minutes to complete
       // When: Lambda functions with Timeout 900 are counted
-      // Then: exactly 2 functions have the maximum 15-minute timeout
+      // Then: exactly 3 functions have the maximum 15-minute timeout
       const found = template.findResources("AWS::Lambda::Function", {
         Properties: { Timeout: 900 },
       });
-      expect(Object.keys(found).length).toBe(2);
+      expect(Object.keys(found).length).toBe(3);
     });
 
     it("should pass S3_BUCKET environment variable to Lambda functions with 15-minute timeout", () => {
@@ -287,23 +296,26 @@ describe("VideoFactoryStack CloudFormation template", () => {
 
   // ─── IAM Permissions ──────────────────────────────────────────────────────
   describe("IAM Permissions", () => {
-    it("should grant bedrock:InvokeModel and bedrock:InvokeModelWithResponseStream to Script Generator Lambda", () => {
-      // Given: Script Generator Lambda calls the Bedrock claude-sonnet model including streaming
+    it("should grant bedrock:InvokeModel and bedrock:InvokeModelWithResponseStream to Bedrock-using Lambdas", () => {
+      // Given: Script Generator and Metadata Generator both call Bedrock
       // When: IAM policies in the template are inspected
-      // Then: a single policy statement allows both Bedrock invoke actions
-      template.hasResourceProperties("AWS::IAM::Policy", {
-        PolicyDocument: {
-          Statement: Match.arrayWith([
-            Match.objectLike({
-              Action: Match.arrayWith([
-                "bedrock:InvokeModel",
-                "bedrock:InvokeModelWithResponseStream",
-              ]),
-              Effect: "Allow",
-            }),
-          ]),
+      // Then: at least two distinct policies allow both Bedrock invoke actions
+      const bedrockPolicies = template.findResources("AWS::IAM::Policy", {
+        Properties: {
+          PolicyDocument: {
+            Statement: Match.arrayWith([
+              Match.objectLike({
+                Action: Match.arrayWith([
+                  "bedrock:InvokeModel",
+                  "bedrock:InvokeModelWithResponseStream",
+                ]),
+                Effect: "Allow",
+              }),
+            ]),
+          },
         },
       });
+      expect(Object.keys(bedrockPolicies).length).toBeGreaterThanOrEqual(2);
     });
 
     it("should grant s3:PutObject so ECS tasks can write output files to S3", () => {

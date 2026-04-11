@@ -15,7 +15,12 @@ export const createVideoFactoryStack = (
   input: VideoFactoryStackInput,
 ): cdk.Stack => {
   const { repositories } = input;
-  const { ttsEcrRepo, videoEcrRepo, scriptGeneratorEcrRepo } = repositories;
+  const {
+    ttsEcrRepo,
+    videoEcrRepo,
+    scriptGeneratorEcrRepo,
+    metadataGeneratorEcrRepo,
+  } = repositories;
 
   const stack = new cdk.Stack(scope, "VideoFactoryStack", {
     env: {
@@ -39,13 +44,15 @@ export const createVideoFactoryStack = (
     imageTag,
   });
 
-  const { scriptGeneratorLambda, uploadLambda } = createLambdaFunctions(stack, {
-    bucket,
-    tavilySecret,
-    googleDriveSecret,
-    scriptGeneratorEcrRepo,
-    imageTag,
-  });
+  const { scriptGeneratorLambda, metadataGeneratorLambda, uploadLambda } =
+    createLambdaFunctions(stack, {
+      bucket,
+      tavilySecret,
+      googleDriveSecret,
+      scriptGeneratorEcrRepo,
+      metadataGeneratorEcrRepo,
+      imageTag,
+    });
 
   const stateMachine = createStateMachine(stack, {
     cluster,
@@ -53,6 +60,7 @@ export const createVideoFactoryStack = (
     ttsTaskDef,
     videoTaskDef,
     scriptGeneratorLambda,
+    metadataGeneratorLambda,
     uploadLambda,
   });
 

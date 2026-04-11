@@ -8,7 +8,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "local": "tsx --env-file=.env src/entrypoints/local.ts",
+    "docker-runner": "tsx --env-file=.env src/entrypoints/docker-runner.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +19,7 @@
   "devDependencies": {
     "@fast-check/vitest": "^0.2.4",
     "@types/node": "^25.0.10",
+    "tsx": "^4.21.0",
     "vitest": "^4.0.18"
   },
   "dependencies": {

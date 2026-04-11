@@ -7,6 +7,7 @@ import * as cdk from "aws-cdk-lib/core";
 
 export type LambdaFunctions = {
   readonly scriptGeneratorLambda: lambda.IFunction;
+  readonly metadataGeneratorLambda: lambda.IFunction;
   readonly uploadLambda: lambda.IFunction;
 };
 
@@ -15,6 +16,7 @@ type LambdaFunctionsInput = {
   readonly tavilySecret: secretsmanager.Secret;
   readonly googleDriveSecret: secretsmanager.Secret;
   readonly scriptGeneratorEcrRepo: ecr.Repository;
+  readonly metadataGeneratorEcrRepo: ecr.Repository;
   readonly imageTag: string;
 };
 
@@ -27,6 +29,7 @@ export const createLambdaFunctions = (
     tavilySecret,
     googleDriveSecret,
     scriptGeneratorEcrRepo,
+    metadataGeneratorEcrRepo,
     imageTag,
   } = input;
 
@@ -37,12 +40,18 @@ export const createLambdaFunctions = (
     imageTag,
   });
 
+  const metadataGeneratorLambda = createMetadataGeneratorLambda(stack, {
+    bucket,
+    metadataGeneratorEcrRepo,
+    imageTag,
+  });
+
   const uploadLambda = createUploadLambda(stack, {
     bucket,
     googleDriveSecret,
   });
 
-  return { scriptGeneratorLambda, uploadLambda };
+  return { scriptGeneratorLambda, metadataGeneratorLambda, uploadLambda };
 };
 
 type ScriptGeneratorInput = {
@@ -73,25 +82,56 @@ const createScriptGeneratorLambda = (
   bucket.grantReadWrite(fn);
   tavilySecret.grantRead(fn);
 
-  // Bedrock cross-region inference profiles (us.*) route requests across
-  // us-east-1 / us-east-2 / us-west-2, so we must allow all three regions.
-  fn.addToRolePolicy(
-    new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
-      resources: [
-        "arn:aws:bedrock:us-east-1::foundation-model/*",
-        "arn:aws:bedrock:us-east-2::foundation-model/*",
-        "arn:aws:bedrock:us-west-2::foundation-model/*",
-        "arn:aws:bedrock:us-east-1:*:inference-profile/*",
-        "arn:aws:bedrock:us-east-2:*:inference-profile/*",
-        "arn:aws:bedrock:us-west-2:*:inference-profile/*",
-      ],
-    }),
-  );
+  fn.addToRolePolicy(bedrockInvokePolicy());
 
   return fn;
 };
+
+type MetadataGeneratorInput = {
+  readonly bucket: s3.Bucket;
+  readonly metadataGeneratorEcrRepo: ecr.Repository;
+  readonly imageTag: string;
+};
+
+const createMetadataGeneratorLambda = (
+  stack: cdk.Stack,
+  input: MetadataGeneratorInput,
+): lambda.DockerImageFunction => {
+  const { bucket, metadataGeneratorEcrRepo, imageTag } = input;
+
+  const fn = new lambda.DockerImageFunction(stack, "MetadataGeneratorLambda", {
+    code: lambda.DockerImageCode.fromEcr(metadataGeneratorEcrRepo, {
+      tagOrDigest: imageTag,
+    }),
+    memorySize: 2048,
+    timeout: cdk.Duration.minutes(15),
+    environment: {
+      S3_BUCKET: bucket.bucketName,
+    },
+  });
+
+  bucket.grantReadWrite(fn);
+  fn.addToRolePolicy(bedrockInvokePolicy());
+
+  return fn;
+};
+
+// Bedrock cross-region inference profiles (us.*) route requests across
+// us-east-1 / us-east-2 / us-west-2, so we must allow all three regions.
+// Shared by every Lambda that talks to Bedrock (text + image generation).
+const bedrockInvokePolicy = (): iam.PolicyStatement =>
+  new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+    resources: [
+      "arn:aws:bedrock:us-east-1::foundation-model/*",
+      "arn:aws:bedrock:us-east-2::foundation-model/*",
+      "arn:aws:bedrock:us-west-2::foundation-model/*",
+      "arn:aws:bedrock:us-east-1:*:inference-profile/*",
+      "arn:aws:bedrock:us-east-2:*:inference-profile/*",
+      "arn:aws:bedrock:us-west-2:*:inference-profile/*",
+    ],
+  });
 
 type UploadInput = {
   readonly bucket: s3.Bucket;

@@ -8,12 +8,18 @@ import * as sfnTasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import type * as cdk from "aws-cdk-lib/core";
 import { SCHEDULE_UTC_HOUR } from "./constants";
 
+// Step Functions input key for metadata-generator. Must match
+// MetadataGeneratorInputSchema in @video-factory/shared. The value is the
+// fixed S3 key script-generator writes to.
+const METADATA_INPUT_SCRIPT_KEY = "script-generator/script.json";
+
 type StateMachineInput = {
   readonly cluster: ecs.Cluster;
   readonly vpc: ec2.IVpc;
   readonly ttsTaskDef: ecs.FargateTaskDefinition;
   readonly videoTaskDef: ecs.FargateTaskDefinition;
   readonly scriptGeneratorLambda: lambda.IFunction;
+  readonly metadataGeneratorLambda: lambda.IFunction;
   readonly uploadLambda: lambda.IFunction;
 };
 
@@ -27,6 +33,7 @@ export const createStateMachine = (
     ttsTaskDef,
     videoTaskDef,
     scriptGeneratorLambda,
+    metadataGeneratorLambda,
     uploadLambda,
   } = input;
 
@@ -65,15 +72,31 @@ export const createStateMachine = (
     assignPublicIp: true,
   });
 
+  const metadataGeneratorTask = new sfnTasks.LambdaInvoke(
+    stack,
+    "MetadataGeneratorTask",
+    {
+      lambdaFunction: metadataGeneratorLambda,
+      payload: sfn.TaskInput.fromObject({
+        scriptKey: METADATA_INPUT_SCRIPT_KEY,
+      }),
+      integrationPattern: sfn.IntegrationPattern.REQUEST_RESPONSE,
+    },
+  );
+
   const uploadTask = new sfnTasks.LambdaInvoke(stack, "UploadTask", {
     lambdaFunction: uploadLambda,
     integrationPattern: sfn.IntegrationPattern.REQUEST_RESPONSE,
   });
 
-  const chain = scriptGeneratorTask
-    .next(ttsTask)
-    .next(videoTask)
-    .next(uploadTask);
+  // Run metadata generation in parallel with the audio→video chain. Both
+  // branches consume script-generator's S3 output independently, so they can
+  // execute concurrently. Upload waits for both branches to finish.
+  const parallelProcessing = new sfn.Parallel(stack, "ProcessScript")
+    .branch(metadataGeneratorTask)
+    .branch(ttsTask.next(videoTask));
+
+  const chain = scriptGeneratorTask.next(parallelProcessing).next(uploadTask);
 
   return new sfn.StateMachine(stack, "VideoFactoryStateMachine", {
     definitionBody: sfn.DefinitionBody.fromChainable(chain),
