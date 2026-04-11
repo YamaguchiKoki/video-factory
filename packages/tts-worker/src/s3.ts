@@ -3,14 +3,18 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { createS3ClientConfig, type S3EnvConfig } from "@video-factory/shared";
-import { Effect, Layer, Schema } from "effect";
+import {
+  createS3ClientConfig,
+  parseWithZodEffect,
+  type S3EnvConfig,
+} from "@video-factory/shared";
+import { Effect, Layer } from "effect";
 import {
   S3GetObjectError,
   S3PutObjectError,
   S3ValidationError,
 } from "./errors.js";
-import { type EnrichedScript, Script } from "./schema.js";
+import { type EnrichedScript, ScriptSchema } from "./schema.js";
 import { StorageService } from "./storage.js";
 
 export type { S3EnvConfig } from "@video-factory/shared";
@@ -65,11 +69,11 @@ export const createStorageServiceLive = (
         }),
       ),
       Effect.flatMap((raw) =>
-        Schema.decodeUnknownEffect(Script)(raw).pipe(
+        parseWithZodEffect(ScriptSchema, raw).pipe(
           Effect.mapError(
             (e) =>
               new S3ValidationError({
-                message: String(e),
+                message: e.message,
               }),
           ),
         ),

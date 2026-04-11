@@ -1,17 +1,15 @@
-// Tests for the Effect Schema definitions (schema.ts).
+// Tests for the schema re-exports (schema.ts).
 //
-// Design contract: validates Script and EnrichedScript shapes.
+// Design contract: validates Script and EnrichedScript shapes via the
+// shared zod schemas.
 
-import { Result, Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import { EnrichedLine, EnrichedScript, NewsItem, Script } from "../schema";
-
-// ============================================
-// Helper
-// ============================================
-
-const decode = <A>(schema: Schema.Decoder<A>) =>
-  Schema.decodeUnknownResult(schema);
+import {
+  EnrichedLineSchema,
+  EnrichedScriptSchema,
+  NewsItemSchema,
+  ScriptSchema,
+} from "../schema.js";
 
 // ============================================
 // Script
@@ -19,8 +17,8 @@ const decode = <A>(schema: Schema.Decoder<A>) =>
 
 describe("Script", () => {
   it("should parse a valid complete script", () => {
-    const result = decode(Script)(buildValidScript());
-    expect(Result.isSuccess(result)).toBe(true);
+    const result = ScriptSchema.safeParse(buildValidScript());
+    expect(result.success).toBe(true);
   });
 
   it("should fail when newsItems count is not 3", () => {
@@ -28,8 +26,8 @@ describe("Script", () => {
       ...buildValidScript(),
       newsItems: [buildNewsItem("news-1"), buildNewsItem("news-2")],
     };
-    const result = decode(Script)(script);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = ScriptSchema.safeParse(script);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when sections tuple has wrong structure", () => {
@@ -37,8 +35,8 @@ describe("Script", () => {
       ...buildValidScript(),
       sections: [buildIntroSection()],
     };
-    const result = decode(Script)(script);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = ScriptSchema.safeParse(script);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when speaker value is not A or B", () => {
@@ -55,14 +53,14 @@ describe("Script", () => {
         buildOutroSection(),
       ],
     };
-    const result = decode(Script)(script);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = ScriptSchema.safeParse(script);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when title is missing", () => {
     const { title: _omitted, ...withoutTitle } = buildValidScript();
-    const result = decode(Script)(withoutTitle);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = ScriptSchema.safeParse(withoutTitle);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when a discussion block is missing a phase", () => {
@@ -84,8 +82,8 @@ describe("Script", () => {
         buildOutroSection(),
       ],
     };
-    const result = decode(Script)(script);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = ScriptSchema.safeParse(script);
+    expect(result.success).toBe(false);
   });
 });
 
@@ -100,26 +98,26 @@ describe("NewsItem", () => {
       title: "テストニュース",
       sourceUrl: "https://example.com/news",
     };
-    const result = decode(NewsItem)(newsItem);
-    expect(Result.isSuccess(result)).toBe(true);
+    const result = NewsItemSchema.safeParse(newsItem);
+    expect(result.success).toBe(true);
   });
 
   it("should parse a newsItem without sourceUrl (field is optional)", () => {
     const newsItem = { id: "news-1", title: "テストニュース" };
-    const result = decode(NewsItem)(newsItem);
-    expect(Result.isSuccess(result)).toBe(true);
+    const result = NewsItemSchema.safeParse(newsItem);
+    expect(result.success).toBe(true);
   });
 
   it("should fail when sourceUrl is not a valid URL", () => {
     const newsItem = { id: "news-1", title: "テスト", sourceUrl: "not-a-url" };
-    const result = decode(NewsItem)(newsItem);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = NewsItemSchema.safeParse(newsItem);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when id is missing", () => {
     const newsItem = { title: "テストニュース" };
-    const result = decode(NewsItem)(newsItem);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = NewsItemSchema.safeParse(newsItem);
+    expect(result.success).toBe(false);
   });
 });
 
@@ -136,8 +134,8 @@ describe("EnrichedLine", () => {
       offsetSec: 0.0,
       durationSec: 2.5,
     };
-    const result = decode(EnrichedLine)(line);
-    expect(Result.isSuccess(result)).toBe(true);
+    const result = EnrichedLineSchema.safeParse(line);
+    expect(result.success).toBe(true);
   });
 
   it("should fail when voicevoxSpeakerId is missing", () => {
@@ -147,8 +145,8 @@ describe("EnrichedLine", () => {
       offsetSec: 0.0,
       durationSec: 1.5,
     };
-    const result = decode(EnrichedLine)(line);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedLineSchema.safeParse(line);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when offsetSec is missing", () => {
@@ -158,8 +156,8 @@ describe("EnrichedLine", () => {
       voicevoxSpeakerId: 0,
       durationSec: 1.5,
     };
-    const result = decode(EnrichedLine)(line);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedLineSchema.safeParse(line);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when durationSec is missing", () => {
@@ -169,8 +167,8 @@ describe("EnrichedLine", () => {
       voicevoxSpeakerId: 0,
       offsetSec: 0.0,
     };
-    const result = decode(EnrichedLine)(line);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedLineSchema.safeParse(line);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when speaker is missing", () => {
@@ -180,8 +178,8 @@ describe("EnrichedLine", () => {
       offsetSec: 0.0,
       durationSec: 1.5,
     };
-    const result = decode(EnrichedLine)(line);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedLineSchema.safeParse(line);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when voicevoxSpeakerId is not a number", () => {
@@ -192,8 +190,8 @@ describe("EnrichedLine", () => {
       offsetSec: 0.0,
       durationSec: 1.5,
     };
-    const result = decode(EnrichedLine)(line);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedLineSchema.safeParse(line);
+    expect(result.success).toBe(false);
   });
 });
 
@@ -203,22 +201,22 @@ describe("EnrichedLine", () => {
 
 describe("EnrichedScript", () => {
   it("should parse a valid EnrichedScript with outputWavS3Key", () => {
-    const result = decode(EnrichedScript)(buildValidEnrichedScript());
-    expect(Result.isSuccess(result)).toBe(true);
+    const result = EnrichedScriptSchema.safeParse(buildValidEnrichedScript());
+    expect(result.success).toBe(true);
   });
 
   it("should fail when outputWavS3Key is missing", () => {
     const { outputWavS3Key: _omitted, ...withoutKey } =
       buildValidEnrichedScript();
-    const result = decode(EnrichedScript)(withoutKey);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedScriptSchema.safeParse(withoutKey);
+    expect(result.success).toBe(false);
   });
 
   it("should fail when totalDurationSec is missing", () => {
     const { totalDurationSec: _omitted, ...withoutDuration } =
       buildValidEnrichedScript();
-    const result = decode(EnrichedScript)(withoutDuration);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedScriptSchema.safeParse(withoutDuration);
+    expect(result.success).toBe(false);
   });
 
   it("should parse EnrichedIntroSection without startSec or endSec", () => {
@@ -240,17 +238,17 @@ describe("EnrichedScript", () => {
         },
       ],
     };
-    const result = decode(EnrichedScript)(enrichedScript);
-    expect(Result.isSuccess(result)).toBe(true);
+    const result = EnrichedScriptSchema.safeParse(enrichedScript);
+    expect(result.success).toBe(true);
   });
 
-  it("should fail when sections tuple has wrong length", () => {
+  it("should fail when a section type is unknown", () => {
     const enrichedScript = {
       ...buildValidEnrichedScript(),
-      sections: [{ type: "intro" as const, greeting: [], newsOverview: [] }],
+      sections: [{ type: "unknown" }],
     };
-    const result = decode(EnrichedScript)(enrichedScript);
-    expect(Result.isFailure(result)).toBe(true);
+    const result = EnrichedScriptSchema.safeParse(enrichedScript);
+    expect(result.success).toBe(false);
   });
 });
 
@@ -272,7 +270,10 @@ const buildEnrichedLine = (
   durationSec: 1.5,
 });
 
-const buildNewsItem = (id: string) => ({ id, title: `${id}のニュース見出し` });
+const buildNewsItem = (id: "news-1" | "news-2" | "news-3") => ({
+  id,
+  title: `${id}のニュース見出し`,
+});
 
 const buildDiscussionBlock = (
   phase: "summary" | "background" | "deepDive",
@@ -281,7 +282,7 @@ const buildDiscussionBlock = (
   lines: [buildLine("A", "解説します"), buildLine("B", "質問があります")],
 });
 
-const buildDiscussionSection = (newsId: string) => ({
+const buildDiscussionSection = (newsId: "news-1" | "news-2" | "news-3") => ({
   type: "discussion" as const,
   newsId,
   blocks: [
@@ -331,7 +332,7 @@ const buildEnrichedDiscussionBlock = (
 });
 
 const buildEnrichedDiscussionSection = (
-  newsId: string,
+  newsId: "news-1" | "news-2" | "news-3",
   startOffset: number,
 ) => ({
   type: "discussion" as const,

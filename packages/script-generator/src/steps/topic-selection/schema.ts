@@ -1,9 +1,10 @@
+import {
+  type ScriptGeneratorInput as WorkflowInput,
+  ScriptGeneratorInputSchema as WorkflowInputSchema,
+} from "@video-factory/shared";
 import { z } from "zod";
 
-export const WorkflowInputSchema = z.object({
-  genre: z.string().describe("e.g. 政治経済"),
-});
-export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
+export { type WorkflowInput, WorkflowInputSchema };
 
 export const TopicSchema = z.object({
   id: z.string().describe("news-1, news-2, or news-3"),

@@ -1,4 +1,3 @@
-import { Schema } from "effect";
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { EnrichedLineSchema, EnrichedScriptSchema } from "./enriched-schema";
@@ -7,11 +6,9 @@ import { EnrichedLineSchema, EnrichedScriptSchema } from "./enriched-schema";
 // Helpers
 // ---------------------------------------------------------------------------
 
-const decodeLine = (input: unknown) =>
-  Schema.decodeUnknownResult(EnrichedLineSchema)(input);
+const decodeLine = (input: unknown) => EnrichedLineSchema.safeParse(input);
 
-const decodeScript = (input: unknown) =>
-  Schema.decodeUnknownResult(EnrichedScriptSchema)(input);
+const decodeScript = (input: unknown) => EnrichedScriptSchema.safeParse(input);
 
 // ---------------------------------------------------------------------------
 // Minimal valid fixture — mirrors real enriched.json structure
@@ -128,19 +125,19 @@ describe("EnrichedLineSchema", () => {
   describe("正常系", () => {
     it("speaker A のラインを受け入れる", () => {
       const result = decodeLine(validLine);
-      expect(result._tag).toBe("Success");
+      expect(result.success).toBe(true);
     });
 
     it("speaker B のラインを受け入れる", () => {
       const lineB = { ...validLine, speaker: "B" };
       const result = decodeLine(lineB);
-      expect(result._tag).toBe("Success");
+      expect(result.success).toBe(true);
     });
 
     it("offsetSec が 0 のラインを受け入れる（イントロ先頭）", () => {
       const firstLine = { ...validLine, offsetSec: 0 };
       const result = decodeLine(firstLine);
-      expect(result._tag).toBe("Success");
+      expect(result.success).toBe(true);
     });
   });
 
@@ -148,25 +145,25 @@ describe("EnrichedLineSchema", () => {
     it("speaker が A/B 以外のとき拒否する", () => {
       const invalidLine = { ...validLine, speaker: "C" };
       const result = decodeLine(invalidLine);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("offsetSec が欠損しているとき拒否する", () => {
       const { offsetSec: _omitted, ...withoutOffset } = validLine;
       const result = decodeLine(withoutOffset);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("durationSec が欠損しているとき拒否する", () => {
       const { durationSec: _omitted, ...withoutDuration } = validLine;
       const result = decodeLine(withoutDuration);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("text が欠損しているとき拒否する", () => {
       const { text: _omitted, ...withoutText } = validLine;
       const result = decodeLine(withoutText);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
   });
 });
@@ -179,7 +176,7 @@ describe("EnrichedScriptSchema", () => {
   describe("正常系", () => {
     it("有効な enriched JSON を受け入れる", () => {
       const result = decodeScript(validEnrichedScript);
-      expect(result._tag).toBe("Success");
+      expect(result.success).toBe(true);
     });
 
     it("複数の discussion セクションを含む JSON を受け入れる", () => {
@@ -220,7 +217,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(multiDiscussion);
-      expect(result._tag).toBe("Success");
+      expect(result.success).toBe(true);
     });
   });
 
@@ -228,25 +225,25 @@ describe("EnrichedScriptSchema", () => {
     it("title が欠損しているとき拒否する", () => {
       const { title: _omitted, ...withoutTitle } = validEnrichedScript;
       const result = decodeScript(withoutTitle);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("totalDurationSec が欠損しているとき拒否する", () => {
       const { totalDurationSec: _omitted, ...without } = validEnrichedScript;
       const result = decodeScript(without);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("newsItems が欠損しているとき拒否する", () => {
       const { newsItems: _omitted, ...without } = validEnrichedScript;
       const result = decodeScript(without);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("sections が欠損しているとき拒否する", () => {
       const { sections: _omitted, ...without } = validEnrichedScript;
       const result = decodeScript(without);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
   });
 
@@ -277,7 +274,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(invalidPhase);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("discussion に newsId が欠損しているとき拒否する", () => {
@@ -304,7 +301,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(missingNewsId);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("discussion の blocks が空配列のとき拒否する", () => {
@@ -321,7 +318,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(emptyBlocks);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("intro の greeting フィールドが欠損しているとき拒否する", () => {
@@ -335,7 +332,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(missingGreeting);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
 
     it("outro の recap フィールドが欠損しているとき拒否する", () => {
@@ -357,7 +354,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(missingRecap);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
   });
 
@@ -383,7 +380,7 @@ describe("EnrichedScriptSchema", () => {
         ],
       };
       const result = decodeScript(invalidSpeaker);
-      expect(result._tag).toBe("Failure");
+      expect(result.success).toBe(false);
     });
   });
 
@@ -400,7 +397,7 @@ describe("EnrichedScriptSchema", () => {
       fc.assert(
         fc.property(validLineArb, (line) => {
           const result = decodeLine(line);
-          expect(result._tag).toBe("Success");
+          expect(result.success).toBe(true);
         }),
         { numRuns: 50 },
       );

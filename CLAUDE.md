@@ -9,9 +9,13 @@ Step Functions
        │      Strands + Bedrock + Tavily
        │      → S3 (JSON)
        │
-       ├─► 2. TTS Worker [ECS Fargate]: 1で作成したスクリプトを音声に変換
-       │      VOICEVOX
-       │      → S3 (WAV)
+       ├─► 2a. Metadata Generator [Lambda]: 1のスクリプトからYouTube用メタデータを生成
+       │       Mastra + Bedrock (テキスト/画像生成)
+       │       → S3 (サムネイルPNG, 概要欄JSON, コメントJSON)
+       │
+       ├─► 2b. TTS Worker [ECS Fargate]: 1で作成したスクリプトを音声に変換
+       │       VOICEVOX
+       │       → S3 (WAV)
        │
        ├─► 3. Video Worker [ECS Fargate]: remotionを使った動画生成
        │      → S3 (MP4)

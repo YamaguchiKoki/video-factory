@@ -1,4 +1,5 @@
-import { Effect, Schema } from "effect";
+import { parseWithZodEffect } from "@video-factory/shared";
+import { Effect } from "effect";
 import {
   type EnrichedLine,
   type EnrichedScript,
@@ -147,11 +148,11 @@ export const parseEnrichedScript = (
       }),
   }).pipe(
     Effect.flatMap((raw) =>
-      Schema.decodeUnknownEffect(EnrichedScriptSchema)(raw).pipe(
+      parseWithZodEffect(EnrichedScriptSchema, raw).pipe(
         Effect.mapError(
           (e) =>
             new ValidationError({
-              message: String(e),
+              message: e.message,
             }),
         ),
       ),

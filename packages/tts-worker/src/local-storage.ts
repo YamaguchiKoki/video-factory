@@ -1,12 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Effect, Layer, Schema } from "effect";
+import { parseWithZodEffect } from "@video-factory/shared";
+import { Effect, Layer } from "effect";
 import {
   S3GetObjectError,
   S3PutObjectError,
   S3ValidationError,
 } from "./errors.js";
-import { type EnrichedScript, Script } from "./schema.js";
+import { type EnrichedScript, ScriptSchema } from "./schema.js";
 import { StorageService } from "./storage.js";
 
 const readScriptFromFile = (filePath: string) =>
@@ -29,8 +30,8 @@ const readScriptFromFile = (filePath: string) =>
       }),
     ),
     Effect.flatMap((raw) =>
-      Schema.decodeUnknownEffect(Script)(raw).pipe(
-        Effect.mapError((e) => new S3ValidationError({ message: String(e) })),
+      parseWithZodEffect(ScriptSchema, raw).pipe(
+        Effect.mapError((e) => new S3ValidationError({ message: e.message })),
       ),
     ),
   );
