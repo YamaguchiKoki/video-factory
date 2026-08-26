@@ -1,212 +1,200 @@
-// Tests for generators/create-text-generator.ts
-//
-// Design contract:
-//   createTextGenerator(config): (script, mastra) => Effect<T, E>
-//     — returns parsed data on success
-//     — fails with configured error when agent is not found
-//     — fails with configured error when agent.generate rejects
-//     — fails with configured error when response.object fails schema validation
-//     — fails with configured error when response.object is null
-//     — calls getAgent with configured agentId
-//     — uses structuredOutput with configured schema
-
 import type { Mastra } from "@mastra/core/mastra";
-import { Effect, Result, Schema } from "effect";
+import { Cause, Effect, type Exit, Option } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { Script } from "../schema";
 import { createTextGenerator } from "./create-text-generator";
 
-// ============================================
-// Test-only types
-// ============================================
-
-const TestResultSchema = z.object({ text: z.string() });
-
-class TestError extends Schema.TaggedErrorClass<TestError>()("TestError", {
-  message: Schema.String,
-}) {}
-
-// ============================================
-// Test config
-// ============================================
+const ResultSchema = z.object({ text: z.string() });
+const VALID = { text: "概要欄テキスト" };
 
 const TEST_AGENT_ID = "test-agent";
-const TEST_PROMPT = "test prompt for generation";
 
-const testGenerator = createTextGenerator({
-  agentId: TEST_AGENT_ID,
-  schema: TestResultSchema,
-  createError: (message: string) => new TestError({ message }),
-  buildPrompt: (_script: Script) => TEST_PROMPT,
-});
+type TestError = { readonly message: string };
 
-// ============================================
-// Test data
-// ============================================
+// Proves the failure travelled through the typed error channel
+// (Effect.fail via config.createError), not an escaped exception
+// (Effect.die). `runPromiseExit`'s `_tag: "Failure"` is true for both, so
+// asserting only that would still pass if the implementation regressed to
+// throwing. Cause.findErrorOption returns Some only when the cause
+// contains a Fail reason; it returns None for a cause made only of Die
+// (or Interrupt) reasons.
+const expectTypedFailureMessage = (
+  exit: Exit.Exit<unknown, TestError>,
+  expectedSubstring: string,
+): void => {
+  expect(exit._tag).toBe("Failure");
+  if (exit._tag !== "Failure") return;
 
-const VALID_RESULT = { text: "generated text" };
+  const errorOption = Cause.findErrorOption(exit.cause);
+  expect(Option.isSome(errorOption)).toBe(true);
+  if (!Option.isSome(errorOption)) return;
 
-const buildValidScript = (): Script =>
-  ({
-    title: "テストラジオ",
-    newsItems: [
-      { id: "news-1", title: "ニュース1" },
-      { id: "news-2", title: "ニュース2" },
-      { id: "news-3", title: "ニュース3" },
-    ],
-    sections: [],
-  }) as unknown as Script;
-
-// ============================================
-// Helpers
-// ============================================
-
-const buildMockMastra = (generateResponse: unknown): Mastra => {
-  const mockAgent = { generate: vi.fn().mockResolvedValue(generateResponse) };
-  return { getAgent: vi.fn().mockReturnValue(mockAgent) } as unknown as Mastra;
+  expect(errorOption.value.message).toContain(expectedSubstring);
 };
 
-const buildMockMastraWithNoAgent = (): Mastra =>
+const buildScript = () =>
+  ({ title: "タイトル", newsItems: [], sections: [] }) as never;
+
+const buildMastra = (generate: ReturnType<typeof vi.fn>): Mastra =>
+  ({ getAgent: vi.fn().mockReturnValue({ generate }) }) as unknown as Mastra;
+
+const buildMastraWithNoAgent = (): Mastra =>
   ({ getAgent: vi.fn().mockReturnValue(undefined) }) as unknown as Mastra;
 
-const buildMockMastraWithFailingGenerate = (error: Error): Mastra => {
-  const mockAgent = { generate: vi.fn().mockRejectedValue(error) };
-  return { getAgent: vi.fn().mockReturnValue(mockAgent) } as unknown as Mastra;
-};
-
-// ============================================
-// Tests
-// ============================================
+const generator = createTextGenerator({
+  agentId: TEST_AGENT_ID,
+  schema: ResultSchema,
+  createError: (message: string) => ({ message }),
+  buildPrompt: () => "prompt",
+});
 
 describe("createTextGenerator", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
-  it("should return parsed data on success", async () => {
-    // Given
-    const mockMastra = buildMockMastra({ object: VALID_RESULT });
-    const script = buildValidScript();
+  it("should return the parsed value on the first attempt without retrying", async () => {
+    // Arrange
+    const generate = vi.fn().mockResolvedValue({ object: VALID });
 
-    // When
+    // Act
     const result = await Effect.runPromise(
-      Effect.result(testGenerator(script, mockMastra)),
+      generator(buildScript(), buildMastra(generate)),
     );
 
-    // Then
-    expect(Result.isSuccess(result)).toBe(true);
-    if (Result.isSuccess(result)) {
-      expect(result.success.text).toBe(VALID_RESULT.text);
-    }
+    // Assert
+    expect(result).toEqual(VALID);
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 
-  it("should fail with configured error when agent is not found", async () => {
-    // Given
-    const mockMastra = buildMockMastraWithNoAgent();
-    const script = buildValidScript();
+  it("should recover a wrapped response without retrying", async () => {
+    // Arrange
+    const generate = vi
+      .fn()
+      .mockResolvedValue({ object: { $schema: JSON.stringify(VALID) } });
 
-    // When
+    // Act
     const result = await Effect.runPromise(
-      Effect.result(testGenerator(script, mockMastra)),
+      generator(buildScript(), buildMastra(generate)),
     );
 
-    // Then
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) {
-      expect(result.failure._tag).toBe("TestError");
-      expect(result.failure.message).toContain(TEST_AGENT_ID);
-    }
+    // Assert
+    expect(result).toEqual(VALID);
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 
-  it("should fail with configured error when agent.generate rejects", async () => {
-    // Given
-    const mockMastra = buildMockMastraWithFailingGenerate(
-      new Error("Model throttled"),
-    );
-    const script = buildValidScript();
+  it("should retry when the response is undefined and succeed on the second attempt", async () => {
+    // Arrange
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce({ object: undefined })
+      .mockResolvedValueOnce({ object: VALID });
 
-    // When
+    // Act
     const result = await Effect.runPromise(
-      Effect.result(testGenerator(script, mockMastra)),
+      generator(buildScript(), buildMastra(generate)),
     );
 
-    // Then
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) {
-      expect(result.failure._tag).toBe("TestError");
-      expect(result.failure.message).toContain("Model throttled");
-    }
+    // Assert
+    expect(result).toEqual(VALID);
+    expect(generate).toHaveBeenCalledTimes(2);
   });
 
-  it("should fail with configured error when response.object fails schema validation", async () => {
-    // Given — response.object has invalid shape (missing required 'text' field)
-    const mockMastra = buildMockMastra({ object: { invalid: true } });
-    const script = buildValidScript();
+  it("should fail after three failed attempts, and identify the agent in the failure", async () => {
+    // Arrange
+    const generate = vi.fn().mockResolvedValue({ object: undefined });
 
-    // When
-    const result = await Effect.runPromise(
-      Effect.result(testGenerator(script, mockMastra)),
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generator(buildScript(), buildMastra(generate)),
     );
 
-    // Then
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) {
-      expect(result.failure._tag).toBe("TestError");
-      expect(result.failure.message).toContain(
-        "Structured output validation failed",
-      );
-    }
+    // Assert
+    expect(generate).toHaveBeenCalledTimes(3);
+    expectTypedFailureMessage(exit, TEST_AGENT_ID);
   });
 
-  it("should fail with configured error when response.object is null", async () => {
-    // Given — null object simulates a model returning no structured output
-    const mockMastra = buildMockMastra({ object: null });
-    const script = buildValidScript();
+  it("should fail after three attempts when the object is schema-invalid on every attempt", async () => {
+    // Arrange — right key, wrong value type: a plausible near-miss from the
+    // model, not garbage. Populated-but-wrong travels a different path
+    // through parseStructuredOutput than `undefined` (it attempts unwrap
+    // recovery first), so this exercises a distinct branch from the
+    // "three failed attempts" test above.
+    const generate = vi.fn().mockResolvedValue({ object: { text: 42 } });
 
-    // When
-    const result = await Effect.runPromise(
-      Effect.result(testGenerator(script, mockMastra)),
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generator(buildScript(), buildMastra(generate)),
     );
 
-    // Then
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) {
-      expect(result.failure._tag).toBe("TestError");
-      expect(result.failure.message).toContain(
-        "Structured output validation failed",
-      );
-    }
+    // Assert
+    expect(generate).toHaveBeenCalledTimes(3);
+    expectTypedFailureMessage(exit, "Structured output validation failed");
+  });
+
+  it("should fail after three attempts when the object is null on every attempt", async () => {
+    // Arrange
+    const generate = vi.fn().mockResolvedValue({ object: null });
+
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generator(buildScript(), buildMastra(generate)),
+    );
+
+    // Assert
+    expect(generate).toHaveBeenCalledTimes(3);
+    expectTypedFailureMessage(exit, "Structured output validation failed");
+  });
+
+  it("should fail with configured error when agent is not found, without calling generate", async () => {
+    // Arrange
+    const mastra = buildMastraWithNoAgent();
+
+    // Act
+    const exit = await Effect.runPromiseExit(generator(buildScript(), mastra));
+
+    // Assert
+    expectTypedFailureMessage(exit, TEST_AGENT_ID);
+  });
+
+  it("should fail immediately (no retry) when agent.generate rejects", async () => {
+    // Arrange
+    const generate = vi.fn().mockRejectedValue(new Error("Model throttled"));
+
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generator(buildScript(), buildMastra(generate)),
+    );
+
+    // Assert
+    expect(generate).toHaveBeenCalledTimes(1);
+    expectTypedFailureMessage(exit, "Model throttled");
   });
 
   it("should call getAgent with configured agentId", async () => {
-    // Given
-    const mockMastra = buildMockMastra({ object: VALID_RESULT });
-    const script = buildValidScript();
+    // Arrange
+    const generate = vi.fn().mockResolvedValue({ object: VALID });
+    const mastra = buildMastra(generate);
 
-    // When
-    await Effect.runPromise(testGenerator(script, mockMastra));
+    // Act
+    await Effect.runPromise(generator(buildScript(), mastra));
 
-    // Then
-    expect(mockMastra.getAgent).toHaveBeenCalledWith(TEST_AGENT_ID);
+    // Assert
+    expect(mastra.getAgent).toHaveBeenCalledWith(TEST_AGENT_ID);
   });
 
-  it("should use structuredOutput with configured schema", async () => {
-    // Given
-    const mockAgent = {
-      generate: vi.fn().mockResolvedValue({ object: VALID_RESULT }),
-    };
-    const mockMastra = {
-      getAgent: vi.fn().mockReturnValue(mockAgent),
-    } as unknown as Mastra;
-    const script = buildValidScript();
+  it("should use structuredOutput with the configured schema", async () => {
+    // Arrange
+    const generate = vi.fn().mockResolvedValue({ object: VALID });
+    const mastra = buildMastra(generate);
 
-    // When
-    await Effect.runPromise(testGenerator(script, mockMastra));
+    // Act
+    await Effect.runPromise(generator(buildScript(), mastra));
 
-    // Then
-    const [[, options]] = (mockAgent.generate as ReturnType<typeof vi.fn>).mock
-      .calls as [[string, { structuredOutput: { schema: unknown } }]];
-    expect(options.structuredOutput.schema).toBe(TestResultSchema);
+    // Assert
+    const [[, options]] = generate.mock.calls as [
+      [string, { structuredOutput: { schema: unknown } }],
+    ];
+    expect(options.structuredOutput.schema).toBe(ResultSchema);
   });
 });
