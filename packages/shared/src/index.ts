@@ -1,4 +1,5 @@
 export { parseWithZodEffect } from "./effect-interop.js";
+export { parseStructuredOutput } from "./structured-output.js";
 export type { DockerEnv } from "./env.js";
 export { DockerEnvSchema, parseDockerEnv } from "./env.js";
 export {
