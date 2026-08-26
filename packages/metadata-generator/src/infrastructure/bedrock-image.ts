@@ -5,10 +5,10 @@ import {
 import { Effect, Schema } from "effect";
 import { z } from "zod";
 
-// amazon.nova-canvas-v1:0 は Bedrock 上で LEGACY となり呼び出せなくなった。
-// us-east-1 に ACTIVE な text-to-image モデルは存在しないため us-west-2 を使う。
-// @ai-sdk/amazon-bedrock の imageModel() は Nova Canvas 専用のボディを組み立てる
-// 実装なので Stability 系には使えず、InvokeModel を直接呼んでいる。
+// 以前使っていた Amazon 製の text-to-image モデルは Bedrock 上で LEGACY となり
+// 呼び出せなくなった。us-east-1 に ACTIVE な text-to-image モデルは存在しないため
+// us-west-2 を使う。@ai-sdk/amazon-bedrock の imageModel() はその旧モデル専用の
+// ボディを組み立てる実装なので Stability 系には使えず、InvokeModel を直接呼んでいる。
 const IMAGE_MODEL_ID = "stability.stable-image-core-v1:1";
 const IMAGE_REGION = "us-west-2";
 

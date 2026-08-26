@@ -5,7 +5,7 @@ export const ThumbnailResultSchema = z
     imageBase64: z
       .string()
       .describe(
-        "Amazon Nova Canvas が生成したPNG画像のbase64エンコード済みデータ",
+        "Bedrock の画像生成モデルが作った背景にタイトル文字を canvas で合成したPNG画像のbase64エンコード済みデータ",
       ),
     contentType: z
       .literal("image/png")
