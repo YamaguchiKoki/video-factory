@@ -2,7 +2,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { Effect, Result, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { z } from "zod";
 
 // amazon.nova-canvas-v1:0 は Bedrock 上で LEGACY となり呼び出せなくなった。
@@ -104,15 +104,11 @@ const decodeBody = (
     );
   }
 
-  const parsed = Result.try({
+  return Effect.try({
     try: () => JSON.parse(new TextDecoder().decode(body)) as unknown,
     catch: (e) =>
       new BedrockImageError({
         message: `Failed to decode response body: ${String(e)}`,
       }),
   });
-
-  return Result.isSuccess(parsed)
-    ? Effect.succeed(parsed.success)
-    : Effect.fail(parsed.failure);
 };

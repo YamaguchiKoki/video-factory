@@ -126,4 +126,45 @@ describe("generateBackgroundImage", () => {
     // Assert
     expectTypedFailureMessage(exit, "AccessDeniedException");
   });
+
+  it("should fail when the response body is empty", async () => {
+    // Arrange
+    const send = vi.fn().mockResolvedValue({ body: undefined });
+
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generateBackgroundImage(buildClient(send))("a prompt"),
+    );
+
+    // Assert
+    expectTypedFailureMessage(exit, "Empty response body");
+  });
+
+  it("should fail when the response body is not valid JSON", async () => {
+    // Arrange
+    const send = vi.fn().mockResolvedValue({
+      body: new TextEncoder().encode("not json"),
+    });
+
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generateBackgroundImage(buildClient(send))("a prompt"),
+    );
+
+    // Assert
+    expectTypedFailureMessage(exit, "Failed to decode response body");
+  });
+
+  it("should fail when the response is missing expected fields", async () => {
+    // Arrange
+    const send = vi.fn().mockResolvedValue(buildResponse({ unexpected: true }));
+
+    // Act
+    const exit = await Effect.runPromiseExit(
+      generateBackgroundImage(buildClient(send))("a prompt"),
+    );
+
+    // Assert
+    expectTypedFailureMessage(exit, "Unexpected Bedrock image response");
+  });
 });
