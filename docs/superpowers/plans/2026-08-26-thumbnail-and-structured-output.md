@@ -37,6 +37,19 @@ ctx.font = "bold 72px NotoSansJP";
 ```
 別名が実際に使われることは、存在しないファミリ名とのメトリクス差で確認済み。
 
+**Mastra が `object` を `undefined` で返す条件**（`@mastra/core@1.3.0` の dist を読んで確認）
+
+```js
+if (schema && result.finishReason === "stop") {
+  result.object = result.experimental_output;
+}
+```
+
+`finishReason` が `"stop"` 以外（`length` / `content-filter` / `tool-calls` など）だと
+`object` は `undefined` のまま返り、例外も投げられない。これが日次障害の真因。
+`response.finishReason` は `FullOutput<OUTPUT>` の一部として型に存在するので、
+キャスト無しでログに出せる。構造化出力が空だったときは必ず出すこと。
+
 **effect 4.0.0-beta.43 の `Result` API**
 - 構築: `Result.succeed(value)` / `Result.fail(error)`
 - 判定: `Result.isSuccess(r)` / `Result.isFailure(r)`
@@ -986,8 +999,11 @@ export const createTextGenerator =
               );
               if (Result.isSuccess(parsed)) return parsed.success;
 
+              // finishReason を必ず出す。Mastra は finishReason が "stop" の
+              // ときしか object を埋めないので、これが無いと「なぜ空だったか」
+              // が CloudWatch に一切残らない。
               console.warn(
-                `[${config.agentId}] attempt ${n}/${MAX_ATTEMPTS} failed: ${parsed.failure}`,
+                `[${config.agentId}] attempt ${n}/${MAX_ATTEMPTS} failed (finishReason: ${response.finishReason}): ${parsed.failure}`,
               );
               return yield* attempt(n + 1, parsed.failure);
             });
