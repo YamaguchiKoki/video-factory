@@ -119,4 +119,41 @@ describe("parseStructuredOutput", () => {
     // Assert — スキーマに合わない値は必ず失敗する
     expect(Result.isFailure(parseStructuredOutput(TopicSchema, n))).toBe(true);
   });
+
+  it("should recover a double-wrapped value", () => {
+    // Arrange — 単一キー包みがネストしても MAX_UNWRAP_DEPTH の範囲内なら復旧できる
+    const value = { id: "news-1", title: "見出し", count: 3 };
+    const singleWrapped = { $schema: JSON.stringify(value) };
+    const doubleWrapped = { $schema: JSON.stringify(singleWrapped) };
+
+    // Act
+    const result = parseStructuredOutput(TopicSchema, doubleWrapped);
+
+    // Assert
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) expect(result.success).toEqual(value);
+  });
+
+  it("should fail beyond the unwrap depth limit", () => {
+    // Arrange — 3重に包まれた値は MAX_UNWRAP_DEPTH を超えるため復旧できない
+    const value = { id: "news-1", title: "見出し", count: 3 };
+    const singleWrapped = { $schema: JSON.stringify(value) };
+    const doubleWrapped = { $schema: JSON.stringify(singleWrapped) };
+    const tripleWrapped = { $schema: JSON.stringify(doubleWrapped) };
+
+    // Act
+    const result = parseStructuredOutput(TopicSchema, tripleWrapped);
+
+    // Assert
+    expect(Result.isFailure(result)).toBe(true);
+  });
+
+  it("should fail cleanly for a wrapped JSON null", () => {
+    // Arrange — JSON.parse("null") は null を返すため、unwrap/parseJson が
+    // 使う undefined センチネルと衝突しないことを確認する
+    const result = parseStructuredOutput(TopicSchema, { $schema: "null" });
+
+    // Assert
+    expect(Result.isFailure(result)).toBe(true);
+  });
 });
