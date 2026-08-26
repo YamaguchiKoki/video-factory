@@ -112,7 +112,9 @@ describe("factCheckStep", () => {
     await expect(
       factCheckStep.execute(buildParams(buildEnrichedTopics(), mockMastra)),
     ).rejects.toThrow(/Structured output validation failed/);
-    expect(mockAgent.generate).toHaveBeenCalledTimes(3);
+    // DEFAULT_MAX_ATTEMPTS is 2 (bounded by the Lambda timeout, see
+    // structured-output.ts), so the retry budget is spent after 2 calls.
+    expect(mockAgent.generate).toHaveBeenCalledTimes(2);
   });
 });
 

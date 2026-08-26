@@ -14,6 +14,7 @@ export const factCheckStep = createStep({
     if (!agent) throw new Error(`${FACT_CHECK_AGENT_ID} not found`);
 
     return generateStructured(
+      FACT_CHECK_AGENT_ID,
       agent,
       buildFactCheckPrompt(inputData),
       VerifiedTopicsOutputSchema,

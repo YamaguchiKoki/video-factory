@@ -14,6 +14,7 @@ export const topicDeepDiveStep = createStep({
     if (!agent) throw new Error(`${TOPIC_DEEP_DIVE_AGENT_ID} not found`);
 
     return generateStructured(
+      TOPIC_DEEP_DIVE_AGENT_ID,
       agent,
       buildTopicDeepDivePrompt(inputData),
       EnrichedTopicSchema,

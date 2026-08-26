@@ -6,6 +6,7 @@ import { generateStructured } from "./structured-output";
 
 const TopicSchema = z.object({ id: z.string(), title: z.string() });
 const VALID = { id: "news-1", title: "見出し" };
+const LABEL = "test-agent";
 
 describe("generateStructured", () => {
   beforeEach(() => {
@@ -18,6 +19,7 @@ describe("generateStructured", () => {
 
     // Act
     const result = await generateStructured(
+      LABEL,
       buildAgent(generate),
       "prompt",
       TopicSchema,
@@ -36,6 +38,7 @@ describe("generateStructured", () => {
 
     // Act
     const result = await generateStructured(
+      LABEL,
       buildAgent(generate),
       "prompt",
       TopicSchema,
@@ -55,6 +58,7 @@ describe("generateStructured", () => {
 
     // Act
     const result = await generateStructured(
+      LABEL,
       buildAgent(generate),
       "prompt",
       TopicSchema,
@@ -65,15 +69,26 @@ describe("generateStructured", () => {
     expect(generate).toHaveBeenCalledTimes(2);
   });
 
-  it("should throw after exhausting all attempts", async () => {
+  it("should throw after exhausting all attempts, with the label in both the warn line and the thrown message", async () => {
     // Arrange
     const generate = vi.fn().mockResolvedValue({ object: undefined });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    // Act + Assert
+    // Act + Assert — DEFAULT_MAX_ATTEMPTS is 2 (bounded by the Lambda
+    // timeout, see structured-output.ts), so exhaustion happens on the 2nd
+    // call, not the 3rd.
     await expect(
-      generateStructured(buildAgent(generate), "prompt", TopicSchema),
-    ).rejects.toThrow(/Structured output validation failed/);
-    expect(generate).toHaveBeenCalledTimes(3);
+      generateStructured(LABEL, buildAgent(generate), "prompt", TopicSchema),
+    ).rejects.toThrow(
+      new RegExp(`${LABEL}.*Structured output validation failed`),
+    );
+    expect(generate).toHaveBeenCalledTimes(2);
+
+    // Assert — a CloudWatch reader must be able to tell which step failed
+    // from the warn line alone, since all four steps share one log stream.
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`[structured-output:${LABEL}]`),
+    );
   });
 
   it("should propagate an error thrown by agent.generate without retrying", async () => {
@@ -82,7 +97,7 @@ describe("generateStructured", () => {
 
     // Act + Assert
     await expect(
-      generateStructured(buildAgent(generate), "prompt", TopicSchema),
+      generateStructured(LABEL, buildAgent(generate), "prompt", TopicSchema),
     ).rejects.toThrow("Bedrock timeout");
     expect(generate).toHaveBeenCalledTimes(1);
   });
@@ -93,7 +108,7 @@ describe("generateStructured", () => {
 
     // Act + Assert
     await expect(
-      generateStructured(buildAgent(generate), "prompt", TopicSchema, 1),
+      generateStructured(LABEL, buildAgent(generate), "prompt", TopicSchema, 1),
     ).rejects.toThrow(/Structured output validation failed/);
     expect(generate).toHaveBeenCalledTimes(1);
   });
@@ -120,6 +135,7 @@ describe("generateStructured", () => {
 
       // Act
       const result = await generateStructured(
+        LABEL,
         buildAgent(generate),
         "prompt",
         TopicSchema,
@@ -173,6 +189,7 @@ describe("generateStructured", () => {
       if (neverSucceeds) {
         await expect(
           generateStructured(
+            LABEL,
             buildAgent(generate),
             "prompt",
             TopicSchema,
@@ -181,6 +198,7 @@ describe("generateStructured", () => {
         ).rejects.toThrow(/Structured output validation failed/);
       } else {
         const result = await generateStructured(
+          LABEL,
           buildAgent(generate),
           "prompt",
           TopicSchema,

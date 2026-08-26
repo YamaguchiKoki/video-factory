@@ -15,6 +15,7 @@ export const topicSelectionStep = createStep({
     if (!agent) throw new Error(`${TOPIC_SELECTION_AGENT_ID} not found`);
 
     return generateStructured(
+      TOPIC_SELECTION_AGENT_ID,
       agent,
       buildTopicSelectionPrompt(inputData),
       TopicsOutputSchema,

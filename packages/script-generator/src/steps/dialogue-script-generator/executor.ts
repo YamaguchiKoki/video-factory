@@ -15,6 +15,7 @@ export const dialogueScriptGeneratorStep = createStep({
       throw new Error(`${DIALOGUE_SCRIPT_GENERATOR_AGENT_ID} not found`);
 
     return generateStructured(
+      DIALOGUE_SCRIPT_GENERATOR_AGENT_ID,
       agent,
       buildDialogueScriptPrompt(inputData),
       ScriptSchema,
