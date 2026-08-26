@@ -593,26 +593,32 @@ export const generateStructured = async <T>(
   prompt: string,
   schema: z.ZodType<T>,
   maxAttempts: number = DEFAULT_MAX_ATTEMPTS,
+): Promise<T> => attempt(agent, prompt, schema, maxAttempts, 1);
+
+const attempt = async <T>(
+  agent: Agent,
+  prompt: string,
+  schema: z.ZodType<T>,
+  maxAttempts: number,
+  n: number,
 ): Promise<T> => {
-  const failures: string[] = [];
+  const response = await agent.generate(prompt, {
+    structuredOutput: { schema },
+  });
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const response = await agent.generate(prompt, {
-      structuredOutput: { schema },
-    });
+  const parsed = parseStructuredOutput(schema, response.object);
+  if (Result.isSuccess(parsed)) return parsed.success;
 
-    const parsed = parseStructuredOutput(schema, response.object);
-    if (Result.isSuccess(parsed)) return parsed.success;
+  console.warn(
+    `[structured-output] attempt ${n}/${maxAttempts} failed: ${parsed.failure}`,
+  );
 
-    failures.push(parsed.failure);
-    console.warn(
-      `[structured-output] attempt ${attempt}/${maxAttempts} failed: ${parsed.failure}`,
-    );
-  }
-
-  throw new Error(failures[failures.length - 1]);
+  if (n >= maxAttempts) throw new Error(parsed.failure);
+  return attempt(agent, prompt, schema, maxAttempts, n + 1);
 };
 ```
+
+ループではなく再帰にしているのは `CLAUDE.md` が `let` を禁じているため。`for` + カウンタ変数だと規約に反する。
 
 - [ ] **Step 4: テストを実行して成功を確認**
 
@@ -955,34 +961,7 @@ export const createTextGenerator =
       // Mastra の structuredOutput は間欠的に undefined を返す。包み形式
       // （{"$schema": "<json>"}）は parseStructuredOutput が剥がすので、
       // 再実行が要るのは何も返らなかった場合だけ。
-      let lastFailure = "no attempt was made";
-
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-        const response = yield* Effect.tryPromise({
-          try: () =>
-            agent.generate(config.buildPrompt(script), {
-              structuredOutput: { schema: config.schema },
-            }),
-          catch: (e) =>
-            config.createError(e instanceof Error ? e.message : String(e)),
-        });
-
-        const parsed = parseStructuredOutput(config.schema, response.object);
-        if (Result.isSuccess(parsed)) return parsed.success;
-
-        lastFailure = parsed.failure;
-        console.warn(
-          `[${config.agentId}] attempt ${attempt}/${MAX_ATTEMPTS} failed: ${parsed.failure}`,
-        );
-      }
-
-      return yield* Effect.fail(config.createError(lastFailure));
-    });
-```
-
-`let` を使っているが、`CLAUDE.md` の「`let` 禁止」に抵触する。以下の再帰形に置き換えて `let` を避ける。上の `for` ループ部分（`let lastFailure` から `return yield* Effect.fail(...)` まで）を次で差し替える:
-
-```ts
+      // `CLAUDE.md` が `let` を禁じているのでループではなく再帰にする。
       const attempt = (
         n: number,
         lastFailure: string,
@@ -1014,6 +993,7 @@ export const createTextGenerator =
             });
 
       return yield* attempt(1, "no attempt was made");
+    });
 ```
 
 - [ ] **Step 4: テストを実行して成功を確認**
@@ -1024,9 +1004,9 @@ pnpm --filter metadata-generator test src/generators/create-text-generator.spec.
 
 Expected: PASS。`Tests 3 passed (3)`
 
-- [ ] **Step 5: `generateStructured` からも `let` を除く**
+- [ ] **Step 5: `generateStructured` が規約に沿っていることを確認する**
 
-Task 3 の `packages/script-generator/src/shared/structured-output.ts` も `for` ループと配列の push を使っており、`CLAUDE.md` の方針に沿わない。以下に置き換える。
+Task 3 で既に再帰形（`let` なし）で実装されているはず。以下と一致することを確認し、差異があれば直す。
 
 ```ts
 import type { Agent } from "@mastra/core/agent";
