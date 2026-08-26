@@ -1530,11 +1530,12 @@ const TITLE_MARGIN_X = 80;
 const DATE_FONT_SIZE = 32;
 const DATE_MARGIN = 40;
 
-// Lambda では lambda.mjs と assets/ が同じ LAMBDA_TASK_ROOT に置かれる。
-// ローカル（vitest / tsx）ではこのファイルから見た相対位置を辿る。
-const fontPath = fileURLToPath(
-  new URL("../../../assets/NotoSansJP.ttf", import.meta.url),
-);
+// Lambda では lambda.mjs と assets/ が LAMBDA_TASK_ROOT 直下に並ぶため、
+// ソースツリーからの相対パスでは解決できない。
+// ローカル（vitest / tsx）ではソースツリーから辿る。
+const fontPath = process.env.LAMBDA_TASK_ROOT
+  ? `${process.env.LAMBDA_TASK_ROOT}/assets/NotoSansJP.ttf`
+  : fileURLToPath(new URL("../../../assets/NotoSansJP.ttf", import.meta.url));
 
 GlobalFonts.registerFromPath(fontPath, FONT_FAMILY);
 
@@ -2040,15 +2041,11 @@ CMD ["lambda.handler"]
 
 バージョン `1.0.1` は `packages/metadata-generator/package.json` の指定と一致させること。片方だけ上げるとローカルと Lambda で挙動がずれる。
 
-- [ ] **Step 2: フォントパスの解決を Lambda のレイアウトに合わせる**
+- [ ] **Step 2: フォントパスの解決が Lambda のレイアウトに対応していることを確認する**
 
-`compose.ts` の `fontPath` は `new URL("../../../assets/NotoSansJP.ttf", import.meta.url)` でソースツリーの位置を辿っている。Lambda では `lambda.mjs` が `${LAMBDA_TASK_ROOT}` 直下、`assets/` がその下にあるため、この相対パスでは解決できない。以下に置き換える。
-
-`packages/metadata-generator/src/generators/thumbnail/compose.ts` の `fontPath` の定義を差し替える:
+Task 8 で既に `LAMBDA_TASK_ROOT` を見る形で実装されているはず。`compose.ts` の `fontPath` が以下になっていることを確認し、違っていれば直す。
 
 ```ts
-// Lambda では lambda.mjs と assets/ が LAMBDA_TASK_ROOT 直下に並ぶ。
-// ローカル（vitest / tsx）ではソースツリーから辿る。
 const fontPath = process.env.LAMBDA_TASK_ROOT
   ? `${process.env.LAMBDA_TASK_ROOT}/assets/NotoSansJP.ttf`
   : fileURLToPath(new URL("../../../assets/NotoSansJP.ttf", import.meta.url));
