@@ -106,8 +106,10 @@ describe("parseStructuredOutput", () => {
       $schema: JSON.stringify(value),
     });
 
-    // Assert
+    // Assert — 3形態すべてが復旧できることを無条件にアサートする
     expect(Result.isSuccess(plain)).toBe(true);
+    expect(Result.isSuccess(asString)).toBe(true);
+    expect(Result.isSuccess(wrapped)).toBe(true);
     if (Result.isSuccess(plain)) expect(plain.success).toEqual(value);
     if (Result.isSuccess(asString)) expect(asString.success).toEqual(value);
     if (Result.isSuccess(wrapped)) expect(wrapped.success).toEqual(value);
