@@ -266,6 +266,35 @@ describe("VideoFactoryStack CloudFormation template", () => {
       // Then: exactly 1 state machine coordinates all four steps
       template.resourceCountIs("AWS::StepFunctions::StateMachine", 1);
     });
+
+    it("should forward execution logs to a dedicated CloudWatch log group", () => {
+      // Given: Step Functions execution history is only queryable in the console
+      //        unless logging is explicitly enabled
+      // When: the state machine's LoggingConfiguration is inspected
+      // Then: all events, including execution data, go to a CloudWatch log group
+      template.hasResourceProperties("AWS::StepFunctions::StateMachine", {
+        LoggingConfiguration: {
+          Level: "ALL",
+          IncludeExecutionData: true,
+          Destinations: Match.arrayWith([
+            Match.objectLike({
+              CloudWatchLogsLogGroup: {
+                LogGroupArn: Match.anyValue(),
+              },
+            }),
+          ]),
+        },
+      });
+    });
+
+    it("should retain state machine logs for one month", () => {
+      // Given: execution logs are for debugging, not long-term archival
+      // When: the state machine log group retention is inspected
+      // Then: RetentionInDays is 30
+      template.hasResourceProperties("AWS::Logs::LogGroup", {
+        RetentionInDays: 30,
+      });
+    });
   });
 
   // ─── EventBridge ──────────────────────────────────────────────────────────

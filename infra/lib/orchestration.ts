@@ -3,9 +3,10 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as events from "aws-cdk-lib/aws-events";
 import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
 import type * as lambda from "aws-cdk-lib/aws-lambda";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as sfnTasks from "aws-cdk-lib/aws-stepfunctions-tasks";
-import type * as cdk from "aws-cdk-lib/core";
+import * as cdk from "aws-cdk-lib/core";
 import { SCHEDULE_UTC_HOUR } from "./constants";
 
 // Step Functions input key for metadata-generator. Must match
@@ -98,8 +99,21 @@ export const createStateMachine = (
 
   const chain = scriptGeneratorTask.next(parallelProcessing).next(uploadTask);
 
+  // Without an explicit LoggingConfiguration, execution history is only
+  // visible in the Step Functions console. Forwarding it to CloudWatch Logs
+  // keeps state transitions next to the Lambda / ECS logs they trigger.
+  const logGroup = new logs.LogGroup(stack, "VideoFactoryStateMachineLogs", {
+    retention: logs.RetentionDays.ONE_MONTH,
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+  });
+
   return new sfn.StateMachine(stack, "VideoFactoryStateMachine", {
     definitionBody: sfn.DefinitionBody.fromChainable(chain),
+    logs: {
+      destination: logGroup,
+      level: sfn.LogLevel.ALL,
+      includeExecutionData: true,
+    },
   });
 };
 
