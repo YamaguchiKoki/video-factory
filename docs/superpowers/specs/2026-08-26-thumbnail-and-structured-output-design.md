@@ -122,14 +122,16 @@ export const invokeImageModel =
 - オーバーレイ: 黒 40% の矩形を全面に重ね、文字のコントラストを確保
 - タイトル: `script.title` を中央寄せ。フォントサイズは 72px から開始し、3行に収まるまで 4px ずつ縮小（下限 40px）。それでも収まらない場合は3行目の末尾を `…` で切る
 - 日付: 右下に 32px。Lambda 実行時刻を JST で `2026年8月26日` 形式に整形（`Script` に日付フィールドが無いため）
-- フォント: Noto Sans JP (OFL)。`packages/metadata-generator/assets/NotoSansJP-Bold.ttf` を同梱し `GlobalFonts.registerFromPath()` で登録
+- フォント: Noto Sans JP (OFL)。`packages/metadata-generator/assets/NotoSansJP.ttf`（可変ウェイト、約9.6MB）を同梱し `GlobalFonts.registerFromPath()` で登録。`bold` 指定は実測でインク量が約2倍になり効いていることを確認済み（CJK は全角固定なので文字送り幅は変わらない）
 
 ### Docker
 
 `@napi-rs/canvas` はネイティブバイナリを含むため esbuild でバンドルできない。
 
 - ビルドステージ: esbuild に `--external:@napi-rs/canvas` を追加
-- ランタイムステージ: `node_modules/@napi-rs/canvas` と `assets/` を `${LAMBDA_TASK_ROOT}` にコピー
+- ランタイムステージ: `assets/` をコピーし、`npm install --no-save --ignore-scripts --prefix ${LAMBDA_TASK_ROOT} @napi-rs/canvas@<version>` で入れ直す
+
+pnpm の `node_modules` はコンテンツアドレス可能ストアへのシンボリックリンク木なので、`COPY --from=builder` するとリンク先が壊れる。単一のネイティブ依存を npm で入れ直す方が確実。Dockerfile の固定バージョンと実際にインストールされる版が食い違わないよう、テスト (`dockerfile-pin.spec.ts`) で突き合わせる。
 
 ### infra
 
@@ -185,7 +187,7 @@ export const generateStructured = <T>(
   agent: Agent,
   prompt: string,
   schema: z.ZodType<T>,
-  maxAttempts = 3,
+  maxAttempts = 2,
 ): Promise<T>
 ```
 
@@ -206,7 +208,7 @@ export const generateStructured = <T>(
 
 ### リトライ方針
 
-- 回数: 3
+- 回数: **script-generator は 2、metadata-generator は 3**。Lambda のタイムアウト 900 秒（AWS 上限）から逆算した値であり、任意に選んだ数ではない。script-generator は6実行が逐次なので 3 回だと最悪 1080 秒でタイムアウトを超える。metadata-generator は3つの生成が `concurrency: 3` で並列なので実時間は最大値であり、3 回でも 180 秒程度で収まる
 - 待ち時間: なし。構造化の失敗は決定論的に即判明するものであり、レート制限由来の再試行は AI SDK 側が既に行っているため二重化しない
 - ログ: 失敗ごとに attempt 番号と理由を `console.warn` に出力する。今回の調査で「Mastra のログが1行も出ず原因追跡に時間がかかった」ため、この観測点は必須とする
 
@@ -218,6 +220,28 @@ export const generateStructured = <T>(
   - 3回とも `undefined` → throw し、`generate` は3回呼ばれる
   - 1回目失敗・2回目成功 → 成功し、`generate` は2回
 - 既存4ステップの spec を新しいエラーメッセージに追従させる
+
+## 受け入れる副作用
+
+`compose.ts` はモジュール読み込み時にフォントを登録し、失敗すれば `throw` する。
+ES モジュールの依存は import 元の本体より先に評価されるため、この throw は
+`Effect` が動き出す前、ハンドラが存在する前に発生する。結果として
+**フォントが読めないと metadata-generator Lambda 全体がコールドスタートで落ち、
+CloudWatch には `Runtime.ImportModuleError` として出る**。description と comment
+の生成も巻き添えになる。
+
+これは意図的な選択である。代替は「登録に失敗しても黙って続行し、豆腐（□）の
+サムネイルを生成して S3 にアップロードし、成功を返す」という挙動で、これは
+今回修正している障害（出力が壊れているのに成功扱い）と同じ構図になる。
+
+トリガーはデプロイ時に決まる決定論的なもの（イメージにフォントが入っていない、
+ネイティブバイナリのアーキテクチャ違い、`@napi-rs/canvas` のバージョン不一致）
+であり、実行時に散発的に起きるものではない。エラーメッセージには試行した
+絶対パスが含まれる。
+
+サムネイルだけを切り離したい場合は、`generateThumbnail` の
+`Effect.tryPromise` 内で `await import("./compose")` する動的 import に
+変えれば、通常の `ThumbnailGenerationError` として扱える。
 
 ## この設計で解決しないこと
 
