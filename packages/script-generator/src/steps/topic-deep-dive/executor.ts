@@ -1,4 +1,5 @@
 import { createStep } from "@mastra/core/workflows";
+import { generateStructured } from "../../shared/structured-output";
 import type { Topic } from "../topic-selection/schema";
 import { TopicSchema } from "../topic-selection/schema";
 import { TOPIC_DEEP_DIVE_AGENT_ID } from "./agent";
@@ -12,16 +13,11 @@ export const topicDeepDiveStep = createStep({
     const agent = mastra.getAgent(TOPIC_DEEP_DIVE_AGENT_ID);
     if (!agent) throw new Error(`${TOPIC_DEEP_DIVE_AGENT_ID} not found`);
 
-    const response = await agent.generate(buildTopicDeepDivePrompt(inputData), {
-      structuredOutput: { schema: EnrichedTopicSchema },
-    });
-
-    const parsed = EnrichedTopicSchema.safeParse(response.object);
-    if (!parsed.success)
-      throw new Error(
-        `Structured output validation failed: ${parsed.error.message}`,
-      );
-    return parsed.data;
+    return generateStructured(
+      agent,
+      buildTopicDeepDivePrompt(inputData),
+      EnrichedTopicSchema,
+    );
   },
 });
 

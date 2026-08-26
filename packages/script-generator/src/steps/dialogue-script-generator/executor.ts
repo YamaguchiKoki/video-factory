@@ -1,5 +1,6 @@
 import { createStep } from "@mastra/core/workflows";
 import { ScriptSchema } from "../../schema";
+import { generateStructured } from "../../shared/structured-output";
 import type { VerifiedTopicsOutput } from "../fact-check/schema";
 import { VerifiedTopicsOutputSchema } from "../fact-check/schema";
 import { DIALOGUE_SCRIPT_GENERATOR_AGENT_ID } from "./agent";
@@ -13,14 +14,11 @@ export const dialogueScriptGeneratorStep = createStep({
     if (!agent)
       throw new Error(`${DIALOGUE_SCRIPT_GENERATOR_AGENT_ID} not found`);
 
-    const response = await agent.generate(
+    return generateStructured(
+      agent,
       buildDialogueScriptPrompt(inputData),
-      {
-        structuredOutput: { schema: ScriptSchema },
-      },
+      ScriptSchema,
     );
-
-    return response.object;
   },
 });
 
