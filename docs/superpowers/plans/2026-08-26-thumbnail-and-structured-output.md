@@ -319,8 +319,12 @@ describe("parseStructuredOutput", () => {
       $schema: JSON.stringify(value),
     });
 
-    // Assert
+    // Assert — 成功判定は3形態すべて無条件に行う。
+    // if (isSuccess) ガードの中だけで判定すると、復旧に失敗しても
+    // ガードが false になるだけでテストが通ってしまう。
     expect(Result.isSuccess(plain)).toBe(true);
+    expect(Result.isSuccess(asString)).toBe(true);
+    expect(Result.isSuccess(wrapped)).toBe(true);
     if (Result.isSuccess(plain)) expect(plain.success).toEqual(value);
     if (Result.isSuccess(asString)) expect(asString.success).toEqual(value);
     if (Result.isSuccess(wrapped)) expect(wrapped.success).toEqual(value);
