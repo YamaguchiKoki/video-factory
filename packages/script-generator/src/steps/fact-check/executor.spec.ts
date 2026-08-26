@@ -63,6 +63,57 @@ describe("factCheckStep", () => {
     // Assert
     expect(mockGetAgent).toHaveBeenCalledWith("fact-check-agent");
   });
+
+  it("should recover verified topics wrapped as {$schema: JSON string} without spending a retry", async () => {
+    // Arrange — reproduces the 2026-08-09 production failure shape: Mastra
+    // returned valid JSON stringified and wrapped under a single "$schema" key
+    // instead of the array itself.
+    const verifiedTopics = [
+      buildVerifiedTopic("news-1"),
+      buildVerifiedTopic("news-2"),
+      buildVerifiedTopic("news-3"),
+    ];
+    const mockAgent = {
+      generate: vi.fn().mockResolvedValue({
+        object: { $schema: JSON.stringify(verifiedTopics) },
+        finishReason: "stop",
+      }),
+    };
+    const mockMastra = {
+      getAgent: vi.fn().mockReturnValue(mockAgent),
+    } as unknown as Mastra;
+
+    // Act
+    const result = await factCheckStep.execute(
+      buildParams(buildEnrichedTopics(), mockMastra),
+    );
+
+    // Assert — the wrapper is unwrapped and recovery does not burn a retry
+    expect(result).toEqual(verifiedTopics);
+    expect(mockAgent.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("should reject invalid output after exhausting all retries", async () => {
+    // Arrange — reliabilityScore is out of the [0,1] range on every attempt
+    const invalidTopics = [
+      { ...buildVerifiedTopic("news-1"), reliabilityScore: 1.5 },
+    ];
+    const mockAgent = {
+      generate: vi.fn().mockResolvedValue({
+        object: invalidTopics,
+        finishReason: "length",
+      }),
+    };
+    const mockMastra = {
+      getAgent: vi.fn().mockReturnValue(mockAgent),
+    } as unknown as Mastra;
+
+    // Act + Assert
+    await expect(
+      factCheckStep.execute(buildParams(buildEnrichedTopics(), mockMastra)),
+    ).rejects.toThrow(/Structured output validation failed/);
+    expect(mockAgent.generate).toHaveBeenCalledTimes(3);
+  });
 });
 
 // Helpers

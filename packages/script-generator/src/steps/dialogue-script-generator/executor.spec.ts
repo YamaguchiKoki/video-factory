@@ -65,6 +65,53 @@ describe("dialogueScriptGeneratorStep", () => {
       "dialogue-script-generator-agent",
     );
   });
+
+  it("should recover a script wrapped as {$schema: JSON string} without spending a retry", async () => {
+    // Arrange — reproduces the 2026-08-09 production failure shape: Mastra
+    // returned the complete, correct script JSON stringified and wrapped
+    // under a single "$schema" key instead of the object itself.
+    const validScript = buildValidScript();
+    const mockAgent = {
+      generate: vi.fn().mockResolvedValue({
+        object: { $schema: JSON.stringify(validScript) },
+        finishReason: "stop",
+      }),
+    };
+    const mockMastra = {
+      getAgent: vi.fn().mockReturnValue(mockAgent),
+    } as unknown as Mastra;
+
+    // Act
+    const result = await dialogueScriptGeneratorStep.execute(
+      buildParams(buildVerifiedTopics(), mockMastra),
+    );
+
+    // Assert — the wrapper is unwrapped and recovery does not burn a retry
+    expect(result).toEqual(validScript);
+    expect(mockAgent.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("should reject invalid output after exhausting all retries", async () => {
+    // Arrange — object is missing required fields (newsItems, sections) on
+    // every attempt
+    const mockAgent = {
+      generate: vi.fn().mockResolvedValue({
+        object: { title: "invalid, missing required fields" },
+        finishReason: "length",
+      }),
+    };
+    const mockMastra = {
+      getAgent: vi.fn().mockReturnValue(mockAgent),
+    } as unknown as Mastra;
+
+    // Act + Assert
+    await expect(
+      dialogueScriptGeneratorStep.execute(
+        buildParams(buildVerifiedTopics(), mockMastra),
+      ),
+    ).rejects.toThrow(/Structured output validation failed/);
+    expect(mockAgent.generate).toHaveBeenCalledTimes(3);
+  });
 });
 
 // Helpers
