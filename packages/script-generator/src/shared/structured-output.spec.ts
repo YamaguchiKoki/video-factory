@@ -1,5 +1,6 @@
+import { fc, it } from "@fast-check/vitest";
 import type { Agent } from "@mastra/core/agent";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, vi } from "vitest";
 import { z } from "zod";
 import { generateStructured } from "./structured-output";
 
@@ -75,7 +76,7 @@ describe("generateStructured", () => {
     expect(generate).toHaveBeenCalledTimes(3);
   });
 
-  it("should propagate an error thrown by agent.generate", async () => {
+  it("should propagate an error thrown by agent.generate without retrying", async () => {
     // Arrange
     const generate = vi.fn().mockRejectedValue(new Error("Bedrock timeout"));
 
@@ -83,6 +84,7 @@ describe("generateStructured", () => {
     await expect(
       generateStructured(buildAgent(generate), "prompt", TopicSchema),
     ).rejects.toThrow("Bedrock timeout");
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 
   it("should respect a custom maxAttempts", async () => {
@@ -95,6 +97,93 @@ describe("generateStructured", () => {
     ).rejects.toThrow(/Structured output validation failed/);
     expect(generate).toHaveBeenCalledTimes(1);
   });
+
+  it.prop([
+    fc.integer({ min: 1, max: 5 }).chain((maxAttempts) =>
+      fc.record({
+        maxAttempts: fc.constant(maxAttempts),
+        attemptToSucceed: fc.integer({ min: 1, max: maxAttempts }),
+      }),
+    ),
+  ])(
+    "should succeed exactly on attemptToSucceed and call agent.generate that many times",
+    async ({ maxAttempts, attemptToSucceed }) => {
+      // Arrange — undefined for every attempt before attemptToSucceed, then a valid object
+      const generate = vi.fn();
+      Array.from({ length: attemptToSucceed - 1 }).forEach(() => {
+        generate.mockResolvedValueOnce({
+          object: undefined,
+          finishReason: "length",
+        });
+      });
+      generate.mockResolvedValueOnce({ object: VALID, finishReason: "stop" });
+
+      // Act
+      const result = await generateStructured(
+        buildAgent(generate),
+        "prompt",
+        TopicSchema,
+        maxAttempts,
+      );
+
+      // Assert
+      expect(result).toEqual(VALID);
+      expect(generate).toHaveBeenCalledTimes(attemptToSucceed);
+    },
+  );
+
+  // 上記の property は成功パスしか踏まないため、n >= maxAttempts の境界
+  // （呼び出し回数を maxAttempts で必ず打ち切る、という不変条件）を検出
+  // できない。succeedsOnAttempt が maxAttempts を超えるケース（予算内で
+  // 一度も成功しない）まで含めることで境界を直接検証する。
+  it.prop([
+    fc.integer({ min: 1, max: 5 }).chain((maxAttempts) =>
+      fc.record({
+        maxAttempts: fc.constant(maxAttempts),
+        succeedsOnAttempt: fc.integer({ min: 1, max: maxAttempts + 1 }),
+      }),
+    ),
+  ])(
+    "should never call agent.generate more than maxAttempts times",
+    async ({ maxAttempts, succeedsOnAttempt }) => {
+      // Arrange — succeedsOnAttempt > maxAttempts means it never succeeds
+      const neverSucceeds = succeedsOnAttempt > maxAttempts;
+      const failingCalls = neverSucceeds ? maxAttempts : succeedsOnAttempt - 1;
+      const generate = vi.fn();
+      Array.from({ length: failingCalls }).forEach(() => {
+        generate.mockResolvedValueOnce({
+          object: undefined,
+          finishReason: "length",
+        });
+      });
+      if (!neverSucceeds) {
+        generate.mockResolvedValueOnce({ object: VALID, finishReason: "stop" });
+      }
+
+      // Act + Assert
+      if (neverSucceeds) {
+        await expect(
+          generateStructured(
+            buildAgent(generate),
+            "prompt",
+            TopicSchema,
+            maxAttempts,
+          ),
+        ).rejects.toThrow(/Structured output validation failed/);
+      } else {
+        const result = await generateStructured(
+          buildAgent(generate),
+          "prompt",
+          TopicSchema,
+          maxAttempts,
+        );
+        expect(result).toEqual(VALID);
+      }
+      expect(generate).toHaveBeenCalledTimes(
+        neverSucceeds ? maxAttempts : succeedsOnAttempt,
+      );
+    },
+  );
 });
 
 // Helpers
