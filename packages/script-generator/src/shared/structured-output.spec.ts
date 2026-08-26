@@ -158,6 +158,15 @@ describe("generateStructured", () => {
       });
       if (!neverSucceeds) {
         generate.mockResolvedValueOnce({ object: VALID, finishReason: "stop" });
+      } else {
+        // Fallback for any surplus call beyond maxAttempts: a well-formed
+        // failing response, so an over-calling regression fails on the
+        // toHaveBeenCalledTimes assertion below instead of crashing on
+        // response.object being read off an exhausted mock's `undefined`.
+        generate.mockResolvedValue({
+          object: undefined,
+          finishReason: "length",
+        });
       }
 
       // Act + Assert
