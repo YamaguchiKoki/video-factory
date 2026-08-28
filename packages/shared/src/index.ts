@@ -10,3 +10,4 @@ export {
 export type { S3EnvConfig } from "./s3-config.js";
 export { createS3ClientConfig } from "./s3-config.js";
 export * from "./schemas/index.js";
+export { parseStructuredOutput } from "./structured-output.js";

@@ -51,6 +51,34 @@ describe("topicSelectionStep", () => {
     ).rejects.toThrow("Bedrock timeout");
   });
 
+  it("should throw a descriptive error when response.object is undefined", async () => {
+    // Arrange — the structuring agent produced nothing, so `object` is absent.
+    // Returning it as-is used to surface downstream as
+    // "Cannot read properties of undefined (reading 'length')" inside foreach.
+    const mockMastra = buildMockMastra({ object: undefined });
+
+    // Act + Assert
+    await expect(
+      topicSelectionStep.execute(
+        buildParams({ genre: "政治経済" }, mockMastra),
+      ),
+    ).rejects.toThrow(/Structured output validation failed/);
+  });
+
+  it("should throw when response.object fails TopicsOutputSchema validation", async () => {
+    // Arrange — only 2 topics, but the schema requires exactly 3
+    const mockMastra = buildMockMastra({
+      object: [buildTopic("news-1"), buildTopic("news-2")],
+    });
+
+    // Act + Assert
+    await expect(
+      topicSelectionStep.execute(
+        buildParams({ genre: "政治経済" }, mockMastra),
+      ),
+    ).rejects.toThrow(/Structured output validation failed/);
+  });
+
   it("should call getAgent with the correct agent id", async () => {
     // Arrange
     const validTopics = [

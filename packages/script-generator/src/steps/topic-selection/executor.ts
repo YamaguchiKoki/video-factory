@@ -1,6 +1,7 @@
 import { createStep } from "@mastra/core/workflows";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { generateStructured } from "../../shared/structured-output";
 import { TOPIC_SELECTION_AGENT_ID } from "./agent";
 import type { WorkflowInput } from "./schema";
 import { TopicsOutputSchema, WorkflowInputSchema } from "./schema";
@@ -13,14 +14,12 @@ export const topicSelectionStep = createStep({
     const agent = mastra.getAgent(TOPIC_SELECTION_AGENT_ID);
     if (!agent) throw new Error(`${TOPIC_SELECTION_AGENT_ID} not found`);
 
-    const response = await agent.generate(
+    return generateStructured(
+      TOPIC_SELECTION_AGENT_ID,
+      agent,
       buildTopicSelectionPrompt(inputData),
-      {
-        structuredOutput: { schema: TopicsOutputSchema },
-      },
+      TopicsOutputSchema,
     );
-
-    return response.object;
   },
 });
 
