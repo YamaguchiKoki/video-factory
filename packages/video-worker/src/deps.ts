@@ -118,7 +118,10 @@ export const createLocalDeps = (
             cause: e instanceof Error ? e : undefined,
           }),
       }),
-    createTempDir: createTempDirBase,
+    // 本番（createDockerDeps）と同じく素材をコピーする。ここが分岐していると
+    // ローカルで通っても本番で落ちる（逆も然り）という状態になり、
+    // ローカル実行が本番の証拠にならなくなる。
+    createTempDir: createTempDirWithAssets,
     cleanupTempDir,
     logger,
     entryPoint,
