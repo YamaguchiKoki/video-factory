@@ -54,6 +54,8 @@ jobs:
             dockerfile: packages/tts-worker/Dockerfile
           - name: video-worker
             dockerfile: packages/video-worker/Dockerfile
+          - name: uploader
+            dockerfile: packages/uploader/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

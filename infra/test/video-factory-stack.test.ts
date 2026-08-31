@@ -139,11 +139,20 @@ describe("VideoFactoryStack CloudFormation template", () => {
 
   // ─── ECR ──────────────────────────────────────────────────────────────────
   describe("ECR Repositories (in EcrStack)", () => {
-    it("should create exactly four ECR repositories (tts-worker, video-worker, script-generator, metadata-generator)", () => {
+    it("should create exactly five ECR repositories (tts-worker, video-worker, script-generator, metadata-generator, uploader)", () => {
       // Given: each containerised step has its own ECR repository
       // When: ECR repositories in the EcrStack template are counted
-      // Then: exactly 4 repositories are created
-      ecrTemplate.resourceCountIs("AWS::ECR::Repository", 4);
+      // Then: exactly 5 repositories are created
+      ecrTemplate.resourceCountIs("AWS::ECR::Repository", 5);
+    });
+
+    it("should create the uploader repository", () => {
+      // Given: uploader is deployed as a Lambda container image
+      // When: ECR repository names are inspected
+      // Then: a repository named "uploader" exists
+      ecrTemplate.hasResourceProperties("AWS::ECR::Repository", {
+        RepositoryName: "uploader",
+      });
     });
 
     it("should create the metadata-generator repository", () => {
@@ -243,15 +252,28 @@ describe("VideoFactoryStack CloudFormation template", () => {
       });
     });
 
-    it("should pass GOOGLE_DRIVE_SECRET_ARN to Upload Lambda", () => {
-      // Given: Upload Lambda reads Google Drive credentials from Secrets Manager at runtime
+    it("should pass YOUTUBE_SECRET_ARN to Upload Lambda", () => {
+      // Given: Upload Lambda reads the YouTube OAuth credentials from Secrets Manager
       // When: a Lambda function with timeout 900 is inspected
-      // Then: GOOGLE_DRIVE_SECRET_ARN is present in the environment variables
+      // Then: YOUTUBE_SECRET_ARN is present in the environment variables
       template.hasResourceProperties("AWS::Lambda::Function", {
         Timeout: 900,
         Environment: {
           Variables: Match.objectLike({
-            GOOGLE_DRIVE_SECRET_ARN: Match.anyValue(),
+            YOUTUBE_SECRET_ARN: Match.anyValue(),
+          }),
+        },
+      });
+    });
+
+    it("should default the upload privacy status to private", () => {
+      // Given: API 経由のアップロードは人が中身を見てから公開する運用にしたい
+      // When: Upload Lambda の環境変数を確認する
+      // Then: YOUTUBE_PRIVACY_STATUS が "private" になっている
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Environment: {
+          Variables: Match.objectLike({
+            YOUTUBE_PRIVACY_STATUS: "private",
           }),
         },
       });
