@@ -20,6 +20,7 @@ export const createVideoFactoryStack = (
     videoEcrRepo,
     scriptGeneratorEcrRepo,
     metadataGeneratorEcrRepo,
+    uploaderEcrRepo,
   } = repositories;
 
   const stack = new cdk.Stack(scope, "VideoFactoryStack", {
@@ -51,6 +52,7 @@ export const createVideoFactoryStack = (
       googleDriveSecret,
       scriptGeneratorEcrRepo,
       metadataGeneratorEcrRepo,
+      uploaderEcrRepo,
       imageTag,
     });
 

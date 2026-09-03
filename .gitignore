@@ -29,3 +29,6 @@ coverage/
 packages/script-generator/proto
 .mastra
 .claude/worktrees/
+
+# ローカル確認用の生成物置き場（動画・音声・サムネなど）。コミットしない。
+.local/

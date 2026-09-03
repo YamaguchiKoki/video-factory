@@ -17,6 +17,7 @@ type LambdaFunctionsInput = {
   readonly googleDriveSecret: secretsmanager.Secret;
   readonly scriptGeneratorEcrRepo: ecr.Repository;
   readonly metadataGeneratorEcrRepo: ecr.Repository;
+  readonly uploaderEcrRepo: ecr.Repository;
   readonly imageTag: string;
 };
 
@@ -30,6 +31,7 @@ export const createLambdaFunctions = (
     googleDriveSecret,
     scriptGeneratorEcrRepo,
     metadataGeneratorEcrRepo,
+    uploaderEcrRepo,
     imageTag,
   } = input;
 
@@ -48,7 +50,9 @@ export const createLambdaFunctions = (
 
   const uploadLambda = createUploadLambda(stack, {
     bucket,
-    googleDriveSecret,
+    youtubeSecret: googleDriveSecret,
+    uploaderEcrRepo,
+    imageTag,
   });
 
   return { scriptGeneratorLambda, metadataGeneratorLambda, uploadLambda };
@@ -135,30 +139,39 @@ const bedrockInvokePolicy = (): iam.PolicyStatement =>
 
 type UploadInput = {
   readonly bucket: s3.Bucket;
-  readonly googleDriveSecret: secretsmanager.Secret;
+  readonly youtubeSecret: secretsmanager.Secret;
+  readonly uploaderEcrRepo: ecr.Repository;
+  readonly imageTag: string;
 };
+
+// 動画本体を読み込んで YouTube に送るため、メモリは他の Lambda より多めに取る。
+// 生成される MP4 は 8〜9 分で 30MB 前後だが、base64 化されないバイト列を
+// そのまま扱うので実測に対して余裕を持たせている。
+const UPLOADER_MEMORY_MB = 2048;
 
 const createUploadLambda = (
   stack: cdk.Stack,
   input: UploadInput,
-): lambda.Function => {
-  const { bucket, googleDriveSecret } = input;
+): lambda.DockerImageFunction => {
+  const { bucket, youtubeSecret, uploaderEcrRepo, imageTag } = input;
 
-  const fn = new lambda.Function(stack, "UploadLambda", {
-    runtime: lambda.Runtime.NODEJS_22_X,
-    code: lambda.Code.fromInline(
-      'exports.handler = async (event) => { console.log(JSON.stringify(event)); return { status: "ok" }; }',
-    ),
-    handler: "index.handler",
+  const fn = new lambda.DockerImageFunction(stack, "UploadLambda", {
+    code: lambda.DockerImageCode.fromEcr(uploaderEcrRepo, {
+      tagOrDigest: imageTag,
+    }),
+    memorySize: UPLOADER_MEMORY_MB,
     timeout: cdk.Duration.minutes(15),
     environment: {
       S3_BUCKET: bucket.bucketName,
-      GOOGLE_DRIVE_SECRET_ARN: googleDriveSecret.secretArn,
+      YOUTUBE_SECRET_ARN: youtubeSecret.secretArn,
+      // 既定は private。チャンネル未確認だと API 経由のアップロードは
+      // どのみち非公開になるうえ、公開前に人が中身を見る余地を残す。
+      YOUTUBE_PRIVACY_STATUS: "private",
     },
   });
 
   bucket.grantRead(fn);
-  googleDriveSecret.grantRead(fn);
+  youtubeSecret.grantRead(fn);
 
   return fn;
 };
